@@ -551,8 +551,8 @@ export async function saveSchedule(
   userId: string,
   scheduleItems: Array<{
     content_id: string;
-    season: number;
-    episode: number;
+    season: number | null;
+    episode: number | null;
     scheduled_time: Date;
     duration: number;
   }>,
