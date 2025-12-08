@@ -1,5 +1,8 @@
 import Fastify from 'fastify';
 import { db, testConnection, closeConnection } from './db/index.js';
+import { errorHandlerPlugin } from './plugins/error-handler.js';
+import { authRoutes } from './routes/auth.js';
+import { contentRoutes } from './routes/content.js';
 
 const fastify = Fastify({ 
   logger: {
@@ -73,6 +76,13 @@ const start = async () => {
     // Test database connection
     await testConnection();
     
+    // Register plugins
+    await fastify.register(errorHandlerPlugin);
+    
+    // Register routes
+    await fastify.register(authRoutes);
+    await fastify.register(contentRoutes);
+    
     const port = Number(process.env.PORT) || 3000;
     const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
     
@@ -81,6 +91,15 @@ const start = async () => {
     console.log(`🚀 Server running on http://${host}:${port}`);
     console.log(`📊 Health check: http://${host}:${port}/health`);
     console.log(`🧪 Test endpoint: http://${host}:${port}/api/test`);
+    console.log(`🔐 Auth endpoints:`);
+    console.log(`   POST ${host}:${port}/api/auth/register`);
+    console.log(`   POST ${host}:${port}/api/auth/login`);
+    console.log(`   GET  ${host}:${port}/api/auth/me`);
+    console.log(`📺 Content endpoints:`);
+    console.log(`   GET  ${host}:${port}/api/content/search?q=query`);
+    console.log(`   GET  ${host}:${port}/api/content/:tmdbId`);
+    console.log(`   GET  ${host}:${port}/api/content/:tmdbId/episodes`);
+    console.log(`   GET  ${host}:${port}/api/content/library`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
