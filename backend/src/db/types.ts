@@ -1,0 +1,152 @@
+// Database types for Kysely
+export interface Database {
+  users: {
+    id: string;
+    email: string;
+    password_hash: string;
+    created_at: Date;
+    updated_at: Date;
+  };
+
+  content: {
+    id: string;
+    tmdb_id: number;
+    content_type: 'show' | 'movie';
+    title: string;
+    poster_url: string | null;
+    backdrop_url: string | null;
+    overview: string | null;
+    release_date: Date | null; // For movies
+    first_air_date: Date | null; // For shows
+    last_air_date: Date | null; // For shows
+    default_duration: number;
+    number_of_seasons: number | null; // For shows
+    number_of_episodes: number | null; // For shows
+    status: string | null;
+    created_at: Date;
+    updated_at: Date;
+  };
+
+  episodes: {
+    id: string;
+    content_id: string;
+    season: number;
+    episode_number: number;
+    title: string | null;
+    overview: string | null;
+    duration: number;
+    air_date: Date | null;
+    still_url: string | null;
+    created_at: Date;
+  };
+
+  watch_history: {
+    id: string;
+    user_id: string;
+    content_id: string;
+    season: number | null; // NULL for movies
+    episode: number | null; // NULL for movies
+    watched_at: Date;
+    rewatch_count: number;
+    synced: boolean;
+    created_at: Date;
+  };
+
+  schedule: {
+    id: string;
+    user_id: string;
+    content_id: string;
+    season: number | null; // NULL for movies
+    episode: number | null; // NULL for movies
+    scheduled_time: Date;
+    duration: number;
+    source_type: 'manual' | 'auto' | 'block' | 'rotation';
+    source_id: string | null;
+    watched: boolean;
+    synced: boolean;
+    created_at: Date;
+  };
+
+  queue: {
+    id: string;
+    user_id: string;
+    content_id: string;
+    season: number | null;
+    episode: number | null;
+    position: number;
+    synced: boolean;
+    created_at: Date;
+  };
+
+  programming_blocks: {
+    id: string;
+    user_id: string;
+    name: string;
+    description: string | null;
+    block_type: 'template' | 'custom';
+    criteria: Record<string, any>; // JSONB
+    schedule_days: string[];
+    start_time: string | null; // TIME
+    end_time: string | null; // TIME
+    rotation_type: 'sequential' | 'random';
+    created_at: Date;
+    updated_at: Date;
+  };
+
+  block_content: {
+    id: string;
+    block_id: string;
+    content_id: string;
+    position: number;
+    time_slot: string | null; // TIME
+    duration: number | null;
+    current_season: number;
+    current_episode: number;
+    created_at: Date;
+  };
+
+  rotation_groups: {
+    id: string;
+    user_id: string;
+    name: string | null;
+    rotation_type: 'round_robin' | 'random';
+    max_consecutive: number;
+    created_at: Date;
+  };
+
+  rotation_content: {
+    id: string;
+    rotation_id: string;
+    content_id: string;
+    position: number;
+    current_season: number;
+    current_episode: number;
+    created_at: Date;
+  };
+
+  user_preferences: {
+    id: string;
+    user_id: string;
+    include_reruns: boolean;
+    rerun_frequency: 'never' | 'rarely' | 'sometimes' | 'often';
+    max_shows_per_time_slot: number;
+    time_slot_duration: number;
+    allow_overlap: boolean;
+    default_start_time: string | null; // TIME
+    default_end_time: string | null; // TIME
+    onboarding_completed: boolean;
+    created_at: Date;
+    updated_at: Date;
+  };
+
+  sync_metadata: {
+    id: string;
+    user_id: string;
+    last_sync_time: Date | null;
+    sync_token: string | null;
+    device_id: string | null;
+    created_at: Date;
+    updated_at: Date;
+  };
+}
+
