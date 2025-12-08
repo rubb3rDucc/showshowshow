@@ -1,4 +1,3 @@
-// Database types for Kysely
 export interface Database {
   users: {
     id: string;
@@ -7,7 +6,6 @@ export interface Database {
     created_at: Date;
     updated_at: Date;
   };
-
   content: {
     id: string;
     tmdb_id: number;
@@ -16,17 +14,16 @@ export interface Database {
     poster_url: string | null;
     backdrop_url: string | null;
     overview: string | null;
-    release_date: Date | null; // For movies
-    first_air_date: Date | null; // For shows
-    last_air_date: Date | null; // For shows
+    release_date: Date | null;
+    first_air_date: Date | null;
+    last_air_date: Date | null;
     default_duration: number;
-    number_of_seasons: number | null; // For shows
-    number_of_episodes: number | null; // For shows
+    number_of_seasons: number | null;
+    number_of_episodes: number | null;
     status: string | null;
     created_at: Date;
     updated_at: Date;
   };
-
   episodes: {
     id: string;
     content_id: string;
@@ -39,25 +36,23 @@ export interface Database {
     still_url: string | null;
     created_at: Date;
   };
-
   watch_history: {
     id: string;
     user_id: string;
     content_id: string;
-    season: number | null; // NULL for movies
-    episode: number | null; // NULL for movies
+    season: number | null;
+    episode: number | null;
     watched_at: Date;
     rewatch_count: number;
     synced: boolean;
     created_at: Date;
   };
-
   schedule: {
     id: string;
     user_id: string;
     content_id: string;
-    season: number | null; // NULL for movies
-    episode: number | null; // NULL for movies
+    season: number | null;
+    episode: number | null;
     scheduled_time: Date;
     duration: number;
     source_type: 'manual' | 'auto' | 'block' | 'rotation';
@@ -66,7 +61,6 @@ export interface Database {
     synced: boolean;
     created_at: Date;
   };
-
   queue: {
     id: string;
     user_id: string;
@@ -77,34 +71,31 @@ export interface Database {
     synced: boolean;
     created_at: Date;
   };
-
   programming_blocks: {
     id: string;
     user_id: string;
     name: string;
     description: string | null;
     block_type: 'template' | 'custom';
-    criteria: Record<string, any>; // JSONB
+    criteria: Record<string, any>;
     schedule_days: string[];
-    start_time: string | null; // TIME
-    end_time: string | null; // TIME
+    start_time: string | null;
+    end_time: string | null;
     rotation_type: 'sequential' | 'random';
     created_at: Date;
     updated_at: Date;
   };
-
   block_content: {
     id: string;
     block_id: string;
     content_id: string;
     position: number;
-    time_slot: string | null; // TIME
+    time_slot: string | null;
     duration: number | null;
     current_season: number;
     current_episode: number;
     created_at: Date;
   };
-
   rotation_groups: {
     id: string;
     user_id: string;
@@ -113,7 +104,6 @@ export interface Database {
     max_consecutive: number;
     created_at: Date;
   };
-
   rotation_content: {
     id: string;
     rotation_id: string;
@@ -123,7 +113,6 @@ export interface Database {
     current_episode: number;
     created_at: Date;
   };
-
   user_preferences: {
     id: string;
     user_id: string;
@@ -132,13 +121,12 @@ export interface Database {
     max_shows_per_time_slot: number;
     time_slot_duration: number;
     allow_overlap: boolean;
-    default_start_time: string | null; // TIME
-    default_end_time: string | null; // TIME
+    default_start_time: string | null;
+    default_end_time: string | null;
     onboarding_completed: boolean;
     created_at: Date;
     updated_at: Date;
   };
-
   sync_metadata: {
     id: string;
     user_id: string;
@@ -149,4 +137,3 @@ export interface Database {
     updated_at: Date;
   };
 }
-

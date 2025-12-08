@@ -1,7 +1,7 @@
 import { Kysely, PostgresDialect } from 'kysely';
 import pg from 'pg';
 import dotenv from 'dotenv';
-import type { Database } from './types.js';
+import { Database } from './types.js';
 
 dotenv.config();
 
@@ -48,4 +48,3 @@ export async function closeConnection() {
   await pool.end();
   console.log('Database connection closed');
 }
-
