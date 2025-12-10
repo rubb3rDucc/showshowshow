@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+coverage/
 
 # Environment variables
 .env
@@ -25,4 +26,5 @@ Thumbs.db
 # Database
 *.db
 *.sqlite
+
 
