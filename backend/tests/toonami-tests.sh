@@ -4,7 +4,8 @@
 # Make sure your server is running: pnpm run dev
 # Make sure you have a user account and TOKEN set
 
-BASE_URL="http://localhost:3000"
+# Configuration - defaults to local instance
+BASE_URL="${BASE_URL:-http://localhost:3000}"
 
 # Colors for output
 GREEN='\033[0;32m'

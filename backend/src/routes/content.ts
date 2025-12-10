@@ -7,42 +7,105 @@ import type { FastifyInstance } from 'fastify';
 export const contentRoutes = async (fastify: FastifyInstance) => {
   // Search for shows and movies
   fastify.get('/api/content/search', async (request, reply) => {
-    const { q, page = '1' } = request.query as { q?: string; page?: string };
+    const { q, page = '1', type } = request.query as { q?: string; page?: string; type?: 'tv' | 'movie' };
     
     if (!q || q.trim().length === 0) {
       throw new ValidationError('Search query is required');
     }
 
+    // Validate type parameter if provided
+    if (type && type !== 'tv' && type !== 'movie') {
+      throw new ValidationError('Type must be either "tv" or "movie"');
+    }
+
     const pageNum = parseInt(page, 10) || 1;
     const searchResults = await searchTMDB(q, pageNum);
 
-    // Transform results to include image URLs
-    const results = searchResults.results.map((result: any) => ({
-      tmdb_id: result.id,
-      title: result.name || result.title || 'Unknown',
-      overview: result.overview,
-      poster_url: getImageUrl(result.poster_path),
-      backdrop_url: getImageUrl(result.backdrop_path, 'w780'),
-      content_type: getContentType(result),
-      release_date: result.release_date || result.first_air_date || null,
-      media_type: result.media_type,
-    }));
+    // Transform results to include image URLs and normalize media_type
+    let results = searchResults.results.map((result: any) => {
+      const mediaType = result.media_type || getContentType(result);
+      const normalizedType = mediaType === 'tv' ? 'tv' : 'movie';
+      
+      return {
+        tmdb_id: result.id,
+        title: result.name || result.title || 'Unknown',
+        overview: result.overview,
+        poster_url: getImageUrl(result.poster_path),
+        backdrop_url: getImageUrl(result.backdrop_path, 'w780'),
+        content_type: normalizedType,
+        media_type: normalizedType,
+        release_date: result.release_date || result.first_air_date || null,
+        vote_average: result.vote_average || 0,
+        popularity: result.popularity || 0,
+      };
+    });
+
+    // Filter by type if specified
+    if (type) {
+      results = results.filter((r: any) => r.media_type === type);
+    }
+
+    // Check which results are already cached in the database
+    const resultsWithCacheStatus = await Promise.all(
+      results.map(async (result: any) => {
+        const cached = await db
+          .selectFrom('content')
+          .select(['id', 'content_type'])
+          .where('tmdb_id', '=', result.tmdb_id)
+          .executeTakeFirst();
+        
+        return {
+          ...result,
+          is_cached: !!cached,
+          cached_id: cached?.id || null,
+          cached_type: cached?.content_type || null,
+        };
+      })
+    );
 
     return reply.send({
-      results,
+      results: resultsWithCacheStatus,
       page: searchResults.page,
       total_pages: searchResults.total_pages,
-      total_results: searchResults.total_results,
+      total_results: type ? resultsWithCacheStatus.length : searchResults.total_results,
+    });
+  });
+
+  // Check if content is already cached (without caching it)
+  fastify.get('/api/content/:tmdbId/check', async (request, reply) => {
+    const { tmdbId } = request.params as { tmdbId: string };
+    const tmdbIdNum = parseInt(tmdbId, 10);
+
+    if (isNaN(tmdbIdNum)) {
+      throw new ValidationError('Invalid TMDB ID');
+    }
+
+    const cached = await db
+      .selectFrom('content')
+      .selectAll()
+      .where('tmdb_id', '=', tmdbIdNum)
+      .executeTakeFirst();
+
+    return reply.send({
+      tmdb_id: tmdbIdNum,
+      is_cached: !!cached,
+      content: cached || null,
     });
   });
 
   // Get show or movie details (and cache in database)
   fastify.get('/api/content/:tmdbId', async (request, reply) => {
     const { tmdbId } = request.params as { tmdbId: string };
+    const { type } = request.query as { type?: 'tv' | 'movie' };
     const tmdbIdNum = parseInt(tmdbId, 10);
 
     if (isNaN(tmdbIdNum)) {
       throw new ValidationError('Invalid TMDB ID');
+    }
+
+    // Validate type parameter if provided
+    if (type && type !== 'tv' && type !== 'movie') {
+      throw new ValidationError('Type must be either "tv" or "movie"');
     }
 
     // Check if already in database
@@ -52,19 +115,51 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       .where('tmdb_id', '=', tmdbIdNum)
       .executeTakeFirst();
 
-    if (existing) {
-      // If content exists but might be wrong type, try to refresh
-      // For now, just return existing - can add ?refresh=true param later
+    // If type is specified and existing content doesn't match, delete and re-fetch
+    if (existing && type) {
+      const existingType = existing.content_type === 'show' ? 'tv' : 'movie';
+      if (existingType !== type) {
+        console.log(`Content ${tmdbIdNum} exists as ${existingType} but ${type} requested. Deleting and re-fetching...`);
+        
+        // Delete related data first
+        await db.deleteFrom('episodes').where('content_id', '=', existing.id).execute();
+        await db.deleteFrom('queue').where('content_id', '=', existing.id).execute();
+        await db.deleteFrom('schedule').where('content_id', '=', existing.id).execute();
+        await db.deleteFrom('content').where('id', '=', existing.id).execute();
+        
+        // Continue to fetch new content below
+      } else {
+        // Type matches, return existing
+        return reply.send(existing);
+      }
+    } else if (existing) {
+      // No type specified and content exists, return it
       return reply.send(existing);
     }
 
-    // Fetch from TMDB - try movie first, then show (movies are more common)
+    // Fetch from TMDB based on type parameter
     let content: any;
-    let contentType = 'movie';
 
-    try {
+    if (type === 'tv') {
+      // Force TV show lookup
+      const show = await getShowDetails(tmdbIdNum);
+      content = {
+        tmdb_id: show.id,
+        content_type: 'show',
+        title: show.name,
+        overview: show.overview,
+        poster_url: getImageUrl(show.poster_path),
+        backdrop_url: getImageUrl(show.backdrop_path, 'w780'),
+        first_air_date: show.first_air_date ? new Date(show.first_air_date) : null,
+        last_air_date: show.last_air_date ? new Date(show.last_air_date) : null,
+        default_duration: getDefaultDuration(show, 'show'),
+        number_of_seasons: show.number_of_seasons,
+        number_of_episodes: show.number_of_episodes,
+        status: show.status,
+      };
+    } else if (type === 'movie') {
+      // Force movie lookup
       const movie = await getMovieDetails(tmdbIdNum);
-      contentType = 'movie';
       content = {
         tmdb_id: movie.id,
         content_type: 'movie',
@@ -78,27 +173,44 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         number_of_episodes: null,
         status: null,
       };
-    } catch (error) {
-      // Not a movie, try show
+    } else {
+      // No type specified - try movie first, then show
       try {
-        const show = await getShowDetails(tmdbIdNum);
-        contentType = 'show';
+        const movie = await getMovieDetails(tmdbIdNum);
         content = {
-          tmdb_id: show.id,
-          content_type: 'show',
-          title: show.name,
-          overview: show.overview,
-          poster_url: getImageUrl(show.poster_path),
-          backdrop_url: getImageUrl(show.backdrop_path, 'w780'),
-          first_air_date: show.first_air_date ? new Date(show.first_air_date) : null,
-          last_air_date: show.last_air_date ? new Date(show.last_air_date) : null,
-          default_duration: getDefaultDuration(show, 'show'),
-          number_of_seasons: show.number_of_seasons,
-          number_of_episodes: show.number_of_episodes,
-          status: show.status,
+          tmdb_id: movie.id,
+          content_type: 'movie',
+          title: movie.title,
+          overview: movie.overview,
+          poster_url: getImageUrl(movie.poster_path),
+          backdrop_url: getImageUrl(movie.backdrop_path, 'w780'),
+          release_date: movie.release_date ? new Date(movie.release_date) : null,
+          default_duration: getDefaultDuration(movie, 'movie'),
+          number_of_seasons: null,
+          number_of_episodes: null,
+          status: null,
         };
-      } catch (showError) {
-        throw new NotFoundError('Content not found in TMDB');
+      } catch (error) {
+        // Not a movie, try show
+        try {
+          const show = await getShowDetails(tmdbIdNum);
+          content = {
+            tmdb_id: show.id,
+            content_type: 'show',
+            title: show.name,
+            overview: show.overview,
+            poster_url: getImageUrl(show.poster_path),
+            backdrop_url: getImageUrl(show.backdrop_path, 'w780'),
+            first_air_date: show.first_air_date ? new Date(show.first_air_date) : null,
+            last_air_date: show.last_air_date ? new Date(show.last_air_date) : null,
+            default_duration: getDefaultDuration(show, 'show'),
+            number_of_seasons: show.number_of_seasons,
+            number_of_episodes: show.number_of_episodes,
+            status: show.status,
+          };
+        } catch (showError) {
+          throw new NotFoundError('Content not found in TMDB');
+        }
       }
     }
 
