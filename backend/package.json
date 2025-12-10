@@ -12,7 +12,10 @@
     "migrate:down": "tsx src/migrations/runner.ts down",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:watch": "vitest watch"
+    "test:watch": "vitest watch",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/toonami.test.ts",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
@@ -35,6 +38,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
+    "@vitest/coverage-v8": "2.1.9",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^2.1.0"
