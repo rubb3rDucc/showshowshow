@@ -28,3 +28,55 @@ export interface ApiError {
   message: string;
 }
 
+// Content types
+export interface Content {
+  id: string;
+  tmdb_id: number;
+  content_type: 'show' | 'movie';
+  title: string;
+  poster_url: string | null;
+  backdrop_url: string | null;
+  overview: string | null;
+  release_date: string | null;
+  first_air_date: string | null;
+  last_air_date: string | null;
+  default_duration: number;
+  number_of_seasons: number | null;
+  number_of_episodes: number | null;
+  status: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SearchResult {
+  tmdb_id: number;
+  title: string;
+  overview: string | null;
+  poster_url: string | null;
+  backdrop_url: string | null;
+  content_type: 'tv' | 'movie';
+  media_type: 'tv' | 'movie';
+  release_date: string | null;
+  vote_average: number;
+  popularity: number;
+  is_cached: boolean;
+  cached_id: string | null;
+  cached_type: 'show' | 'movie' | null;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  page: number;
+  total_pages: number;
+  total_results: number;
+}
+
+export interface QueueItem {
+  id: string;
+  user_id: string;
+  content_id: string;
+  position: number;
+  created_at: string;
+  content?: Content;
+}
+
