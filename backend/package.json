@@ -22,6 +22,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.23.0",
   "dependencies": {
+    "@fastify/cors": "^11.2.0",
     "@types/ms": "^2.1.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^16.6.1",
