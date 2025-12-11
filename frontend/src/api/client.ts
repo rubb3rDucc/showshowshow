@@ -19,13 +19,17 @@ export async function apiCall<T>(
 ): Promise<T> {
   const token = localStorage.getItem('token');
 
+  // Don't set Content-Type for requests without a body (GET, DELETE)
+  const hasBody = options?.body !== undefined;
+  const headers: Record<string, string> = {
+    ...(hasBody && { 'Content-Type': 'application/json' }),
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...options?.headers,
+  };
+
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options?.headers,
-    },
+    headers,
   });
 
   const data = await response.json();

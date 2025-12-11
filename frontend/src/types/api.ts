@@ -73,10 +73,30 @@ export interface SearchResponse {
 
 export interface QueueItem {
   id: string;
-  user_id: string;
+  user_id?: string;
   content_id: string;
   position: number;
+  season?: number | null;
+  episode?: number | null;
   created_at: string;
+  // Joined data from backend
+  tmdb_id?: number;
+  title?: string;
+  poster_url?: string | null;
+  content_type?: 'show' | 'movie';
   content?: Content;
+}
+
+export interface Episode {
+  id: string;
+  content_id: string;
+  season: number;
+  episode_number: number;
+  title: string;
+  overview: string | null;
+  duration: number;
+  air_date: string | null;
+  still_url: string | null;
+  created_at: string;
 }
 

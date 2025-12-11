@@ -1,5 +1,5 @@
 import { apiCall } from './client';
-import type { SearchResponse, Content, QueueItem } from '../types/api';
+import type { SearchResponse, Content, QueueItem, Episode } from '../types/api';
 
 /**
  * Search for content (shows/movies) via TMDB
@@ -21,6 +21,16 @@ export async function searchContent(query: string, page: number = 1): Promise<Se
 export async function getContentByTmdbId(tmdbId: number, type?: 'tv' | 'movie'): Promise<Content> {
   const params = type ? `?type=${type}` : '';
   return apiCall<Content>(`/api/content/${tmdbId}${params}`);
+}
+
+/**
+ * Get episodes for a show by TMDB ID
+ * @param tmdbId - TMDB ID
+ * @param season - Optional season number
+ */
+export async function getEpisodes(tmdbId: number, season?: number): Promise<Episode[]> {
+  const params = season ? `?season=${season}` : '';
+  return apiCall<Episode[]>(`/api/content/${tmdbId}/episodes${params}`);
 }
 
 /**
@@ -46,6 +56,17 @@ export async function addToQueue(contentId: string): Promise<QueueItem> {
 export async function removeFromQueue(queueItemId: string): Promise<void> {
   return apiCall<void>(`/api/queue/${queueItemId}`, {
     method: 'DELETE',
+  });
+}
+
+/**
+ * Reorder queue items
+ * @param itemIds - Array of queue item IDs in desired order
+ */
+export async function reorderQueue(itemIds: string[]): Promise<void> {
+  return apiCall<void>('/api/queue/reorder', {
+    method: 'PUT',
+    body: JSON.stringify({ item_ids: itemIds }),
   });
 }
 
