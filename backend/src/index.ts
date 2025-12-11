@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import cors from '@fastify/cors';
 import { db, testConnection, closeConnection } from './db/index.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { authRoutes } from './routes/auth.js';
@@ -71,6 +72,12 @@ const start = async () => {
   try {
     // Test database connection
     await testConnection();
+
+    // Register CORS (BEFORE other plugins)
+    await fastify.register(cors, {
+      origin: true,                     
+      credentials: true,                
+    });                                 
 
     // Register plugins
     await fastify.register(errorHandlerPlugin);
