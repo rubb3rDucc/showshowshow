@@ -75,8 +75,10 @@ const start = async () => {
 
     // Register CORS (BEFORE other plugins)
     await fastify.register(cors, {
-      origin: true,                     
-      credentials: true,                
+      origin: true,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
     });                                 
 
     // Register plugins
