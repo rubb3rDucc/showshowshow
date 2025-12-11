@@ -3,12 +3,12 @@ docs/
 node_modules/
 frontend/node_modules/
 backend/node_modules/
-
 # Build outputs
 dist/
 build/
 frontend/dist/
 backend/dist/
+.pnpm-store
 
 # Environment variables
 .env
