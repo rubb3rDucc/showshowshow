@@ -81,6 +81,16 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
       return formatted;
     };
 
+    // Get user's timezone offset (e.g., "-05:00" for EST, "+00:00" for UTC)
+    const getTimezoneOffset = (): string => {
+      const date = new Date();
+      const offsetMinutes = -date.getTimezoneOffset(); // Negative because we want offset from UTC
+      const sign = offsetMinutes >= 0 ? '+' : '-';
+      const hours = String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, '0');
+      const minutes = String(Math.abs(offsetMinutes) % 60).padStart(2, '0');
+      return `${sign}${hours}:${minutes}`;
+    };
+
     const params: GenerateScheduleRequest = {
       start_date: formatDate(startDate),
       end_date: formatDate(endDate),
@@ -88,6 +98,7 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
       end_time: endTime,
       // Only include time_slot_duration if not 'auto'
       ...(timeSlotDuration !== 'auto' && { time_slot_duration: Number(timeSlotDuration) }),
+      timezone_offset: getTimezoneOffset(), // Send user's current timezone
       rotation_type: rotationType,
       include_reruns: includeReruns,
     };

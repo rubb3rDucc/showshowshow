@@ -19,6 +19,37 @@ import { toast } from 'sonner';
 import { getSchedule, clearSchedule } from '../../api/schedule';
 import type { ScheduleItem } from '../../types/api';
 
+// Helper: Format time in a specific timezone offset
+// Converts UTC time to the original timezone the schedule was created in
+function formatTimeInTimezone(utcDate: Date, timezoneOffset: string): string {
+  // Parse timezone offset (e.g., "-05:00" or "+02:00")
+  const offsetMatch = timezoneOffset.match(/^([+-])(\d{2}):(\d{2})$/);
+  if (!offsetMatch) {
+    // Invalid offset, fall back to local timezone
+    return utcDate.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
+  
+  const [, sign, offsetHours, offsetMinutes] = offsetMatch;
+  const offsetTotalMinutes = (sign === '-' ? -1 : 1) * (parseInt(offsetHours) * 60 + parseInt(offsetMinutes));
+  
+  // Convert UTC to the original timezone by adding the offset
+  // If offset is -05:00 (EST), we add 5 hours to UTC to get EST time
+  const originalTime = new Date(utcDate.getTime() + (offsetTotalMinutes * 60 * 1000));
+  
+  // Extract hours and minutes from the adjusted time (in UTC, which now represents the original timezone)
+  const hours = originalTime.getUTCHours();
+  const minutes = originalTime.getUTCMinutes();
+  
+  // Format in 12-hour format with AM/PM
+  const hour12 = hours % 12 || 12;
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+}
+
 export function ScheduleView() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [viewAll, setViewAll] = useState(false);
@@ -69,15 +100,30 @@ export function ScheduleView() {
     },
   });
 
-  // Group schedule by date
+  // Group schedule by date (using LOCAL timezone)
   const groupedSchedule = schedule?.reduce((acc, item) => {
-    const date = new Date(item.scheduled_time).toLocaleDateString();
-    if (!acc[date]) {
-      acc[date] = [];
+    // Parse UTC time from backend - JavaScript automatically converts to local
+    const scheduledDate = new Date(item.scheduled_time);
+    
+    // Get local date string (YYYY-MM-DD format for consistency and sorting)
+    const year = scheduledDate.getFullYear();
+    const month = String(scheduledDate.getMonth() + 1).padStart(2, '0');
+    const day = String(scheduledDate.getDate()).padStart(2, '0');
+    const dateKey = `${year}-${month}-${day}`;
+    
+    // Display date in user's locale
+    const dateDisplay = scheduledDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    });
+    
+    if (!acc[dateKey]) {
+      acc[dateKey] = { display: dateDisplay, items: [] };
     }
-    acc[date].push(item);
+    acc[dateKey].items.push(item);
     return acc;
-  }, {} as Record<string, ScheduleItem[]>);
+  }, {} as Record<string, { display: string; items: ScheduleItem[] }>);
 
   if (isLoading) {
     return (
@@ -107,14 +153,33 @@ export function ScheduleView() {
         <DatePickerInput
           value={selectedDate}
           onChange={(date) => {
-            console.log('Date picked:', date, typeof date, date?.constructor?.name);
-            console.log('Date details:', date && {
-              getDate: (date as any).getDate?.(),
-              getMonth: (date as any).getMonth?.(),
-              getFullYear: (date as any).getFullYear?.(),
-              toString: date.toString(),
-            });
-            setSelectedDate(date as Date | null);
+            // Handle different date types from Mantine DatePickerInput
+            let dateObj: Date | null = null;
+            
+            if (!date) {
+              dateObj = null;
+            } else {
+              // Mantine can return Date, string, or other types
+              const dateValue = date as unknown;
+              
+              if (dateValue instanceof Date) {
+                dateObj = dateValue;
+              } else if (typeof dateValue === 'string') {
+                // Parse string date (YYYY-MM-DD format)
+                dateObj = new Date(dateValue + 'T00:00:00'); // Add time to avoid timezone issues
+              } else {
+                // Try to convert to Date
+                dateObj = new Date(dateValue as any);
+              }
+            }
+            
+            // Validate the date
+            if (dateObj && isNaN(dateObj.getTime())) {
+              console.error('Invalid date:', date);
+              return;
+            }
+            
+            setSelectedDate(dateObj);
             setViewAll(false);
           }}
           placeholder="Pick date"
@@ -157,6 +222,23 @@ export function ScheduleView() {
         {viewAll ? 'Viewing: All dates' : `Viewing: ${dateStr || 'Unknown date'}`} | Found: {schedule?.length || 0} items
       </Text>
 
+      {/* Date Header - Always show when viewing by specific date */}
+      {!viewAll && selectedDate && (
+        <Text size="lg" fw={600} mb="md">
+          {(selectedDate as any) instanceof Date 
+            ? (selectedDate as Date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+              })
+            : new Date(selectedDate as any).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+              })}
+        </Text>
+      )}
+
       {/* Empty State */}
       {isEmpty && (
         <Card shadow="sm" padding="xl" radius="md" withBorder>
@@ -175,31 +257,62 @@ export function ScheduleView() {
       )}
 
       {/* Schedule List */}
-      {groupedSchedule && Object.keys(groupedSchedule).map((date) => (
-        <Box key={date}>
-          <Text size="lg" fw={600} mb="md">
-            {date}
-          </Text>
-          <Stack gap="md">
-            {groupedSchedule[date]
-              .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime())
-              .map((item) => (
-                <ScheduleItemCard key={item.id} item={item} />
-              ))}
-          </Stack>
-        </Box>
-      ))}
+      {groupedSchedule && Object.keys(groupedSchedule)
+        .sort() // Sort dates chronologically (YYYY-MM-DD format sorts correctly)
+        .map((dateKey) => {
+          // If viewing by specific date, show the selected date; otherwise show the item's date
+          let displayDate: string;
+          
+          if (viewAll) {
+            displayDate = groupedSchedule[dateKey].display;
+          } else if (selectedDate) {
+            // Ensure selectedDate is a Date object
+            const dateObj = (selectedDate as any) instanceof Date ? selectedDate as Date : new Date(selectedDate as any);
+            if (!isNaN(dateObj.getTime())) {
+              displayDate = dateObj.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+              });
+            } else {
+              displayDate = groupedSchedule[dateKey].display;
+            }
+          } else {
+            displayDate = groupedSchedule[dateKey].display;
+          }
+          
+          return (
+            <Box key={dateKey}>
+              {/* Only show date header in "View All" mode (when viewing by date, header is shown above) */}
+              {viewAll && (
+                <Text size="lg" fw={600} mb="md">
+                  {displayDate}
+                </Text>
+              )}
+              <Stack gap="md">
+                {groupedSchedule[dateKey].items
+                  .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime())
+                  .map((item) => (
+                    <ScheduleItemCard key={item.id} item={item} />
+                  ))}
+              </Stack>
+            </Box>
+          );
+        })}
     </Stack>
   );
 }
 
 // Individual schedule item card
 function ScheduleItemCard({ item }: { item: ScheduleItem }) {
-  const scheduledTime = new Date(item.scheduled_time);
-  const timeStr = scheduledTime.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  // Parse UTC time from backend
+  const scheduledTimeUTC = new Date(item.scheduled_time);
+  
+  // Get the original timezone offset from when schedule was created
+  const timezoneOffset = item.timezone_offset || '+00:00'; // Default to UTC if not stored
+  
+  // Convert UTC time back to the original timezone for display
+  const timeStr = formatTimeInTimezone(scheduledTimeUTC, timezoneOffset);
 
   const isShow = item.season !== null && item.episode !== null;
   const displayTitle = isShow
