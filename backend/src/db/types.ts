@@ -59,6 +59,7 @@ export interface Database {
     source_id: string | null;
     watched: boolean;
     synced: boolean;
+    timezone_offset: string | null; // Timezone offset in format like "-05:00" (EST) or "+00:00" (UTC)
     created_at: Date;
   };
   queue: {

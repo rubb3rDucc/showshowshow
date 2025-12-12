@@ -10,11 +10,29 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-// Helper: Parse time string to Date (in UTC to avoid timezone issues)
-export function parseTime(timeStr: string, date: Date): Date {
+// Helper: Parse time string to Date, interpreting time as local time in the given timezone
+// timeStr: "22:00" (local time in the specified timezone)
+// date: Date object for the date (in UTC)
+// timezoneOffset: "-05:00" for EST, "+00:00" for UTC, etc.
+export function parseTime(timeStr: string, date: Date, timezoneOffset: string = '+00:00'): Date {
   const [hours, minutes] = timeStr.split(':').map(Number);
-  // Create a new date from the input date's year/month/day, then set hours in UTC
-  const result = new Date(Date.UTC(
+  
+  // Parse timezone offset (e.g., "-05:00" or "+02:00")
+  const offsetMatch = timezoneOffset.match(/^([+-])(\d{2}):(\d{2})$/);
+  if (!offsetMatch) {
+    // Invalid offset, default to UTC
+    console.warn(`Invalid timezone offset: ${timezoneOffset}, defaulting to UTC`);
+    timezoneOffset = '+00:00';
+  }
+  
+  const [, sign, offsetHours, offsetMinutes] = timezoneOffset.match(/^([+-])(\d{2}):(\d{2})$/) || ['', '+', '00', '00'];
+  const offsetTotalMinutes = (sign === '-' ? -1 : 1) * (parseInt(offsetHours) * 60 + parseInt(offsetMinutes));
+  
+  // Create a date representing the local time in the specified timezone
+  // We create it as if it were UTC, then adjust by the offset
+  // Example: "22:00" in EST (-05:00) should become "03:00 UTC" (next day)
+  // So: UTC = Local - offset = 22:00 - (-05:00) = 22:00 + 05:00 = 03:00 UTC
+  const utcDate = new Date(Date.UTC(
     date.getUTCFullYear(),
     date.getUTCMonth(),
     date.getUTCDate(),
@@ -23,7 +41,13 @@ export function parseTime(timeStr: string, date: Date): Date {
     0,
     0
   ));
-  return result;
+  
+  // Convert from the specified timezone to UTC
+  // If offset is -05:00 (EST), we subtract -300 minutes = add 300 minutes (5 hours)
+  // If offset is +02:00, we subtract 120 minutes
+  const utcTime = utcDate.getTime() - (offsetTotalMinutes * 60 * 1000);
+  
+  return new Date(utcTime);
 }
 
 // Helper: Add minutes to date
@@ -147,6 +171,7 @@ interface GenerateScheduleOptions {
   startDate: Date;
   endDate: Date;
   timeSlots: string[];
+  timezoneOffset?: string; // Timezone offset in format like "-05:00" (EST) or "+00:00" (UTC)
   maxShowsPerTimeSlot?: number;
   includeReruns?: boolean;
   rerunFrequency?: string;
@@ -161,11 +186,14 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     startDate,
     endDate,
     timeSlots,
+    timezoneOffset = '+00:00', // Default to UTC if not provided
     maxShowsPerTimeSlot = 1,
     includeReruns = false,
     rerunFrequency = 'rarely',
     rotationType = 'round_robin',
   } = options;
+  
+  console.log(`[Schedule Generator] Using timezone offset: ${timezoneOffset}`);
 
   // Get content info to separate shows from movies
   const contentItems = await db
@@ -279,6 +307,7 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     episode: number | null;
     scheduled_time: Date;
     duration: number;
+    timezone_offset: string;
   }> = [];
 
   const timeSlotUsage = new Map<string, number>(); // Track usage per time slot
@@ -351,7 +380,7 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
     // Generate schedule for this day
     for (const timeSlot of timeSlots) {
-      const scheduledTime = parseTime(timeSlot, currentDate);
+      const scheduledTime = parseTime(timeSlot, currentDate, timezoneOffset);
       
       // If crossing midnight and we're past midnight, move to next day
       if (crossesMidnight && scheduledTime.getUTCHours() < startHour) {
@@ -483,6 +512,7 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
           episode: null,
           scheduled_time: scheduledTime,
           duration,
+          timezone_offset: timezoneOffset,
         });
 
         // Update last scheduled end time to prevent overlaps
@@ -538,6 +568,7 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
         episode: episode.episode_number,
         scheduled_time: scheduledTime,
         duration,
+        timezone_offset: timezoneOffset,
       });
 
       // Update last scheduled end time to prevent overlaps
@@ -808,6 +839,7 @@ export async function generateScheduleFromQueue(
     startDate,
     endDate,
     timeSlots,
+    timezoneOffset: options.timezoneOffset || '+00:00', // Default to UTC if not provided
     ...options,
   });
 }
@@ -821,6 +853,7 @@ export async function saveSchedule(
     episode: number | null;
     scheduled_time: Date;
     duration: number;
+    timezone_offset?: string;
   }>,
   sourceType: 'manual' | 'auto' | 'block' | 'rotation' = 'auto',
   sourceId: string | null = null
@@ -844,6 +877,7 @@ export async function saveSchedule(
         source_id: sourceId,
         watched: false,
         synced: false,
+        timezone_offset: item.timezone_offset || '+00:00', // Default to UTC if not provided
         created_at: new Date(),
       }))
     )

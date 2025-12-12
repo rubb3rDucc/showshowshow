@@ -18,6 +18,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       start_time = '18:00',
       end_time = '00:00',
       time_slot_duration,
+      timezone_offset,
       max_shows_per_time_slot = 1,
       include_reruns = false,
       rerun_frequency = 'rarely',
@@ -28,6 +29,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       start_time?: string;
       end_time?: string;
       time_slot_duration?: number;
+      timezone_offset?: string; // Timezone offset like "-05:00" (EST) or "+00:00" (UTC)
       max_shows_per_time_slot?: number;
       include_reruns?: boolean;
       rerun_frequency?: string;
@@ -86,6 +88,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
 
     // Generate schedule
     const scheduleItems = await generateScheduleFromQueue(userId, startDate, endDate, timeSlots, {
+      timezoneOffset: timezone_offset, // Use provided timezone or default to UTC
       maxShowsPerTimeSlot: max_shows_per_time_slot,
       includeReruns: include_reruns,
       rerunFrequency: rerun_frequency,
