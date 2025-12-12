@@ -8,13 +8,16 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [, setLocation] = useLocation();
-  const { user, isInitialized } = useAuthStore();
+  const { user, token, isInitialized } = useAuthStore();
 
   useEffect(() => {
-    if (isInitialized && !user) {
+    // Only redirect if fully initialized and NO token exists
+    // This prevents premature redirects during auth check
+    if (isInitialized && !token && !user) {
+      console.log('No auth, redirecting to login');
       setLocation('/login');
     }
-  }, [user, isInitialized, setLocation]);
+  }, [user, token, isInitialized, setLocation]);
 
   if (!isInitialized) {
     return (
@@ -24,7 +27,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user) {
+  // Allow render if token exists, even if user fetch failed temporarily
+  if (!token) {
     return null;
   }
 

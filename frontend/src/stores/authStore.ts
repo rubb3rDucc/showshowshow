@@ -76,13 +76,27 @@ export const useAuthStore = create<AuthState>((set) => ({
         isInitialized: true,
       });
     } catch (error) {
-      // Token invalid, clear it
-      localStorage.removeItem('token');
-      set({
-        user: null,
-        token: null,
-        isInitialized: true,
-      });
+      // Only clear token on auth errors (401), not network errors
+      const isAuthError = error && typeof error === 'object' && 'statusCode' in error && 
+                          (error as any).statusCode === 401;
+      
+      if (isAuthError) {
+        console.log('Auth token invalid, logging out');
+        localStorage.removeItem('token');
+        set({
+          user: null,
+          token: null,
+          isInitialized: true,
+        });
+      } else {
+        // Network or other error - keep token and retry
+        console.warn('Failed to verify auth, keeping session:', error);
+        set({
+          user: null, // Clear user but keep token for retry
+          token,
+          isInitialized: true,
+        });
+      }
     }
   },
 }));
