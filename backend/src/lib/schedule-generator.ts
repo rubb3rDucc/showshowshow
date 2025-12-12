@@ -208,8 +208,10 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       // Group episodes by show for rotation and shuffle them for randomization
       showIdsOnly.forEach((showId) => {
         const showEpisodes = availableEpisodes.filter((e: any) => e.content_id === showId);
+        const showInfo = shows.find(s => s.id === showId);
         // Shuffle episodes to randomize selection order
         episodesByShow.set(showId, shuffleArray(showEpisodes));
+        console.log(`[Schedule Generator] ${showInfo?.title || showId}: ${showEpisodes.length} available episodes`);
       });
     }
   }
@@ -401,8 +403,28 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       // Get next content in rotation (show or movie)
       let currentContentId: string | undefined;
       if (rotationType === 'round_robin') {
-        currentContentId = showIds[showIndex % showIds.length];
-        showIndex++;
+        // Try to find next available content in round-robin order
+        let attempts = 0;
+        while (attempts < showIds.length) {
+          const candidateId = showIds[showIndex % showIds.length];
+          showIndex++;
+          attempts++;
+          
+          // Check if this content has available episodes or is a movie
+          const episodes = episodesByShow.get(candidateId) ?? [];
+          const movies = moviesByShow.get(candidateId) ?? [];
+          const episodeIndex = episodeIndexes.get(candidateId) ?? 0;
+          
+          if (episodeIndex < episodes.length || movies.length > 0) {
+            currentContentId = candidateId;
+            break;
+          }
+        }
+        
+        // If we tried all shows and none have content, break out of time slot loop
+        if (!currentContentId) {
+          break; // No more content available
+        }
       } else {
         // Random rotation - check both shows and movies
         const availableContent = showIds.filter((id) => {
@@ -532,6 +554,38 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
   }
 
   console.log(`[Schedule Generator] Generated ${schedule.length} schedule items`);
+  
+  // Summary: Show what happened to each piece of content
+  console.log('[Schedule Generator] === Content Summary ===');
+  showIds.forEach((showId) => {
+    const contentItem = contentItems.find(c => c.id === showId);
+    const episodesForShow = episodesByShow.get(showId) ?? [];
+    const moviesForShow = moviesByShow.get(showId);
+    const scheduledCount = schedule.filter(s => s.content_id === showId).length;
+    
+    if (!contentItem) {
+      console.log(`[Schedule Generator] ⚠️  ${showId}: Not found in database`);
+      return;
+    }
+    
+    if (contentItem.content_type === 'show') {
+      if (episodesForShow.length === 0) {
+        console.log(`[Schedule Generator] ❌ ${contentItem.title}: No episodes available (${scheduledCount} scheduled)`);
+        console.log(`[Schedule Generator]    → Possible reasons: Episodes not fetched, all watched (reruns=${includeReruns}), or invalid durations`);
+      } else {
+        console.log(`[Schedule Generator] ✅ ${contentItem.title}: ${episodesForShow.length} episodes available, ${scheduledCount} scheduled`);
+      }
+    } else if (contentItem.content_type === 'movie') {
+      if (moviesForShow && moviesForShow.length > 0) {
+        console.log(`[Schedule Generator] ✅ ${contentItem.title}: Movie available, ${scheduledCount} scheduled`);
+      } else {
+        console.log(`[Schedule Generator] ❌ ${contentItem.title}: Movie not available (${scheduledCount} scheduled)`);
+        console.log(`[Schedule Generator]    → Possible reasons: Already watched (reruns=${includeReruns}), or invalid duration`);
+      }
+    }
+  });
+  console.log('[Schedule Generator] === End Summary ===');
+  
   return schedule;
 }
 
