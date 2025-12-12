@@ -51,26 +51,31 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       throw new ValidationError('start_date must be before or equal to end_date');
     }
 
-    // Get queue content IDs to calculate optimal time slot duration if not provided
-    let calculatedTimeSlotDuration = time_slot_duration;
-    if (!calculatedTimeSlotDuration) {
-      const queueItems = await db
-        .selectFrom('queue')
-        .select('content_id')
-        .where('user_id', '=', userId)
-        .orderBy('position', 'asc')
-        .execute();
+    // Get queue content IDs
+    const queueItems = await db
+      .selectFrom('queue')
+      .select('content_id')
+      .where('user_id', '=', userId)
+      .orderBy('position', 'asc')
+      .execute();
 
-      const contentIds = [...new Set(queueItems.map((q: any) => q.content_id))] as string[];
-      
-      if (contentIds.length > 0) {
-        // Import the function we just created
-        const { calculateOptimalTimeSlotDuration } = await import('../lib/schedule-generator.js');
-        calculatedTimeSlotDuration = await calculateOptimalTimeSlotDuration(contentIds);
-        fastify.log.info(`Auto-calculated time slot duration: ${calculatedTimeSlotDuration} minutes`);
-      } else {
-        calculatedTimeSlotDuration = 30; // Default fallback
-      }
+    const contentIds = [...new Set(queueItems.map((q: any) => q.content_id))] as string[];
+
+    // Ensure episodes are fetched for shows (fast cache check, only fetches if needed)
+    if (contentIds.length > 0) {
+      const { ensureEpisodesFetched } = await import('../lib/schedule-generator.js');
+      fastify.log.info('Ensuring episodes are fetched for shows in queue...');
+      await ensureEpisodesFetched(contentIds);
+    }
+
+    // Calculate optimal time slot duration if not provided
+    let calculatedTimeSlotDuration = time_slot_duration;
+    if (!calculatedTimeSlotDuration && contentIds.length > 0) {
+      const { calculateOptimalTimeSlotDuration } = await import('../lib/schedule-generator.js');
+      calculatedTimeSlotDuration = await calculateOptimalTimeSlotDuration(contentIds);
+      fastify.log.info(`Auto-calculated time slot duration: ${calculatedTimeSlotDuration} minutes`);
+    } else if (!calculatedTimeSlotDuration) {
+      calculatedTimeSlotDuration = 30; // Default fallback
     }
 
     // Generate time slots

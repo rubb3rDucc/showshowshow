@@ -668,6 +668,116 @@ export async function calculateOptimalTimeSlotDuration(contentIds: string[]): Pr
   return slotDuration;
 }
 
+// Auto-fetch episodes for shows that don't have them yet (optimized with fast cache check)
+export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
+  if (showIds.length === 0) return;
+
+  // Get content info to identify shows
+  const contentItems = await db
+    .selectFrom('content')
+    .select(['id', 'tmdb_id', 'content_type', 'title', 'number_of_seasons'])
+    .where('id', 'in', showIds)
+    .where('content_type', '=', 'show')
+    .execute();
+
+  const shows = contentItems.filter(c => c.content_type === 'show');
+  
+  if (shows.length === 0) return;
+
+  console.log(`[Schedule Generator] Checking ${shows.length} show(s) for episodes...`);
+
+  // Fast cache check for all shows in parallel (DB queries are fast)
+  const cacheChecks = await Promise.all(
+    shows.map(async (show) => {
+      const episodeCount = await db
+        .selectFrom('episodes')
+        .where('content_id', '=', show.id)
+        .select((eb) => eb.fn.count('id').as('count'))
+        .executeTakeFirst();
+      
+      return {
+        show,
+        hasEpisodes: Number(episodeCount?.count ?? 0) > 0,
+        episodeCount: Number(episodeCount?.count ?? 0),
+      };
+    })
+  );
+
+  // Separate shows that need fetching vs already cached
+  const showsToFetch = cacheChecks.filter(c => !c.hasEpisodes);
+  const showsCached = cacheChecks.filter(c => c.hasEpisodes);
+
+  console.log(`[Schedule Generator] ${showsCached.length} show(s) already cached, ${showsToFetch.length} need fetching`);
+
+  // Fast path: If all shows are cached, return immediately
+  if (showsToFetch.length === 0) {
+    console.log('[Schedule Generator] ✅ All episodes already cached - skipping fetch');
+    return;
+  }
+
+  // Import TMDB functions
+  const { getShowDetails, getSeason } = await import('./tmdb.js');
+  const { getImageUrl } = await import('./tmdb.js');
+
+  // Only fetch missing shows - do in parallel with rate limiting
+  const fetchPromises = showsToFetch.map(async (item, index) => {
+    // Stagger requests to respect TMDB rate limits (40 req/10s = 250ms between)
+    await new Promise(resolve => setTimeout(resolve, index * 250));
+    
+    try {
+      const showDetails = await getShowDetails(item.show.tmdb_id);
+      let fetchedCount = 0;
+
+      // Fetch seasons sequentially (but with small delay between shows)
+      for (let seasonNum = 1; seasonNum <= showDetails.number_of_seasons; seasonNum++) {
+        try {
+          const tmdbSeason = await getSeason(item.show.tmdb_id, seasonNum);
+          
+          for (const ep of tmdbSeason.episodes) {
+            // Check if this specific episode already exists (defensive check)
+            const exists = await db
+              .selectFrom('episodes')
+              .select('id')
+              .where('content_id', '=', item.show.id)
+              .where('season', '=', ep.season_number)
+              .where('episode_number', '=', ep.episode_number)
+              .executeTakeFirst();
+            
+            if (!exists) {
+              await db
+                .insertInto('episodes')
+                .values({
+                  id: crypto.randomUUID(),
+                  content_id: item.show.id,
+                  season: ep.season_number,
+                  episode_number: ep.episode_number,
+                  title: ep.name,
+                  overview: ep.overview,
+                  duration: ep.runtime || showDetails.episode_run_time?.[0] || 30,
+                  air_date: ep.air_date ? new Date(ep.air_date) : null,
+                  still_url: getImageUrl(ep.still_path),
+                  created_at: new Date(),
+                })
+                .execute();
+              fetchedCount++;
+            }
+          }
+        } catch (error) {
+          console.warn(`[Schedule Generator] Failed to fetch season ${seasonNum} for ${item.show.title}:`, error);
+        }
+      }
+      
+      console.log(`[Schedule Generator] ✅ Fetched ${fetchedCount} episodes for ${item.show.title}`);
+    } catch (error) {
+      console.error(`[Schedule Generator] ❌ Failed to fetch episodes for ${item.show.title}:`, error);
+      // Continue with other shows even if one fails
+    }
+  });
+
+  // Wait for all fetches (but don't block if some fail)
+  await Promise.allSettled(fetchPromises);
+}
+
 // Generate schedule from queue
 export async function generateScheduleFromQueue(
   userId: string,
@@ -688,6 +798,9 @@ export async function generateScheduleFromQueue(
   if (showIds.length === 0) {
     return [];
   }
+
+  // Auto-fetch episodes before generating schedule (fast cache check first)
+  await ensureEpisodesFetched(showIds);
 
   return generateSchedule({
     userId,

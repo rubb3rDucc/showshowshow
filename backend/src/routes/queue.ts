@@ -47,10 +47,10 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
       throw new ValidationError('content_id is required');
     }
 
-    // Verify content exists
+    // Verify content exists and get content type
     const content = await db
       .selectFrom('content')
-      .select('id')
+      .select(['id', 'content_type'])
       .where('id', '=', content_id)
       .executeTakeFirst();
 
@@ -96,6 +96,22 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+
+    // If it's a show, trigger background episode fetch (don't block the response)
+    if (content.content_type === 'show') {
+      // Fire and forget - don't wait for completion
+      setImmediate(async () => {
+        try {
+          const { ensureEpisodesFetched } = await import('../lib/schedule-generator.js');
+          console.log(`[Queue] Background: Auto-fetching episodes for show ${content_id}...`);
+          await ensureEpisodesFetched([content_id]);
+          console.log(`[Queue] Background: ✅ Episodes fetched for show ${content_id}`);
+        } catch (error) {
+          console.error(`[Queue] Background: ❌ Failed to fetch episodes for show ${content_id}:`, error);
+          // Don't throw - this is background work, failures are logged but don't affect the user
+        }
+      });
+    }
 
     return reply.code(201).send(queueItem);
   });
