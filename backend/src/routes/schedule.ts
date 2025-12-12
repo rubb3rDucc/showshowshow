@@ -57,10 +57,12 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
     const userId = request.user.userId;
     const { date } = request.params as { date: string };
 
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 1);
+    // Parse date string (YYYY-MM-DD) and create UTC date range
+    const [year, month, day] = date.split('-').map(Number);
+    const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0, 0));
+
+    fastify.log.info(`Querying schedule for ${date}: ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
     const schedule = await db
       .selectFrom('schedule')
@@ -83,6 +85,8 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
       .where('schedule.scheduled_time', '<', endDate)
       .orderBy('schedule.scheduled_time', 'asc')
       .execute();
+
+    fastify.log.info(`Found ${schedule.length} schedule items for ${date}`);
 
     return reply.send(schedule);
   });
