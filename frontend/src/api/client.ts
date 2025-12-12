@@ -21,10 +21,10 @@ export async function apiCall<T>(
 
   // Don't set Content-Type for requests without a body (GET, DELETE)
   const hasBody = options?.body !== undefined;
-  const headers: Record<string, string> = {
+  const headers: HeadersInit = {
     ...(hasBody && { 'Content-Type': 'application/json' }),
     ...(token && { Authorization: `Bearer ${token}` }),
-    ...options?.headers,
+    ...(options?.headers as Record<string, string>),
   };
 
   const response = await fetch(`${API_URL}${endpoint}`, {
