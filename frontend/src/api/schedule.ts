@@ -6,8 +6,17 @@ import type { ScheduleItem, GenerateScheduleRequest } from '../types/api';
  * @param date - Optional date to filter by (YYYY-MM-DD)
  */
 export async function getSchedule(date?: string): Promise<ScheduleItem[]> {
-  const endpoint = date ? `/api/schedule/date/${date}` : '/api/schedule';
-  return apiCall<ScheduleItem[]>(endpoint);
+  if (date) {
+    // Get user's timezone offset (e.g., "-05:00" for EST)
+    const offset = new Date().getTimezoneOffset();
+    const offsetHours = Math.floor(Math.abs(offset) / 60);
+    const offsetMinutes = Math.abs(offset) % 60;
+    const offsetSign = offset <= 0 ? '+' : '-'; // Note: getTimezoneOffset returns negative for ahead of UTC
+    const timezoneOffset = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+    
+    return apiCall<ScheduleItem[]>(`/api/schedule/date/${date}?timezone_offset=${encodeURIComponent(timezoneOffset)}`);
+  }
+  return apiCall<ScheduleItem[]>('/api/schedule');
 }
 
 /**

@@ -57,13 +57,28 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
 
     const userId = request.user.userId;
     const { date } = request.params as { date: string };
+    const { timezone_offset } = request.query as { timezone_offset?: string };
 
-    // Parse date string (YYYY-MM-DD) and create UTC date range
+    // Parse date string (YYYY-MM-DD)
     const [year, month, day] = date.split('-').map(Number);
-    const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-    const endDate = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0, 0));
+    
+    // Parse timezone offset (e.g., "-05:00" for EST)
+    let offsetMinutes = 0;
+    if (timezone_offset) {
+      const offsetMatch = timezone_offset.match(/^([+-])(\d{2}):(\d{2})$/);
+      if (offsetMatch) {
+        const [, sign, hours, minutes] = offsetMatch;
+        offsetMinutes = (sign === '-' ? -1 : 1) * (parseInt(hours) * 60 + parseInt(minutes));
+      }
+    }
 
-    fastify.log.info(`Querying schedule for ${date}: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    // Create date range in user's local timezone, then convert to UTC
+    // For example: Dec 12 midnight EST (-05:00) = Dec 12 05:00 UTC
+    const localMidnight = Date.UTC(year, month - 1, day, 0, 0, 0, 0);
+    const startDate = new Date(localMidnight - (offsetMinutes * 60 * 1000));
+    const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+
+    fastify.log.info(`Querying schedule for ${date} (timezone ${timezone_offset || 'UTC'}): ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
     const schedule = await db
       .selectFrom('schedule')

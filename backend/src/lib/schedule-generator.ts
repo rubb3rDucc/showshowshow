@@ -10,29 +10,35 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-// Helper: Parse time string to Date, interpreting time as local time in the given timezone
-// timeStr: "22:00" (local time in the specified timezone)
+// Helper: Parse time string to Date (treating time as UTC)
+// timeStr: "22:00" (in 24-hour format)
 // date: Date object for the date (in UTC)
-// timezoneOffset: "-05:00" for EST, "+00:00" for UTC, etc.
+// timezoneOffset: not used, kept for compatibility
 export function parseTime(timeStr: string, date: Date, timezoneOffset: string = '+00:00'): Date {
   const [hours, minutes] = timeStr.split(':').map(Number);
   
-  // Parse timezone offset (e.g., "-05:00" or "+02:00")
+  // Validate timezone offset format
   const offsetMatch = timezoneOffset.match(/^([+-])(\d{2}):(\d{2})$/);
   if (!offsetMatch) {
-    // Invalid offset, default to UTC
     console.warn(`Invalid timezone offset: ${timezoneOffset}, defaulting to UTC`);
-    timezoneOffset = '+00:00';
+    return new Date(Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate(),
+      hours,
+      minutes,
+      0,
+      0
+    ));
   }
   
-  const [, sign, offsetHours, offsetMinutes] = timezoneOffset.match(/^([+-])(\d{2}):(\d{2})$/) || ['', '+', '00', '00'];
+  // Parse timezone offset (e.g., "-05:00" for EST, "+02:00" for CEST)
+  const [, sign, offsetHours, offsetMinutes] = offsetMatch;
   const offsetTotalMinutes = (sign === '-' ? -1 : 1) * (parseInt(offsetHours) * 60 + parseInt(offsetMinutes));
   
-  // Create a date representing the local time in the specified timezone
-  // We create it as if it were UTC, then adjust by the offset
-  // Example: "22:00" in EST (-05:00) should become "03:00 UTC" (next day)
-  // So: UTC = Local - offset = 22:00 - (-05:00) = 22:00 + 05:00 = 03:00 UTC
-  const utcDate = new Date(Date.UTC(
+  // Create a date in the user's local timezone
+  // For example, if user says "13:00" in EST (UTC-5), this creates 2025-12-12T13:00:00 in EST
+  const localDate = new Date(Date.UTC(
     date.getUTCFullYear(),
     date.getUTCMonth(),
     date.getUTCDate(),
@@ -42,10 +48,10 @@ export function parseTime(timeStr: string, date: Date, timezoneOffset: string = 
     0
   ));
   
-  // Convert from the specified timezone to UTC
-  // If offset is -05:00 (EST), we subtract -300 minutes = add 300 minutes (5 hours)
-  // If offset is +02:00, we subtract 120 minutes
-  const utcTime = utcDate.getTime() - (offsetTotalMinutes * 60 * 1000);
+  // Convert to UTC by subtracting the timezone offset
+  // For EST (UTC-5 / -05:00), offsetTotalMinutes = -300 minutes
+  // To convert EST to UTC, we subtract the offset: UTC = EST - (-300) = EST + 300 minutes
+  const utcTime = localDate.getTime() - (offsetTotalMinutes * 60 * 1000);
   
   return new Date(utcTime);
 }
@@ -324,6 +330,14 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
   const lastSlot = timeSlots[timeSlots.length - 1];
   const [endHour, endMin] = lastSlot?.split(':').map(Number) ?? [0, 0];
   const crossesMidnight = endHour < startHour || (endHour === startHour && endMin < startMin);
+  
+  // Calculate slot duration from first two slots (to know how long after last slot the end time is)
+  let slotDurationMinutes = 30; // Default
+  if (timeSlots.length >= 2) {
+    const [firstHour, firstMin] = timeSlots[0].split(':').map(Number);
+    const [secondHour, secondMin] = timeSlots[1].split(':').map(Number);
+    slotDurationMinutes = (secondHour * 60 + secondMin) - (firstHour * 60 + firstMin);
+  }
 
   // Generate schedule day by day
   // Parse dates as UTC to avoid timezone issues
@@ -349,31 +363,34 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
   let lastScheduledEndTime: Date | null = null;
 
   while (currentDate <= endDateCopy) {
+    // Calculate the actual start time for this day's schedule window
+    // Use parseTime to properly convert from user's timezone to UTC
+    const dayStartTime = parseTime(timeSlots[0], currentDate, timezoneOffset);
+
     // Calculate the actual end time for this day's schedule window
+    // The end time is the last slot + slot duration (e.g., 22:45 + 15 min = 23:00)
+    const [lastHour, lastMin] = lastSlot.split(':').map(Number);
+    const actualEndHour = Math.floor((lastMin + slotDurationMinutes) / 60) + lastHour;
+    const actualEndMin = (lastMin + slotDurationMinutes) % 60;
+    const endTimeStr = `${String(actualEndHour % 24).padStart(2, '0')}:${String(actualEndMin).padStart(2, '0')}`;
+    
     let dayEndTime: Date;
     if (crossesMidnight) {
-      // If crossing midnight, end time is next day at endHour:endMin
-      dayEndTime = new Date(Date.UTC(
-        currentDate.getUTCFullYear(),
-        currentDate.getUTCMonth(),
-        currentDate.getUTCDate() + 1,
-        endHour,
-        endMin,
-        0,
-        0
-      ));
+      // If crossing midnight, end time is next day
+      const nextDay = new Date(currentDate);
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      dayEndTime = parseTime(endTimeStr, actualEndHour >= 24 ? nextDay : currentDate, timezoneOffset);
+    } else if (actualEndHour >= 24) {
+      // If end time goes past midnight (even if start doesn't)
+      const nextDay = new Date(currentDate);
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      dayEndTime = parseTime(endTimeStr, nextDay, timezoneOffset);
     } else {
       // Normal case: same day
-      dayEndTime = new Date(Date.UTC(
-        currentDate.getUTCFullYear(),
-        currentDate.getUTCMonth(),
-        currentDate.getUTCDate(),
-        endHour,
-        endMin,
-        0,
-        0
-      ));
+      dayEndTime = parseTime(endTimeStr, currentDate, timezoneOffset);
     }
+
+    console.log(`[Schedule Generator] Day ${currentDate.toISOString().split('T')[0]}: Start=${dayStartTime.toISOString()}, End=${dayEndTime.toISOString()}`);
 
     // Reset lastScheduledEndTime for each new day
     lastScheduledEndTime = null;
@@ -382,43 +399,23 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     for (const timeSlot of timeSlots) {
       const scheduledTime = parseTime(timeSlot, currentDate, timezoneOffset);
       
-      // If crossing midnight and we're past midnight, move to next day
-      if (crossesMidnight && scheduledTime.getUTCHours() < startHour) {
+      // If the scheduled time ends up before the day's start time after timezone conversion,
+      // it means it crossed into the next UTC day, so move it forward
+      if (scheduledTime < dayStartTime) {
         scheduledTime.setUTCDate(scheduledTime.getUTCDate() + 1);
+        console.log(`[Schedule Generator] Moved slot ${timeSlot} to next day: ${scheduledTime.toISOString()}`);
+      }
+      
+      // After adjustment, check if it's still before start or after end
+      if (scheduledTime < dayStartTime || scheduledTime >= dayEndTime) {
+        console.log(`[Schedule Generator] Skipping slot ${timeSlot} - outside scheduling window (${scheduledTime.toISOString()})`);
+        continue;
       }
 
       // Skip this time slot if it overlaps with previously scheduled content
       if (lastScheduledEndTime && scheduledTime < lastScheduledEndTime) {
         console.log(`[Schedule Generator] Skipping slot ${timeSlot} - overlaps with previous content (ends at ${lastScheduledEndTime.toISOString()})`);
         continue;
-      }
-      
-      // Get date-only versions for comparison
-      const scheduledDateOnly = new Date(Date.UTC(
-        scheduledTime.getUTCFullYear(),
-        scheduledTime.getUTCMonth(),
-        scheduledTime.getUTCDate(),
-        0, 0, 0, 0
-      ));
-      const endDateOnly = new Date(Date.UTC(
-        endDateCopy.getUTCFullYear(),
-        endDateCopy.getUTCMonth(),
-        endDateCopy.getUTCDate(),
-        0, 0, 0, 0
-      ));
-      
-      // Don't schedule if it goes beyond the end date entirely
-      if (scheduledDateOnly > endDateOnly) {
-        break; // We're past the end date
-      }
-      
-      // Don't schedule if scheduled time is at or after the end time for this day
-      if (scheduledTime >= dayEndTime) {
-        // If we're past the end time and it's the end date, break
-        if (scheduledDateOnly.getTime() >= endDateOnly.getTime()) {
-          break; // We've reached or passed the end date/time
-        }
-        continue; // Skip this slot, it's past the end time for this day
       }
 
       // Check time slot usage (use UTC date string for consistency)
@@ -444,14 +441,18 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
           const movies = moviesByShow.get(candidateId) ?? [];
           const episodeIndex = episodeIndexes.get(candidateId) ?? 0;
           
+          console.log(`[Schedule Generator] Round-robin check: ${candidateId} - episodeIndex=${episodeIndex}, episodes.length=${episodes.length}, movies.length=${movies.length}`);
+          
           if (episodeIndex < episodes.length || movies.length > 0) {
             currentContentId = candidateId;
+            console.log(`[Schedule Generator] Selected content: ${candidateId}`);
             break;
           }
         }
         
         // If we tried all shows and none have content, break out of time slot loop
         if (!currentContentId) {
+          console.log(`[Schedule Generator] No more content available - breaking time slot loop`);
           break; // No more content available
         }
       } else {
@@ -490,19 +491,8 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
         // Don't schedule if movie doesn't fit in the day's time window
         if (endTime > dayEndTime) {
+          console.log(`[Schedule Generator] Skipping movie - doesn't fit in day window (ends ${endTime.toISOString()}, day ends ${dayEndTime.toISOString()})`);
           continue; // Movie doesn't fit
-        }
-        
-        // Don't schedule if movie end time goes beyond the end date
-        const endTimeDateOnly = new Date(Date.UTC(
-          endTime.getUTCFullYear(),
-          endTime.getUTCMonth(),
-          endTime.getUTCDate(),
-          0, 0, 0, 0
-        ));
-        
-        if (endTimeDateOnly > endDateOnly) {
-          break; // Movie would go beyond the end date
         }
 
         // Add movie to schedule
@@ -546,19 +536,8 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
       // Don't schedule if episode doesn't fit in the day's time window
       if (endTime > dayEndTime) {
+        console.log(`[Schedule Generator] Skipping episode - doesn't fit in day window (ends ${endTime.toISOString()}, day ends ${dayEndTime.toISOString()})`);
         continue; // Episode doesn't fit
-      }
-      
-      // Don't schedule if episode end time goes beyond the end date
-      const endTimeDateOnly = new Date(Date.UTC(
-        endTime.getUTCFullYear(),
-        endTime.getUTCMonth(),
-        endTime.getUTCDate(),
-        0, 0, 0, 0
-      ));
-      
-      if (endTimeDateOnly > endDateOnly) {
-        break; // Episode would go beyond the end date
       }
 
       // Add to schedule

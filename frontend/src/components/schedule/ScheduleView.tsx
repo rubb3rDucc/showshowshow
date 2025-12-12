@@ -19,41 +19,23 @@ import { toast } from 'sonner';
 import { getSchedule, clearSchedule } from '../../api/schedule';
 import type { ScheduleItem } from '../../types/api';
 
-// Helper: Format time in a specific timezone offset
-// Converts UTC time to the original timezone the schedule was created in
-function formatTimeInTimezone(utcDate: Date, timezoneOffset: string): string {
-  // Parse timezone offset (e.g., "-05:00" or "+02:00")
-  const offsetMatch = timezoneOffset.match(/^([+-])(\d{2}):(\d{2})$/);
-  if (!offsetMatch) {
-    // Invalid offset, fall back to local timezone
-    return utcDate.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
-  }
-  
-  const [, sign, offsetHours, offsetMinutes] = offsetMatch;
-  const offsetTotalMinutes = (sign === '-' ? -1 : 1) * (parseInt(offsetHours) * 60 + parseInt(offsetMinutes));
-  
-  // Convert UTC to the original timezone by adding the offset
-  // If offset is -05:00 (EST), we add 5 hours to UTC to get EST time
-  const originalTime = new Date(utcDate.getTime() + (offsetTotalMinutes * 60 * 1000));
-  
-  // Extract hours and minutes from the adjusted time (in UTC, which now represents the original timezone)
-  const hours = originalTime.getUTCHours();
-  const minutes = originalTime.getUTCMinutes();
-  
-  // Format in 12-hour format with AM/PM
-  const hour12 = hours % 12 || 12;
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  return `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+// Helper: Format UTC time in user's local timezone
+function formatTimeInLocalTimezone(utcDate: Date): string {
+  return utcDate.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
 }
 
 export function ScheduleView() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [viewAll, setViewAll] = useState(false);
   const queryClient = useQueryClient();
+
+  // Get user's timezone info
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timezoneAbbr = new Date().toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() || 'Local';
 
   // Format date as YYYY-MM-DD (using local date to preserve the calendar date selected)
   const formatDate = (date: Date | null | undefined): string | undefined => {
@@ -148,6 +130,13 @@ export function ScheduleView() {
 
   return (
     <Stack gap="lg">
+      <Group align="center" gap="xs">
+        <IconClock size={16} />
+        <Text size="sm" c="dimmed">
+          All times shown in your timezone: <strong>{timezoneAbbr}</strong> ({userTimezone})
+        </Text>
+      </Group>
+
       {/* Date Picker and Controls */}
       <Group justify="space-between" align="center">
         <DatePickerInput
@@ -308,11 +297,8 @@ function ScheduleItemCard({ item }: { item: ScheduleItem }) {
   // Parse UTC time from backend
   const scheduledTimeUTC = new Date(item.scheduled_time);
   
-  // Get the original timezone offset from when schedule was created
-  const timezoneOffset = item.timezone_offset || '+00:00'; // Default to UTC if not stored
-  
-  // Convert UTC time back to the original timezone for display
-  const timeStr = formatTimeInTimezone(scheduledTimeUTC, timezoneOffset);
+  // Convert UTC time to user's local timezone for display
+  const timeStr = formatTimeInLocalTimezone(scheduledTimeUTC);
 
   const isShow = item.season !== null && item.episode !== null;
   const displayTitle = isShow

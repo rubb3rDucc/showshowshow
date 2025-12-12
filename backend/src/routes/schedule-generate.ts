@@ -40,9 +40,14 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       throw new ValidationError('start_date and end_date are required');
     }
 
+    fastify.log.info(`Received dates: start_date='${start_date}', end_date='${end_date}'`);
+
     // Parse dates and normalize to UTC midnight for comparison
     const startDate = new Date(start_date + 'T00:00:00.000Z');
     const endDate = new Date(end_date + 'T00:00:00.000Z');
+
+    fastify.log.info(`Parsed dates: startDate=${startDate.toISOString()}, endDate=${endDate.toISOString()}`);
+    fastify.log.info(`Comparison: startDate > endDate = ${startDate > endDate}, startDate.getTime()=${startDate.getTime()}, endDate.getTime()=${endDate.getTime()}`);
 
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       throw new ValidationError('Invalid date format');
@@ -70,6 +75,9 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       await ensureEpisodesFetched(contentIds);
     }
 
+    // Log the received times
+    fastify.log.info(`Received times: start_time='${start_time}', end_time='${end_time}', timezone_offset='${timezone_offset}'`);
+
     // Calculate optimal time slot duration if not provided
     let calculatedTimeSlotDuration = time_slot_duration;
     if (!calculatedTimeSlotDuration && contentIds.length > 0) {
@@ -81,7 +89,9 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
     }
 
     // Generate time slots
+    fastify.log.info(`Generating time slots from ${start_time} to ${end_time} with ${calculatedTimeSlotDuration} minute duration`);
     const timeSlots = generateTimeSlots(start_time, end_time, calculatedTimeSlotDuration);
+    fastify.log.info(`Generated ${timeSlots.length} time slots: first=${timeSlots[0]}, last=${timeSlots[timeSlots.length - 1]}`);
     if (timeSlots.length === 0) {
       throw new ValidationError('Invalid time range');
     }
