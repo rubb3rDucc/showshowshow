@@ -40,3 +40,12 @@ export async function deleteScheduleItem(scheduleItemId: string): Promise<void> 
   });
 }
 
+/**
+ * Clear all schedule items
+ */
+export async function clearSchedule(): Promise<{ success: boolean; message: string }> {
+  return apiCall<{ success: boolean; message: string }>('/api/schedule', {
+    method: 'DELETE',
+  });
+}
+

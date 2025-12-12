@@ -314,7 +314,39 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     23, 59, 59, 999
   ));
 
+  // Track the last scheduled end time to prevent overlaps
+  let lastScheduledEndTime: Date | null = null;
+
   while (currentDate <= endDateCopy) {
+    // Calculate the actual end time for this day's schedule window
+    let dayEndTime: Date;
+    if (crossesMidnight) {
+      // If crossing midnight, end time is next day at endHour:endMin
+      dayEndTime = new Date(Date.UTC(
+        currentDate.getUTCFullYear(),
+        currentDate.getUTCMonth(),
+        currentDate.getUTCDate() + 1,
+        endHour,
+        endMin,
+        0,
+        0
+      ));
+    } else {
+      // Normal case: same day
+      dayEndTime = new Date(Date.UTC(
+        currentDate.getUTCFullYear(),
+        currentDate.getUTCMonth(),
+        currentDate.getUTCDate(),
+        endHour,
+        endMin,
+        0,
+        0
+      ));
+    }
+
+    // Reset lastScheduledEndTime for each new day
+    lastScheduledEndTime = null;
+
     // Generate schedule for this day
     for (const timeSlot of timeSlots) {
       const scheduledTime = parseTime(timeSlot, currentDate);
@@ -324,30 +356,10 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
         scheduledTime.setUTCDate(scheduledTime.getUTCDate() + 1);
       }
 
-      // Calculate the actual end time for this day's schedule window
-      let dayEndTime: Date;
-      if (crossesMidnight) {
-        // If crossing midnight, end time is next day at endHour:endMin
-        dayEndTime = new Date(Date.UTC(
-          currentDate.getUTCFullYear(),
-          currentDate.getUTCMonth(),
-          currentDate.getUTCDate() + 1,
-          endHour,
-          endMin,
-          0,
-          0
-        ));
-      } else {
-        // Normal case: same day
-        dayEndTime = new Date(Date.UTC(
-          currentDate.getUTCFullYear(),
-          currentDate.getUTCMonth(),
-          currentDate.getUTCDate(),
-          endHour,
-          endMin,
-          0,
-          0
-        ));
+      // Skip this time slot if it overlaps with previously scheduled content
+      if (lastScheduledEndTime && scheduledTime < lastScheduledEndTime) {
+        console.log(`[Schedule Generator] Skipping slot ${timeSlot} - overlaps with previous content (ends at ${lastScheduledEndTime.toISOString()})`);
+        continue;
       }
       
       // Get date-only versions for comparison
@@ -451,6 +463,10 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
           duration,
         });
 
+        // Update last scheduled end time to prevent overlaps
+        lastScheduledEndTime = endTime;
+        console.log(`[Schedule Generator] Scheduled movie at ${scheduledTime.toISOString()}, ends at ${endTime.toISOString()} (${duration} min)`);
+
         // Remove movie from available list (only schedule once)
         moviesByShow.delete(currentContentId);
         timeSlotUsage.set(slotKey, currentUsage + 1);
@@ -502,6 +518,10 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
         duration,
       });
 
+      // Update last scheduled end time to prevent overlaps
+      lastScheduledEndTime = endTime;
+      console.log(`[Schedule Generator] Scheduled episode at ${scheduledTime.toISOString()}, ends at ${endTime.toISOString()} (${duration} min)`);
+
       // Update indexes
       episodeIndexes.set(currentContentId, episodeIndex + 1);
       timeSlotUsage.set(slotKey, currentUsage + 1);
@@ -513,6 +533,85 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
   console.log(`[Schedule Generator] Generated ${schedule.length} schedule items`);
   return schedule;
+}
+
+// Calculate optimal time slot duration based on content durations
+export async function calculateOptimalTimeSlotDuration(contentIds: string[]): Promise<number> {
+  if (contentIds.length === 0) {
+    return 30; // Default to 30 minutes if no content
+  }
+
+  // Get all content durations
+  const content = await db
+    .selectFrom('content')
+    .select(['id', 'default_duration', 'content_type'])
+    .where('id', 'in', contentIds)
+    .execute();
+
+  const shows = content.filter(c => c.content_type === 'show');
+  const movies = content.filter(c => c.content_type === 'movie');
+
+  console.log(`[Schedule Generator] Analyzing ${shows.length} shows and ${movies.length} movies for optimal slot duration`);
+
+  // If we have shows, get their episode durations
+  let episodeDurations: number[] = [];
+  if (shows.length > 0) {
+    const showIds = shows.map(s => s.id);
+    const episodes = await db
+      .selectFrom('episodes')
+      .select(['duration'])
+      .where('content_id', 'in', showIds)
+      .where('duration', 'is not', null)
+      .execute();
+
+    episodeDurations = episodes
+      .map(e => e.duration)
+      .filter((d): d is number => d !== null && d > 0);
+
+    // If no episode durations, fall back to show default durations
+    if (episodeDurations.length === 0) {
+      episodeDurations = shows
+        .map(s => s.default_duration)
+        .filter((d): d is number => d !== null && d > 0);
+    }
+  }
+
+  console.log(`[Schedule Generator] Found ${episodeDurations.length} episode durations:`, episodeDurations.slice(0, 10));
+
+  // Find the most common duration (mode) or shortest if all are different
+  let targetDuration: number;
+  if (episodeDurations.length > 0) {
+    // Calculate mode (most common duration)
+    const durationCounts = episodeDurations.reduce((acc, dur) => {
+      acc[dur] = (acc[dur] || 0) + 1;
+      return acc;
+    }, {} as Record<number, number>);
+
+    const sortedDurations = Object.entries(durationCounts)
+      .sort((a, b) => b[1] - a[1]) // Sort by frequency
+      .map(([dur]) => Number(dur));
+
+    targetDuration = sortedDurations[0];
+    console.log(`[Schedule Generator] Most common episode duration: ${targetDuration} minutes`);
+  } else if (movies.length > 0) {
+    // If only movies, use their average duration divided by 4 (for granularity)
+    const movieDurations = movies
+      .map(m => m.default_duration)
+      .filter((d): d is number => d !== null && d > 0);
+    
+    const avgMovieDuration = movieDurations.reduce((sum, d) => sum + d, 0) / movieDurations.length;
+    targetDuration = Math.floor(avgMovieDuration / 4); // Divide by 4 for more granular slots
+    console.log(`[Schedule Generator] Average movie duration: ${avgMovieDuration}, using ${targetDuration} for slots`);
+  } else {
+    targetDuration = 30; // Fallback
+    console.log(`[Schedule Generator] No valid durations found, using default 30 minutes`);
+  }
+
+  // Round up to nearest multiple of 15
+  const slotDuration = Math.max(15, Math.ceil(targetDuration / 15) * 15);
+  console.log(`[Schedule Generator] Optimal time slot duration: ${slotDuration} minutes (rounded from ${targetDuration})`);
+
+  return slotDuration;
 }
 
 // Generate schedule from queue

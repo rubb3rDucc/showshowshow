@@ -230,6 +230,26 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
     return reply.send({ success: true });
   });
 
+  // Clear all schedule items for user
+  fastify.delete('/api/schedule', { preHandler: authenticate }, async (request, reply) => {
+    if (!request.user) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+
+    const userId = request.user.userId;
+
+    // Delete all schedule items for this user
+    const result = await db
+      .deleteFrom('schedule')
+      .where('user_id', '=', userId)
+      .execute();
+
+    return reply.send({ 
+      success: true, 
+      message: `Cleared ${result.length > 0 ? result[0].numDeletedRows : 0} schedule items` 
+    });
+  });
+
   // Mark schedule item as watched
   fastify.post('/api/schedule/:id/watched', { preHandler: authenticate }, async (request, reply) => {
     if (!request.user) {

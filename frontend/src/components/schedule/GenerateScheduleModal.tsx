@@ -31,6 +31,7 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
   const [endDate, setEndDate] = useState<Date | null>(tomorrow);
   const [startTime, setStartTime] = useState('20:00'); // 8 PM
   const [endTime, setEndTime] = useState('23:00'); // 11 PM (better default)
+  const [timeSlotDuration, setTimeSlotDuration] = useState<string>('auto'); // Auto-calculate by default
   const [rotationType, setRotationType] = useState<'round_robin' | 'random'>('round_robin');
   const [includeReruns, setIncludeReruns] = useState(false);
 
@@ -85,6 +86,8 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
       end_date: formatDate(endDate),
       start_time: startTime,
       end_time: endTime,
+      // Only include time_slot_duration if not 'auto'
+      ...(timeSlotDuration !== 'auto' && { time_slot_duration: Number(timeSlotDuration) }),
       rotation_type: rotationType,
       include_reruns: includeReruns,
     };
@@ -146,6 +149,20 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
           value={endTime}
           onChange={(e) => setEndTime(e.currentTarget.value)}
           required
+        />
+
+        {/* Time Slot Duration */}
+        <Select
+          label="Time Slot Duration"
+          description="How often to check for new content to schedule"
+          value={timeSlotDuration}
+          onChange={(value) => setTimeSlotDuration(value || 'auto')}
+          data={[
+            { value: 'auto', label: '🤖 Auto (recommended) - Calculated from content' },
+            { value: '15', label: '15 minutes (anime/short episodes)' },
+            { value: '30', label: '30 minutes (standard TV)' },
+            { value: '60', label: '60 minutes (hourly blocks)' },
+          ]}
         />
 
         {/* Rotation Type */}

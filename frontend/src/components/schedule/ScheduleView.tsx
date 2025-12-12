@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Card,
   Text,
@@ -14,13 +14,15 @@ import {
   Alert,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconCalendar, IconClock, IconCheck, IconAlertCircle } from '@tabler/icons-react';
-import { getSchedule } from '../../api/schedule';
+import { IconCalendar, IconClock, IconCheck, IconAlertCircle, IconTrash } from '@tabler/icons-react';
+import { toast } from 'sonner';
+import { getSchedule, clearSchedule } from '../../api/schedule';
 import type { ScheduleItem } from '../../types/api';
 
 export function ScheduleView() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [viewAll, setViewAll] = useState(false);
+  const queryClient = useQueryClient();
 
   // Format date as YYYY-MM-DD (using local date to preserve the calendar date selected)
   const formatDate = (date: Date | null | undefined): string | undefined => {
@@ -53,6 +55,18 @@ export function ScheduleView() {
     queryFn: () => getSchedule(dateStr),
     retry: 1,
     staleTime: 30000, // Cache for 30 seconds
+  });
+
+  // Clear schedule mutation
+  const clearMutation = useMutation({
+    mutationFn: clearSchedule,
+    onSuccess: (data) => {
+      toast.success(data.message || 'Schedule cleared successfully!');
+      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to clear schedule');
+    },
   });
 
   // Group schedule by date
@@ -88,7 +102,7 @@ export function ScheduleView() {
 
   return (
     <Stack gap="lg">
-      {/* Date Picker */}
+      {/* Date Picker and Controls */}
       <Group justify="space-between" align="center">
         <DatePickerInput
           value={selectedDate}
@@ -124,6 +138,16 @@ export function ScheduleView() {
             disabled={viewAll}
           >
             Today
+          </Button>
+          <Button
+            variant="light"
+            color="red"
+            leftSection={<IconTrash size={16} />}
+            onClick={() => clearMutation.mutate()}
+            loading={clearMutation.isPending}
+            disabled={!schedule || schedule.length === 0}
+          >
+            Clear Schedule
           </Button>
         </Group>
       </Group>

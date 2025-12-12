@@ -124,6 +124,7 @@ export interface GenerateScheduleRequest {
   end_date: string;
   start_time?: string;
   end_time?: string;
+  time_slot_duration?: number; // in minutes (default: 30)
   rotation_type?: 'round_robin' | 'random';
   include_reruns?: boolean;
 }

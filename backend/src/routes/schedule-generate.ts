@@ -17,7 +17,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       end_date,
       start_time = '18:00',
       end_time = '00:00',
-      time_slot_duration = 30,
+      time_slot_duration,
       max_shows_per_time_slot = 1,
       include_reruns = false,
       rerun_frequency = 'rarely',
@@ -51,8 +51,30 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       throw new ValidationError('start_date must be before or equal to end_date');
     }
 
+    // Get queue content IDs to calculate optimal time slot duration if not provided
+    let calculatedTimeSlotDuration = time_slot_duration;
+    if (!calculatedTimeSlotDuration) {
+      const queueItems = await db
+        .selectFrom('queue')
+        .select('content_id')
+        .where('user_id', '=', userId)
+        .orderBy('position', 'asc')
+        .execute();
+
+      const contentIds = [...new Set(queueItems.map((q: any) => q.content_id))] as string[];
+      
+      if (contentIds.length > 0) {
+        // Import the function we just created
+        const { calculateOptimalTimeSlotDuration } = await import('../lib/schedule-generator.js');
+        calculatedTimeSlotDuration = await calculateOptimalTimeSlotDuration(contentIds);
+        fastify.log.info(`Auto-calculated time slot duration: ${calculatedTimeSlotDuration} minutes`);
+      } else {
+        calculatedTimeSlotDuration = 30; // Default fallback
+      }
+    }
+
     // Generate time slots
-    const timeSlots = generateTimeSlots(start_time, end_time, time_slot_duration);
+    const timeSlots = generateTimeSlots(start_time, end_time, calculatedTimeSlotDuration);
     if (timeSlots.length === 0) {
       throw new ValidationError('Invalid time range');
     }
