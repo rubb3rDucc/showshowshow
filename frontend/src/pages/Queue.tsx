@@ -28,10 +28,11 @@ import {
   Alert,
 } from '@mantine/core';
 import { IconPlus, IconAlertCircle } from '@tabler/icons-react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { getQueue, removeFromQueue, reorderQueue } from '../api/content';
 import { QueueItemCard } from '../components/queue/QueueItemCard';
+import { GenerateScheduleModal } from '../components/schedule/GenerateScheduleModal';
 import type { QueueItem } from '../types/api';
 
 // Sortable wrapper for queue items
@@ -65,7 +66,9 @@ function SortableQueueItem({
 
 export function Queue() {
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [localQueue, setLocalQueue] = useState<QueueItem[]>([]);
+  const [generateModalOpened, setGenerateModalOpened] = useState(false);
 
   // Fetch queue
   const { data: queue, isLoading, error } = useQuery({
@@ -211,8 +214,11 @@ export function Queue() {
             </p>
           </div>
           {!isEmpty && (
-            <Button size="lg" disabled>
-              Generate Schedule (Coming Soon)
+            <Button
+              size="lg"
+              onClick={() => setGenerateModalOpened(true)}
+            >
+              Generate Schedule
             </Button>
           )}
         </Group>
@@ -263,6 +269,13 @@ export function Queue() {
           </Text>
         )}
       </div>
+
+      {/* Generate Schedule Modal */}
+      <GenerateScheduleModal
+        opened={generateModalOpened}
+        onClose={() => setGenerateModalOpened(false)}
+        onSuccess={() => setLocation('/')}
+      />
     </div>
   );
 }

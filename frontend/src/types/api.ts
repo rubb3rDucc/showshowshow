@@ -100,3 +100,31 @@ export interface Episode {
   created_at: string;
 }
 
+export interface ScheduleItem {
+  id: string;
+  user_id?: string;
+  content_id: string;
+  season: number | null;
+  episode: number | null;
+  scheduled_time: string;
+  duration: number;
+  source_type?: string;
+  source_id?: string | null;
+  watched: boolean;
+  created_at?: string;
+  // Joined data from backend
+  tmdb_id?: number;
+  title: string;
+  poster_url: string | null;
+  content_type: 'show' | 'movie';
+}
+
+export interface GenerateScheduleRequest {
+  start_date: string;
+  end_date: string;
+  start_time?: string;
+  end_time?: string;
+  rotation_type?: 'round_robin' | 'random';
+  include_reruns?: boolean;
+}
+
