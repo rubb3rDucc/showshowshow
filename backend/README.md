@@ -70,6 +70,13 @@ JWT_EXPIRES_IN=7d
 # TMDB API (get key from https://www.themoviedb.org/settings/api)
 TMDB_API_KEY=your-tmdb-api-key
 
+# PostHog Error Tracking (optional - get key from https://posthog.com)
+POSTHOG_API_KEY=your-posthog-api-key
+POSTHOG_HOST=https://us.i.posthog.com  # Optional, defaults to US instance
+
+# Frontend URL (for CORS and CSP - set in production)
+FRONTEND_URL=https://your-frontend-domain.com  # Optional, defaults to localhost:5173 in dev
+
 # Server
 PORT=3000
 NODE_ENV=development

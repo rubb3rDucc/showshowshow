@@ -1,10 +1,31 @@
 import { AppError } from '../lib/errors.js';
-import type { FastifyInstance } from 'fastify';
+import { captureException } from '../lib/posthog.js';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 export const errorHandlerPlugin = async (fastify: FastifyInstance) => {
   // Global error handler
-  fastify.setErrorHandler((error, request, reply) => {
+  fastify.setErrorHandler((error, request: FastifyRequest, reply) => {
     fastify.log.error(error);
+
+    // Capture exception in PostHog (only for non-4xx errors or AppErrors)
+    const shouldCapture = !(error instanceof AppError && error.statusCode < 500) && 
+                          !(error && typeof error === 'object' && 'validation' in error) &&
+                          !(error && typeof error === 'object' && 'name' in error && error.name === 'JsonWebTokenError');
+
+    if (shouldCapture && error instanceof Error) {
+      captureException(error, {
+        request: {
+          method: request.method,
+          url: request.url,
+          headers: request.headers as Record<string, string>,
+          userId: request.user?.userId,
+        },
+        extra: {
+          statusCode: error instanceof AppError ? error.statusCode : 500,
+          errorCode: error instanceof AppError ? error.code : undefined,
+        },
+      });
+    }
 
     // Handle custom AppError
     if (error instanceof AppError) {
