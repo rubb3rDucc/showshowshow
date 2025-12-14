@@ -67,16 +67,23 @@ function SortableQueueItem({
 export function Queue() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [localQueue, setLocalQueue] = useState<QueueItem[]>([]);
-  const [generateModalOpened, setGenerateModalOpened] = useState(false);
-
   // Fetch queue
   const { data: queue, isLoading, error } = useQuery({
     queryKey: ['queue'],
     queryFn: getQueue,
   });
 
-  // Update local queue when server data changes
+  const [generateModalOpened, setGenerateModalOpened] = useState(false);
+
+  // Local queue state for drag-and-drop reordering (optimistic updates)
+  // We need local state to handle optimistic updates during drag operations
+  const [localQueue, setLocalQueue] = useState<QueueItem[]>(queue || []);
+  
+  // Sync local queue with server data when it changes
+  // Note: This is necessary for drag-and-drop with optimistic updates.
+  // The local state allows us to update the UI immediately during drag,
+  // then sync back to server state when the server responds.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (queue) {
       setLocalQueue(queue);

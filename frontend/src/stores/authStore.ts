@@ -78,7 +78,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       // Only clear token on auth errors (401), not network errors
       const isAuthError = error && typeof error === 'object' && 'statusCode' in error && 
-                          (error as any).statusCode === 401;
+                          (error as { statusCode: number }).statusCode === 401;
       
       if (isAuthError) {
         console.log('Auth token invalid, logging out');
