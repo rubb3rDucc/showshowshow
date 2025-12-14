@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 
 export const authRoutes = async (fastify: FastifyInstance) => {
   // Register
-  fastify.post('/api/auth/register', async (request, reply) => {
+  fastify.post('/register', async (request, reply) => {
     const { email, password } = request.body as { email?: string; password?: string };
 
     // Validate input
@@ -82,7 +82,7 @@ export const authRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Login
-  fastify.post('/api/auth/login', async (request, reply) => {
+  fastify.post('/login', async (request, reply) => {
     const { email, password } = request.body as { email?: string; password?: string };
 
     // Validate input
@@ -127,7 +127,7 @@ export const authRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get current user (protected route)
-  fastify.get('/api/auth/me', async (request, reply) => {
+  fastify.get('/me', async (request, reply) => {
     // This will be protected with authentication middleware
     const token = request.headers.authorization?.replace('Bearer ', '');
     if (!token) {

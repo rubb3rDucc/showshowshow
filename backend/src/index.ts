@@ -7,6 +7,7 @@ import cors from '@fastify/cors';
 import { db, testConnection, closeConnection } from './db/index.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { securityPlugin } from './plugins/security.js';
+import { rateLimitPlugin, authRateLimitPlugin } from './plugins/rate-limit.js';
 import { initPostHog, shutdownPostHog } from './lib/posthog.js';
 import { getEnvConfig, isProduction } from './lib/env-detection.js';
 import { authRoutes } from './routes/auth.js';
@@ -105,11 +106,20 @@ const start = async () => {
       allowedHeaders: ['Content-Type', 'Authorization'],
     });                                 
 
+    // Register global rate limiting (AFTER CORS, BEFORE routes)
+    await fastify.register(rateLimitPlugin);
+
     // Register plugins
     await fastify.register(errorHandlerPlugin);
 
     // Register routes
-    await fastify.register(authRoutes);
+    // Auth routes with stricter rate limiting (5 attempts per 15 minutes)
+    fastify.register(async (fastify) => {
+      await fastify.register(authRateLimitPlugin);
+      await fastify.register(authRoutes);
+    }, { prefix: '/api/auth' });
+
+    // Other routes with global rate limiting
     await fastify.register(contentRoutes);
     await fastify.register(queueRoutes);
     await fastify.register(scheduleRoutes);
