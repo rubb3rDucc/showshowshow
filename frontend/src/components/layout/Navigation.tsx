@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { useAuthStore } from '../../stores/authStore';
+import { Button } from "@mantine/core";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -43,18 +44,16 @@ export function Navigation() {
 
           {/* User Menu */}
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">{user?.email}</span>
-            <button
+            <Button
               onClick={logout}
-              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              variant="gradient"
+              gradient={{ from: 'violet', to: 'orange', deg: 90 }}
             >
               Logout
-            </button>
+            </Button>
           </div>
         </div>
       </div>
     </nav>
   );
 }
-
-
