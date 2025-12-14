@@ -98,7 +98,7 @@ jobs:
         run: pnpm build
       - name: Security audit
         working-directory: backend
-        run: npm audit --audit-level=moderate
+        run: pnpm audit --audit-level=moderate
 
   test-frontend:
     runs-on: ubuntu-latest
