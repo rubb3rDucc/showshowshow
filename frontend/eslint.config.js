@@ -20,4 +20,12 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // Allow setState in effect for Queue.tsx - needed for drag-and-drop
+    // optimistic updates where we sync local state with server state
+    files: ['**/Queue.tsx'],
+    rules: {
+      'react-hooks/set-state-in-effect': 'off',
+    },
+  },
 ])

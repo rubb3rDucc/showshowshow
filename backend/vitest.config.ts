@@ -5,6 +5,9 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    exclude: process.env.TEST_TYPE === 'integration' 
+      ? [] 
+      : ['tests/toonami.test.ts'],
     testTimeout: 30000, // 30 seconds for API calls
     hookTimeout: 10000, // 10 seconds for setup/teardown
     // Separate test suites

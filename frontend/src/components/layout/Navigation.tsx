@@ -4,7 +4,7 @@ import { Button } from "@mantine/core";
 
 export function Navigation() {
   const [location] = useLocation();
-  const { logout, user } = useAuthStore();
+  const { logout } = useAuthStore();
 
   const navItems = [
     { path: '/', label: 'Home' },

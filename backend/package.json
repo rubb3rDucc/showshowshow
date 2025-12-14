@@ -18,14 +18,19 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:watch": "vitest watch",
-    "test:unit": "vitest run tests/unit",
-    "test:integration": "vitest run tests/toonami.test.ts",
+    "test:unit": "TEST_TYPE=unit vitest run",
+    "test:integration": "TEST_TYPE=integration vitest run tests/toonami.test.ts",
     "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.23.0",
+  "pnpm": {
+    "overrides": {
+      "esbuild": "^0.27.1"
+    }
+  },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@types/ms": "^2.1.0",

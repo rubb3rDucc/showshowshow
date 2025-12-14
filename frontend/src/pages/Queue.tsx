@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -67,20 +67,30 @@ function SortableQueueItem({
 export function Queue() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [localQueue, setLocalQueue] = useState<QueueItem[]>([]);
-  const [generateModalOpened, setGenerateModalOpened] = useState(false);
-
   // Fetch queue
   const { data: queue, isLoading, error } = useQuery({
     queryKey: ['queue'],
     queryFn: getQueue,
   });
 
-  // Update local queue when server data changes
+  const [generateModalOpened, setGenerateModalOpened] = useState(false);
+
+  // Track if we're currently dragging
+  const isDraggingRef = useRef(false);
+  
+  // Local queue state for drag-and-drop reordering (optimistic updates)
+  // Initialize from queue prop using lazy initializer
+  const [localQueue, setLocalQueue] = useState<QueueItem[]>(() => queue || []);
+  
+  // Sync localQueue with server data when queue changes (but not during drag)
+  // This is necessary for drag-and-drop: we need local state for optimistic updates,
+  // but must sync back when server data changes.
   useEffect(() => {
-    if (queue) {
+    if (queue && !isDraggingRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocalQueue(queue);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue]);
 
   // Remove from queue mutation
@@ -103,7 +113,7 @@ export function Queue() {
         old ? old.filter((item) => item.id !== itemId) : []
       );
       
-      // Also update local state
+      // Also update local state optimistically
       setLocalQueue((prev) => prev.filter((item) => item.id !== itemId));
       
       return { previousQueue };
@@ -135,6 +145,7 @@ export function Queue() {
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to reorder queue');
       // Revert to server state on error
+      isDraggingRef.current = false;
       if (queue) {
         setLocalQueue(queue);
       }
@@ -149,10 +160,15 @@ export function Queue() {
     })
   );
 
+  const handleDragStart = () => {
+    isDraggingRef.current = true;
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over || active.id === over.id) {
+      isDraggingRef.current = false;
       return;
     }
 
@@ -165,6 +181,9 @@ export function Queue() {
     // Send reorder request to backend
     const itemIds = newQueue.map((item) => item.id);
     reorderMutation.mutate(itemIds);
+    
+    // Reset dragging flag after mutation
+    isDraggingRef.current = false;
   };
 
   const handleRemove = (id: string) => {
@@ -250,6 +269,7 @@ export function Queue() {
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={localQueue.map((item) => item.id)} strategy={verticalListSortingStrategy}>

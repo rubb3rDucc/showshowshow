@@ -157,8 +157,9 @@ export function ScheduleView() {
                 // Parse string date (YYYY-MM-DD format)
                 dateObj = new Date(dateValue + 'T00:00:00'); // Add time to avoid timezone issues
               } else {
-                // Try to convert to Date
-                dateObj = new Date(dateValue as any);
+                // Try to convert to Date (handle unknown types)
+                const dateStr = String(dateValue);
+                dateObj = new Date(dateStr);
               }
             }
             
@@ -214,13 +215,13 @@ export function ScheduleView() {
       {/* Date Header - Always show when viewing by specific date */}
       {!viewAll && selectedDate && (
         <Text size="lg" fw={600} mb="md">
-          {(selectedDate as any) instanceof Date 
-            ? (selectedDate as Date).toLocaleDateString('en-US', {
+          {selectedDate instanceof Date 
+            ? selectedDate.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'numeric',
                 day: 'numeric',
               })
-            : new Date(selectedDate as any).toLocaleDateString('en-US', {
+            : new Date(selectedDate).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'numeric',
                 day: 'numeric',
@@ -256,7 +257,7 @@ export function ScheduleView() {
             displayDate = groupedSchedule[dateKey].display;
           } else if (selectedDate) {
             // Ensure selectedDate is a Date object
-            const dateObj = (selectedDate as any) instanceof Date ? selectedDate as Date : new Date(selectedDate as any);
+            const dateObj = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
             if (!isNaN(dateObj.getTime())) {
               displayDate = dateObj.toLocaleDateString('en-US', {
                 year: 'numeric',
