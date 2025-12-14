@@ -312,11 +312,11 @@ function ScheduleItemCard({ item }: { item: ScheduleItem }) {
         {item.poster_url && (
           <Image
             src={item.poster_url}
-            width={60}
-            height={90}
+            h={100}
+            w="auto"
+            fit="contain"
             radius="sm"
             alt={item.title}
-            fit="cover"
           />
         )}
 
