@@ -1,5 +1,5 @@
 import { promises as fs } from 'fs';
-import { Migrator, FileMigrationProvider } from 'kysely';
+import { Migrator, FileMigrationProvider, Migration } from 'kysely';
 import { db } from '../db/index.js';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,16 +7,50 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Custom provider that only loads numbered migration files (e.g., 001_*.ts, 002_*.ts)
+class NumberedMigrationProvider {
+  constructor(
+    private fs: typeof import('fs').promises,
+    private path: typeof import('path'),
+    private migrationFolder: string
+  ) {}
+
+  async getMigrations(): Promise<Record<string, Migration>> {
+    const files = await this.fs.readdir(this.migrationFolder);
+    const migrations: Record<string, Migration> = {};
+
+    // Only load files that match the pattern: NNN_*.ts (numbered migrations)
+    const migrationFiles = files.filter(
+      (file) => /^\d{3}_.*\.ts$/.test(file) && file !== 'runner.ts'
+    );
+
+    for (const fileName of migrationFiles) {
+      const migrationName = fileName.replace(/\.ts$/, '');
+      const migrationPath = this.path.join(this.migrationFolder, fileName);
+      const migration = await import(migrationPath);
+      
+      if (migration.up && migration.down) {
+        migrations[migrationName] = {
+          up: migration.up,
+          down: migration.down,
+        };
+      }
+    }
+
+    return migrations;
+  }
+}
+
 async function migrateToLatest() {
   console.log('🔄 Running migrations...');
   
   const migrator = new Migrator({
     db,
-    provider: new FileMigrationProvider({
+    provider: new NumberedMigrationProvider(
       fs,
       path,
-      migrationFolder: path.join(__dirname, './'),
-    }),
+      path.join(__dirname, './')
+    ),
   });
 
   const { error, results } = await migrator.migrateToLatest();
@@ -45,11 +79,11 @@ async function migrateDown() {
   
   const migrator = new Migrator({
     db,
-    provider: new FileMigrationProvider({
+    provider: new NumberedMigrationProvider(
       fs,
       path,
-      migrationFolder: path.join(__dirname, './'),
-    }),
+      path.join(__dirname, './')
+    ),
   });
 
   const { error, results } = await migrator.migrateDown();
