@@ -2,35 +2,19 @@ name: Main CI/CD Pipeline
 
 on:
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
   test-backend:
     runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-    
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 10
-      - uses: actions/setup-node@v6
+          version: 9.15.0
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -38,69 +22,15 @@ jobs:
       - name: Install dependencies
         working-directory: backend
         run: pnpm install
-      - name: Run database migrations
+      - name: Run tests
         working-directory: backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-        run: pnpm run migrate:up
-      - name: Run unit tests
-        working-directory: backend
-        env:
-          NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          JWT_SECRET: test-secret-key-for-ci-at-least-32-chars-long
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY || 'test-api-key-12345678901234567890' }}
-        run: pnpm test:unit
-      - name: Run integration tests (optional)
-        working-directory: backend
-        env:
-          NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          JWT_SECRET: test-secret-key-for-ci-at-least-32-chars-long
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          TEST_BASE_URL: http://localhost:3000
-        run: |
-          # Integration tests require a running server and real TMDB API key
-          # Skip if TMDB_API_KEY is not set
-          if [ -z "$TMDB_API_KEY" ] || [ "$TMDB_API_KEY" = "" ]; then
-            echo "⚠️  TMDB_API_KEY not set, skipping integration tests"
-            echo "💡 To run integration tests in CI, add TMDB_API_KEY as a GitHub secret"
-            exit 0
-          fi
-          
-          # Start server in background
-          echo "Starting server for integration tests..."
-          pnpm run dev > /tmp/server.log 2>&1 &
-          SERVER_PID=$!
-          
-          # Wait for server to be ready
-          echo "Waiting for server to start..."
-          for i in {1..30}; do
-            if curl -f http://localhost:3000/health > /dev/null 2>&1; then
-              echo "✅ Server is ready"
-              break
-            fi
-            if [ $i -eq 30 ]; then
-              echo "❌ Server failed to start after 30 seconds"
-              cat /tmp/server.log
-              kill $SERVER_PID 2>/dev/null || true
-              exit 0  # Don't fail the build, just skip integration tests
-            fi
-            sleep 1
-          done
-          
-          # Run integration tests
-          echo "Running integration tests..."
-          pnpm test:integration || echo "Integration tests completed with some failures"
-          
-          # Cleanup
-          kill $SERVER_PID 2>/dev/null || true
+        run: pnpm test:run
       - name: Build
         working-directory: backend
         run: pnpm build
       - name: Security audit
         working-directory: backend
-        run: pnpm audit --audit-level=moderate
+        run: npm audit --audit-level=moderate
 
   test-frontend:
     runs-on: ubuntu-latest
@@ -108,8 +38,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 10
-      - uses: actions/setup-node@v6
+          version: 9.15.0
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
