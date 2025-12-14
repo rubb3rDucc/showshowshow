@@ -7,6 +7,7 @@ import cors from '@fastify/cors';
 import { db, testConnection, closeConnection } from './db/index.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { securityPlugin } from './plugins/security.js';
+import { rateLimitPlugin, authRateLimitPlugin } from './plugins/rate-limit.js';
 import { initPostHog, shutdownPostHog } from './lib/posthog.js';
 import { getEnvConfig, isProduction } from './lib/env-detection.js';
 import { authRoutes } from './routes/auth.js';
@@ -108,8 +109,14 @@ const start = async () => {
     // Register plugins
     await fastify.register(errorHandlerPlugin);
 
+    // Register global rate limiting (BEFORE routes so route-level configs can override)
+    await fastify.register(rateLimitPlugin);
+
     // Register routes
-    await fastify.register(authRoutes);
+    // Auth routes - rate limiting is configured at route level (overrides global)
+    await fastify.register(authRoutes, { prefix: '/api/auth' });
+
+    // Other routes with global rate limiting
     await fastify.register(contentRoutes);
     await fastify.register(queueRoutes);
     await fastify.register(scheduleRoutes);

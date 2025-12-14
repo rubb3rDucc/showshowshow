@@ -1,10 +1,41 @@
 import { db } from '../db/index.js';
 import { hashPassword, verifyPassword, generateToken } from '../lib/auth.js';
+import rateLimit from '@fastify/rate-limit';
 import type { FastifyInstance } from 'fastify';
 
 export const authRoutes = async (fastify: FastifyInstance) => {
+  // Register rate limiting for auth routes (5 attempts per 15 minutes)
+  const timeWindow = process.env.NODE_ENV === 'development' ? '1 minute' : '15 minutes';
+  
+  await fastify.register(rateLimit, {
+    max: 5,
+    timeWindow: timeWindow,
+    global: true, // Apply to all routes in this scope
+    errorResponseBuilder: (request, context) => {
+      return {
+        code: 429,
+        error: 'Too Many Requests',
+        message: 'Too many authentication attempts. Please try again later.',
+        retryAfter: context.ttl,
+      };
+    },
+    keyGenerator: (request) => {
+      const forwarded = request.headers['x-forwarded-for'];
+      const ip = forwarded 
+        ? (forwarded as string).split(',')[0]?.trim() 
+        : request.ip;
+      return `auth:${ip}`;
+    },
+    addHeaders: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true,
+      'retry-after': true,
+    },
+  });
+
   // Register
-  fastify.post('/api/auth/register', async (request, reply) => {
+  fastify.post('/register', async (request, reply) => {
     const { email, password } = request.body as { email?: string; password?: string };
 
     // Validate input
@@ -82,7 +113,7 @@ export const authRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Login
-  fastify.post('/api/auth/login', async (request, reply) => {
+  fastify.post('/login', async (request, reply) => {
     const { email, password } = request.body as { email?: string; password?: string };
 
     // Validate input
@@ -127,7 +158,7 @@ export const authRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get current user (protected route)
-  fastify.get('/api/auth/me', async (request, reply) => {
+  fastify.get('/me', async (request, reply) => {
     // This will be protected with authentication middleware
     const token = request.headers.authorization?.replace('Bearer ', '');
     if (!token) {
