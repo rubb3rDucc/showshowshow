@@ -46,15 +46,17 @@ jobs:
       - name: Run unit tests
         working-directory: backend
         env:
+          NODE_ENV: test
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          JWT_SECRET: test-secret-key-for-ci
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY || 'test-api-key' }}
+          JWT_SECRET: test-secret-key-for-ci-at-least-32-chars-long
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY || 'test-api-key-12345678901234567890' }}
         run: pnpm test:unit
       - name: Run integration tests (optional)
         working-directory: backend
         env:
+          NODE_ENV: test
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          JWT_SECRET: test-secret-key-for-ci
+          JWT_SECRET: test-secret-key-for-ci-at-least-32-chars-long
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TEST_BASE_URL: http://localhost:3000
         run: |

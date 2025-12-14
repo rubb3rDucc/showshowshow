@@ -1,3 +1,7 @@
+// Validate environment variables FIRST - fail fast if invalid
+import { validateEnvOrExit } from './lib/env.js';
+validateEnvOrExit();
+
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { db, testConnection, closeConnection } from './db/index.js';
