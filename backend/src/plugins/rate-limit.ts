@@ -15,6 +15,7 @@ export const rateLimitPlugin = async (fastify: FastifyInstance) => {
   await fastify.register(rateLimit, {
     max: globalMax,
     timeWindow: globalTimeWindow,
+    global: true, // Apply to all routes by default
     errorResponseBuilder: (request, context) => {
       return {
         code: 429,
@@ -48,9 +49,13 @@ export const rateLimitPlugin = async (fastify: FastifyInstance) => {
  * Prevents brute force attacks on login/register
  */
 export const authRateLimitPlugin = async (fastify: FastifyInstance) => {
+  // In development, use shorter time window for easier testing
+  const timeWindow = isDevelopment() ? '1 minute' : '15 minutes';
+  
   await fastify.register(rateLimit, {
     max: 5, // Only 5 attempts
-    timeWindow: '15 minutes', // Per 15 minutes
+    timeWindow: timeWindow,
+    global: true, // Apply to all routes in this scope (auth routes)
     errorResponseBuilder: (request, context) => {
       return {
         code: 429,
@@ -59,20 +64,17 @@ export const authRateLimitPlugin = async (fastify: FastifyInstance) => {
         retryAfter: context.ttl,
       };
     },
-    keyGenerator: (request) => {
-      // Use IP + email if available for auth endpoints
+    keyGenerator: async (request) => {
+      // Use IP address for rate limiting
+      // All auth endpoints share the same rate limit bucket
       const forwarded = request.headers['x-forwarded-for'];
       const ip = forwarded 
         ? (forwarded as string).split(',')[0]?.trim() 
         : request.ip;
       
-      // Try to get email from body for more specific rate limiting
-      const body = request.body as { email?: string } | undefined;
-      if (body?.email) {
-        return `${ip}:${body.email.toLowerCase()}`;
-      }
-      
-      return ip;
+      // Use same key for all auth endpoints (login, register, etc.)
+      // This prevents trying login 5 times, then register 5 times
+      return `auth:${ip}`;
     },
     addHeaders: {
       'x-ratelimit-limit': true,
@@ -80,5 +82,7 @@ export const authRateLimitPlugin = async (fastify: FastifyInstance) => {
       'x-ratelimit-reset': true,
       'retry-after': true,
     },
+    // Use Redis or in-memory store (in-memory is default)
+    // In development, this should work fine
   });
 };

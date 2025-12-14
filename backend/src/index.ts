@@ -106,18 +106,15 @@ const start = async () => {
       allowedHeaders: ['Content-Type', 'Authorization'],
     });                                 
 
-    // Register global rate limiting (AFTER CORS, BEFORE routes)
-    await fastify.register(rateLimitPlugin);
-
     // Register plugins
     await fastify.register(errorHandlerPlugin);
 
+    // Register global rate limiting (BEFORE routes so route-level configs can override)
+    await fastify.register(rateLimitPlugin);
+
     // Register routes
-    // Auth routes with stricter rate limiting (5 attempts per 15 minutes)
-    fastify.register(async (fastify) => {
-      await fastify.register(authRateLimitPlugin);
-      await fastify.register(authRoutes);
-    }, { prefix: '/api/auth' });
+    // Auth routes - rate limiting is configured at route level (overrides global)
+    await fastify.register(authRoutes, { prefix: '/api/auth' });
 
     // Other routes with global rate limiting
     await fastify.register(contentRoutes);
