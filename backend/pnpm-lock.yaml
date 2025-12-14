@@ -20,6 +20,9 @@ importers:
       dotenv:
         specifier: ^16.6.1
         version: 16.6.1
+      esbuild:
+        specifier: ^0.27.1
+        version: 0.27.1
       fastify:
         specifier: ^5.6.2
         version: 5.6.2
