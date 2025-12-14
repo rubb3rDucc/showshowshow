@@ -1,0 +1,25 @@
+# Simple snapshot Dockerfile for backend
+# Just preserves the source code and dependencies
+FROM node:20-alpine
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+WORKDIR /app
+
+# Copy everything (source code snapshot)
+COPY . .
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Expose port
+EXPOSE 3000
+
+# Default: just keep the code (can build/run later)
+# Or uncomment to auto-start:
+# CMD ["pnpm", "dev"]
+
+# For snapshot purposes, just keep the container with code
+CMD ["tail", "-f", "/dev/null"]
+

@@ -97,7 +97,12 @@ const start = async () => {
     const frontendUrl = process.env.FRONTEND_URL;
     const corsOrigin = isProduction() && frontendUrl
       ? [frontendUrl] // Production: only allow frontend domain
-      : true; // Development: allow all (for local development)
+      : [
+          'http://localhost:5173',  // Local dev frontend
+          'http://localhost:5174',  // Docker dev frontend
+          'http://localhost:3000',  // Fallback
+          'http://localhost:3001',  // Docker backend (for direct access)
+        ]; // Development: allow common localhost ports
 
     await fastify.register(cors, {
       origin: corsOrigin,
@@ -123,7 +128,10 @@ const start = async () => {
     await fastify.register(scheduleGenerateRoutes);
 
     const port = Number(process.env.PORT) || 3000;
-    const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+    // Bind to 0.0.0.0 in Docker or production, localhost otherwise
+    const host = process.env.NODE_ENV === 'production' || process.env.DOCKER === 'true' 
+      ? '0.0.0.0' 
+      : 'localhost';
 
     await fastify.listen({ port, host });
 

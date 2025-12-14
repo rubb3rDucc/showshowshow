@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: showshowshow-backend
+    ports:
+      - "3001:3000"  # Host:Container - use 3001 to avoid conflict with local dev
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Allows container to access host services
+    environment:
+      - NODE_ENV=development
+      - DOCKER=true  # Signal that we're in Docker for host binding
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - TMDB_API_KEY=${TMDB_API_KEY}
+      - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5174}
+      - PORT=3000
+    volumes:
+      # Mount source for hot reload in dev (optional)
+      - ./backend/src:/app/src:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: showshowshow-frontend
+    ports:
+      - "5174:5173"  # Host:Container - use 5174 to avoid conflict with local dev
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3001}
+    volumes:
+      # Mount source for hot reload
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      # Exclude node_modules from volume mount (use container's)
+      - /app/node_modules
+    restart: unless-stopped
+    healthcheck:
+      # Vite dev server doesn't have a /health endpoint, so we check if the server responds
+      test: ["CMD-SHELL", "nc -z localhost 5173 || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      - backend
+
