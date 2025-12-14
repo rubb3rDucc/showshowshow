@@ -1,10 +1,23 @@
 import { AppError } from '../lib/errors.js';
 import { captureException } from '../lib/posthog.js';
+import { isProduction } from '../lib/env-detection.js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 export const errorHandlerPlugin = async (fastify: FastifyInstance) => {
-  // Global error handler
+  // Set custom error serializer to prevent Fastify from adding default error fields
   fastify.setErrorHandler((error, request: FastifyRequest, reply) => {
+    // Remove error message from error object to prevent Fastify from serializing it
+    // We'll send our own sanitized message instead
+    const originalMessage = error instanceof Error ? error.message : undefined;
+    if (error instanceof Error && isProduction() && (error instanceof AppError ? error.statusCode >= 500 : true)) {
+      // Temporarily clear message to prevent Fastify from including it
+      Object.defineProperty(error, 'message', {
+        value: '',
+        writable: true,
+        configurable: true,
+      });
+    }
+    // Always log full error details server-side
     fastify.log.error(error);
 
     // Capture exception in PostHog (only for non-4xx errors or AppErrors)
@@ -29,34 +42,74 @@ export const errorHandlerPlugin = async (fastify: FastifyInstance) => {
 
     // Handle custom AppError
     if (error instanceof AppError) {
-      return reply.code(error.statusCode).send({
-        error: error.message,
-        code: error.code,
-      });
+      // In production, sanitize error messages for 5xx errors
+      // Keep user-friendly messages for 4xx errors (client errors)
+      const isServerError = error.statusCode >= 500;
+      const sanitizedMessage = isProduction() && isServerError
+        ? 'An internal error occurred'
+        : error.message;
+
+      // Send custom error response
+      // Use reply.send() with a plain object to prevent Fastify from serializing the Error
+      const response = {
+        error: sanitizedMessage,
+        code: error.code, // Error codes are safe to expose
+      };
+      
+      return reply
+        .code(error.statusCode)
+        .type('application/json')
+        .send(response);
     }
 
     // Handle Fastify validation errors
     if (error && typeof error === 'object' && 'validation' in error) {
-      return reply.code(400).send({
-        error: 'Validation error',
-        details: (error as any).validation,
-      });
+      const validationError = error as { validation?: unknown };
+      
+      // In production, don't expose validation details
+      if (isProduction()) {
+        return reply
+          .code(400)
+          .type('application/json')
+          .send({
+            error: 'Validation error',
+            code: 'VALIDATION_ERROR',
+          });
+      }
+
+      // In development, show validation details for debugging
+      return reply
+        .code(400)
+        .type('application/json')
+        .send({
+          error: 'Validation error',
+          code: 'VALIDATION_ERROR',
+          details: validationError.validation,
+        });
     }
 
     // Handle JWT errors
     if (error && typeof error === 'object' && 'name' in error && error.name === 'JsonWebTokenError') {
-      return reply.code(401).send({
-        error: 'Invalid token',
-      });
+      return reply
+        .code(401)
+        .type('application/json')
+        .send({
+          error: 'Invalid token',
+          code: 'UNAUTHORIZED',
+        });
     }
 
-    // Default error
+    // Default error (500) - never expose details in production
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    return reply.code(500).send({
-      error: process.env.NODE_ENV === 'production'
-        ? 'Internal server error'
-        : errorMessage,
-    });
+    return reply
+      .code(500)
+      .type('application/json')
+      .send({
+        error: isProduction()
+          ? 'Internal server error'
+          : errorMessage,
+        code: 'INTERNAL_ERROR',
+      });
   });
 };
 
