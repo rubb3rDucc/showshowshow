@@ -18,8 +18,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:watch": "vitest watch",
-    "test:unit": "vitest run tests/unit/**/*.test.ts",
-    "test:integration": "vitest run tests/toonami.test.ts",
+    "test:unit": "TEST_TYPE=unit vitest run",
+    "test:integration": "TEST_TYPE=integration vitest run tests/toonami.test.ts",
     "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
