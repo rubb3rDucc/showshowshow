@@ -1,0 +1,56 @@
+name: Main CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install dependencies
+        working-directory: backend
+        run: pnpm install
+      - name: Run tests
+        working-directory: backend
+        run: pnpm test:run
+      - name: Build
+        working-directory: backend
+        run: pnpm build
+      - name: Security audit
+        working-directory: backend
+        run: npm audit --audit-level=moderate
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install
+      - name: Lint
+        working-directory: frontend
+        run: pnpm run lint
+      - name: Build
+        working-directory: frontend
+        run: pnpm build
+      - name: Security audit
+        working-directory: frontend
+        run: npm audit --audit-level=moderate
