@@ -74,6 +74,9 @@ TMDB_API_KEY=your-tmdb-api-key
 POSTHOG_API_KEY=your-posthog-api-key
 POSTHOG_HOST=https://us.i.posthog.com  # Optional, defaults to US instance
 
+# Frontend URL (for CORS and CSP - set in production)
+FRONTEND_URL=https://your-frontend-domain.com  # Optional, defaults to localhost:5173 in dev
+
 # Server
 PORT=3000
 NODE_ENV=development

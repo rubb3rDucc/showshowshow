@@ -2,8 +2,9 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { db, testConnection, closeConnection } from './db/index.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
+import { securityPlugin } from './plugins/security.js';
 import { initPostHog, shutdownPostHog } from './lib/posthog.js';
-import { getEnvConfig } from './lib/env-detection.js';
+import { getEnvConfig, isProduction } from './lib/env-detection.js';
 import { authRoutes } from './routes/auth.js';
 import { contentRoutes } from './routes/content.js';
 import { queueRoutes } from './routes/queue.js';
@@ -83,9 +84,18 @@ const start = async () => {
     // Test database connection
     await testConnection();
 
-    // Register CORS (BEFORE other plugins)
+    // Register security headers (BEFORE CORS and other plugins)
+    await fastify.register(securityPlugin);
+
+    // Register CORS (AFTER security, BEFORE other plugins)
+    // In production, restrict to frontend URL; in development, allow all
+    const frontendUrl = process.env.FRONTEND_URL;
+    const corsOrigin = isProduction() && frontendUrl
+      ? [frontendUrl] // Production: only allow frontend domain
+      : true; // Development: allow all (for local development)
+
     await fastify.register(cors, {
-      origin: true,
+      origin: corsOrigin,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
       allowedHeaders: ['Content-Type', 'Authorization'],
