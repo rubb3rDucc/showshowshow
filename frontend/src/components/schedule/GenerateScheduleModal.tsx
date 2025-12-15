@@ -215,26 +215,6 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
     generateMutation.mutate(params);
   };
 
-  // Format time for display
-  const formatTime = (isoString: string): string => {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit',
-      hour12: true 
-    });
-  };
-  
-  // Format duration
-  const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins}m`;
-    }
-    return `${mins}m`;
-  };
-
   return (
     <Modal
       opened={opened}
@@ -566,26 +546,6 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
 
     console.log('Generating schedule with params:', params);
     generateMutation.mutate(params);
-  };
-
-  // Format time for display
-  const formatTime = (isoString: string): string => {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit',
-      hour12: true 
-    });
-  };
-  
-  // Format duration
-  const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins}m`;
-    }
-    return `${mins}m`;
   };
 
   return (

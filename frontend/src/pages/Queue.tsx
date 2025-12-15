@@ -87,10 +87,8 @@ export function Queue() {
   // but must sync back when server data changes.
   useEffect(() => {
     if (queue && !isDraggingRef.current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocalQueue(queue);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue]);
 
   // Remove from queue mutation
