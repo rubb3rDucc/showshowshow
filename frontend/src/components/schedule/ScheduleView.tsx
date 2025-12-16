@@ -13,7 +13,8 @@ import { IconAlertCircle, IconCalendar } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { getSchedule, clearScheduleForDate } from '../../api/schedule';
 import type { ScheduleItem } from '../../types/api';
-import { ScheduleCard, adaptScheduleItemForCard, adaptScheduleItemToQueueCard } from './ScheduleCard';
+import { ScheduleCard } from './ScheduleCard';
+import { adaptScheduleItemForCard, adaptScheduleItemToQueueCard } from './scheduleCardAdapters';
 import { ScheduleHeader } from './ScheduleHeader';
 
 export function ScheduleView() {
