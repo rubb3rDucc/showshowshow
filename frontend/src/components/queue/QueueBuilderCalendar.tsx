@@ -203,8 +203,16 @@ export function QueueBuilderCalendar({ expanded, onToggle }: QueueBuilderCalenda
         onEpisodeToggle={handleEpisodeToggle}
         isEpisodeSelected={isEpisodeSelected}
         onQueueItemSelect={setSelectedQueueItem}
-        onAddToPending={addToPending}
-        onScheduleNow={() => selectedQueueItem && handleScheduleItem(selectedQueueItem)}
+        onAddToPending={() => {
+          if (selectedQueueItem) {
+            addToPending(selectedQueueItem);
+          }
+        }}
+        onScheduleNow={() => {
+          if (selectedQueueItem) {
+            handleScheduleItem(selectedQueueItem);
+          }
+        }}
         onResetSelection={resetModalSelection}
         isScheduling={isScheduling}
         schedulingMode={schedulingMode}
