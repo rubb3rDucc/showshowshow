@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { getSchedule, createScheduleItem, deleteScheduleItem } from '../../../../api/schedule';
 import { getQueue, getEpisodes } from '../../../../api/content';
 import type { QueueItem, Episode, ScheduleItem } from '../../../../types/api';
-import type { TimeSlot, PendingScheduleItem, HoveredTime } from '../types';
+import type { TimeSlot, PendingScheduleItem, HoveredTime, SchedulingMode } from '../types';
 import {
   formatDate,
   toDate,
@@ -23,6 +23,7 @@ export function useScheduleCalendar(expanded: boolean) {
   const [selectedEpisodes, setSelectedEpisodes] = useState<Map<string, { season: number; episode: number }>>(new Map());
   const [pendingItems, setPendingItems] = useState<Map<string, PendingScheduleItem>>(new Map());
   const [hoveredTime, setHoveredTime] = useState<HoveredTime | null>(null);
+  const [schedulingMode, setSchedulingMode] = useState<SchedulingMode>('sequential');
 
   const dateStr = formatDate(selectedDate);
 
@@ -260,15 +261,66 @@ export function useScheduleCalendar(expanded: boolean) {
     return selectedEpisodes.has(`${season}-${episodeNumber}`);
   };
 
-  // Add to pending
+  // Helper to sort episodes sequentially
+  const sortEpisodesSequentially = (
+    selectedEpisodes: Map<string, { season: number; episode: number }>,
+    episodes: Episode[] | undefined
+  ): Array<{ season: number; episode: number; episodeData?: Episode }> => {
+    return Array.from(selectedEpisodes.values())
+      .map(ep => ({
+        season: ep.season,
+        episode: ep.episode,
+        episodeData: episodes?.find(e => e.season === ep.season && e.episode_number === ep.episode),
+      }))
+      .sort((a, b) => {
+        if (a.season !== b.season) return a.season - b.season;
+        return a.episode - b.episode;
+      });
+  };
+
+  // Helper to shuffle episodes randomly
+  const shuffleEpisodesRandomly = (
+    selectedEpisodes: Map<string, { season: number; episode: number }>,
+    episodes: Episode[] | undefined
+  ): Array<{ season: number; episode: number; episodeData?: Episode }> => {
+    const sorted = sortEpisodesSequentially(selectedEpisodes, episodes);
+    // Fisher-Yates shuffle
+    const shuffled = [...sorted];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Find next available time slot
+  const findNextAvailableTime = (
+    startTime: Date,
+    duration: number,
+    schedule: ScheduleItem[] | undefined,
+    pendingItems: Map<string, PendingScheduleItem>
+  ): Date | null => {
+    let currentTime = new Date(startTime);
+    const endOfDay = new Date(currentTime);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Try every 15 minutes until we find an available slot or reach end of day
+    while (currentTime <= endOfDay) {
+      if (!isTimeRangeOccupied(currentTime, duration, schedule, pendingItems)) {
+        return currentTime;
+      }
+      // Move forward by 15 minutes
+      currentTime = new Date(currentTime.getTime() + 15 * 60 * 1000);
+    }
+    return null;
+  };
+
+  // Add to pending - updated to handle both sequential and random modes
   const addToPending = (queueItem: QueueItem) => {
     if (!selectedDate || !selectedTimeSlot) return;
 
     const dateObj = toDate(selectedDate);
     if (!dateObj) return;
-
-    const scheduledTime = new Date(dateObj);
-    scheduledTime.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
 
     if (queueItem.content_type === 'show') {
       if (selectedEpisodes.size === 0) {
@@ -276,34 +328,94 @@ export function useScheduleCalendar(expanded: boolean) {
         return;
       }
 
-      const firstEpisode = Array.from(selectedEpisodes.values())[0];
-      const episodeData = episodes?.find(
-        ep => ep.season === firstEpisode.season && ep.episode_number === firstEpisode.episode
-      );
+      // Get episodes based on mode
+      const episodesToSchedule = schedulingMode === 'sequential'
+        ? sortEpisodesSequentially(selectedEpisodes, episodes)
+        : shuffleEpisodesRandomly(selectedEpisodes, episodes);
 
-      const duration = episodeData?.duration || 30;
-      
-      if (isTimeRangeOccupied(scheduledTime, duration, schedule, pendingItems)) {
-        toast.error(getOccupiedErrorMessage(scheduledTime, duration, schedule, pendingItems));
-        return;
+      let currentTime = new Date(dateObj);
+      currentTime.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
+
+      const newPendingItems = new Map(pendingItems);
+      const scheduled: Array<{ season: number; episode: number; title: string }> = [];
+      const failed: Array<{ season: number; episode: number; title: string; reason: string }> = [];
+
+      for (const ep of episodesToSchedule) {
+        const duration = ep.episodeData?.duration || 30;
+        
+        // For sequential: use current time, for random: find next available
+        const scheduleTime = schedulingMode === 'sequential'
+          ? currentTime
+          : findNextAvailableTime(currentTime, duration, schedule, newPendingItems);
+
+        if (!scheduleTime) {
+          failed.push({
+            season: ep.season,
+            episode: ep.episode,
+            title: ep.episodeData?.title || `S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
+            reason: 'No available time slots remaining',
+          });
+          break;
+        }
+
+        if (isTimeRangeOccupied(scheduleTime, duration, schedule, newPendingItems)) {
+          const errorMsg = getOccupiedErrorMessage(scheduleTime, duration, schedule, newPendingItems);
+          failed.push({
+            season: ep.season,
+            episode: ep.episode,
+            title: ep.episodeData?.title || `S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
+            reason: errorMsg,
+          });
+          // For sequential, stop on conflict. For random, try next episode
+          if (schedulingMode === 'sequential') break;
+          continue;
+        }
+
+        // Add to pending
+        const pendingId = `${queueItem.content_id}-${ep.season}-${ep.episode}-${scheduleTime.toISOString()}`;
+        newPendingItems.set(pendingId, {
+          id: pendingId,
+          content_id: queueItem.content_id,
+          season: ep.season,
+          episode: ep.episode,
+          scheduled_time: scheduleTime.toISOString(),
+          title: `${queueItem.title} - S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
+          duration: ep.episodeData?.duration,
+        });
+
+        scheduled.push({
+          season: ep.season,
+          episode: ep.episode,
+          title: ep.episodeData?.title || `S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
+        });
+
+        // Update current time based on mode
+        if (schedulingMode === 'sequential') {
+          currentTime = new Date(scheduleTime.getTime() + duration * 60 * 1000);
+        } else {
+          currentTime = new Date(scheduleTime.getTime() + duration * 60 * 1000);
+        }
       }
 
-      const pendingId = `${queueItem.content_id}-${firstEpisode.season}-${firstEpisode.episode}-${scheduledTime.toISOString()}`;
-      const newPendingItems = new Map(pendingItems);
-      newPendingItems.set(pendingId, {
-        id: pendingId,
-        content_id: queueItem.content_id,
-        season: firstEpisode.season,
-        episode: firstEpisode.episode,
-        scheduled_time: scheduledTime.toISOString(),
-        title: `${queueItem.title} - S${String(firstEpisode.season).padStart(2, '0')}E${String(firstEpisode.episode).padStart(2, '0')}`,
-        duration: episodeData?.duration,
-      });
-
       setPendingItems(newPendingItems);
-      toast.success('Added to pending. Select another time slot for additional episodes.');
+
+      // Report results
+      if (scheduled.length > 0 && failed.length === 0) {
+        toast.success(`All ${scheduled.length} episode(s) added to pending`);
+      } else if (scheduled.length > 0 && failed.length > 0) {
+        const failedList = failed.map(f => `${f.title}`).join(', ');
+        toast.warning(
+          `${scheduled.length} episode(s) added to pending. ${failed.length} episode(s) couldn't be scheduled: ${failedList}`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.error(`Could not schedule any episodes: ${failed[0]?.reason || 'Unknown error'}`);
+      }
+
       setSelectedEpisodes(new Map());
     } else {
+      const scheduledTime = new Date(dateObj);
+      scheduledTime.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
       const duration = 120;
       
       if (isTimeRangeOccupied(scheduledTime, duration, schedule, pendingItems)) {
@@ -328,15 +440,12 @@ export function useScheduleCalendar(expanded: boolean) {
     }
   };
 
-  // Handle schedule item (immediate save)
+  // Handle schedule item (immediate save) - updated to handle both sequential and random modes
   const handleScheduleItem = async (queueItem: QueueItem) => {
     if (!selectedDate || !selectedTimeSlot) return;
 
     const dateObj = toDate(selectedDate);
     if (!dateObj) return;
-
-    const scheduledTime = new Date(dateObj);
-    scheduledTime.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
 
     if (queueItem.content_type === 'show') {
       if (selectedEpisodes.size === 0) {
@@ -344,32 +453,101 @@ export function useScheduleCalendar(expanded: boolean) {
         return;
       }
 
-      const firstEpisode = Array.from(selectedEpisodes.values())[0];
-      const episodeData = episodes?.find(
-        ep => ep.season === firstEpisode.season && ep.episode_number === firstEpisode.episode
-      );
+      // Get episodes based on mode
+      const episodesToSchedule = schedulingMode === 'sequential'
+        ? sortEpisodesSequentially(selectedEpisodes, episodes)
+        : shuffleEpisodesRandomly(selectedEpisodes, episodes);
 
-      const duration = episodeData?.duration || 30;
-      
-      if (isTimeRangeOccupied(scheduledTime, duration, schedule, pendingItems)) {
-        toast.error(getOccupiedErrorMessage(scheduledTime, duration, schedule, pendingItems));
-        return;
+      let currentTime = new Date(dateObj);
+      currentTime.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
+
+      const scheduled: Array<{ season: number; episode: number; title: string }> = [];
+      const failed: Array<{ season: number; episode: number; title: string; reason: string }> = [];
+
+      for (const ep of episodesToSchedule) {
+        const duration = ep.episodeData?.duration || 30;
+        
+        // For sequential: use current time, for random: find next available
+        const scheduleTime = schedulingMode === 'sequential'
+          ? currentTime
+          : findNextAvailableTime(currentTime, duration, schedule, pendingItems);
+
+        if (!scheduleTime) {
+          failed.push({
+            season: ep.season,
+            episode: ep.episode,
+            title: ep.episodeData?.title || `S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
+            reason: 'No available time slots remaining',
+          });
+          break;
+        }
+
+        if (isTimeRangeOccupied(scheduleTime, duration, schedule, pendingItems)) {
+          const errorMsg = getOccupiedErrorMessage(scheduleTime, duration, schedule, pendingItems);
+          failed.push({
+            season: ep.season,
+            episode: ep.episode,
+            title: ep.episodeData?.title || `S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
+            reason: errorMsg,
+          });
+          // For sequential, stop on conflict. For random, try next episode
+          if (schedulingMode === 'sequential') break;
+          continue;
+        }
+
+        try {
+          // Schedule immediately
+          await scheduleMutation.mutateAsync({
+            content_id: queueItem.content_id,
+            season: ep.season,
+            episode: ep.episode,
+            scheduled_time: scheduleTime.toISOString(),
+            duration: ep.episodeData?.duration,
+          });
+
+          scheduled.push({
+            season: ep.season,
+            episode: ep.episode,
+            title: ep.episodeData?.title || `S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
+          });
+
+          // Update current time based on mode
+          if (schedulingMode === 'sequential') {
+            currentTime = new Date(scheduleTime.getTime() + duration * 60 * 1000);
+          } else {
+            currentTime = new Date(scheduleTime.getTime() + duration * 60 * 1000);
+          }
+        } catch (error) {
+          failed.push({
+            season: ep.season,
+            episode: ep.episode,
+            title: ep.episodeData?.title || `S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
+            reason: 'Failed to save',
+          });
+          break;
+        }
       }
-      
-      await scheduleMutation.mutateAsync({
-        content_id: queueItem.content_id,
-        season: firstEpisode.season,
-        episode: firstEpisode.episode,
-        scheduled_time: scheduledTime.toISOString(),
-        duration: episodeData?.duration,
-      });
 
-      toast.success('Episode scheduled. Select another time slot for additional episodes.');
+      // Report results
+      if (scheduled.length > 0 && failed.length === 0) {
+        toast.success(`All ${scheduled.length} episode(s) scheduled successfully`);
+      } else if (scheduled.length > 0 && failed.length > 0) {
+        const failedList = failed.map(f => `${f.title}`).join(', ');
+        toast.warning(
+          `${scheduled.length} episode(s) scheduled. ${failed.length} episode(s) couldn't be scheduled: ${failedList}`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.error(`Could not schedule any episodes: ${failed[0]?.reason || 'Unknown error'}`);
+      }
+
       setScheduleModalOpened(false);
       setSelectedQueueItem(null);
       setSelectedTimeSlot(null);
       setSelectedEpisodes(new Map());
     } else {
+      const scheduledTime = new Date(dateObj);
+      scheduledTime.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
       const duration = 120;
       
       if (isTimeRangeOccupied(scheduledTime, duration, schedule, pendingItems)) {
@@ -429,6 +607,8 @@ export function useScheduleCalendar(expanded: boolean) {
     selectedEpisodes,
     pendingItems,
     hoveredTime,
+    schedulingMode,
+    setSchedulingMode,
     
     // Data
     schedule,

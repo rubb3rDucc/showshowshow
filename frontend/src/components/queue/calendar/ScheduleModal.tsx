@@ -1,7 +1,7 @@
-import { Modal, Stack, Text, Box, Group, Button, Select, Alert, ScrollArea, Accordion, Checkbox, Center, Loader } from '@mantine/core';
+import { Modal, Stack, Text, Box, Group, Button, Select, Alert, ScrollArea, Accordion, Checkbox, Center, Loader, Radio } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import type { QueueItem, Episode } from '../../../types/api';
-import type { TimeSlot } from './types';
+import type { TimeSlot, SchedulingMode } from './types';
 import { toDate } from './utils';
 
 interface ScheduleModalProps {
@@ -22,6 +22,8 @@ interface ScheduleModalProps {
   onScheduleNow: () => void;
   onResetSelection: () => void;
   isScheduling: boolean;
+  schedulingMode: SchedulingMode;
+  onSchedulingModeChange: (mode: SchedulingMode) => void;
 }
 
 export function ScheduleModal({
@@ -42,7 +44,10 @@ export function ScheduleModal({
   onScheduleNow,
   onResetSelection,
   isScheduling,
+  schedulingMode,
+  onSchedulingModeChange,
 }: ScheduleModalProps) {
+  const hasMultipleEpisodes = selectedEpisodes.size > 1;
   return (
     <Modal
       opened={opened}
@@ -145,6 +150,44 @@ export function ScheduleModal({
                   <Alert icon={<IconAlertCircle size={16} />} title="No Episodes">
                     Episodes not available for this show.
                   </Alert>
+                )}
+
+                {/* Scheduling Mode Selection - only show when multiple episodes selected */}
+                {hasMultipleEpisodes && (
+                  <Box mt="md" p="sm" style={{ backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                    <Text size="sm" fw={500} mb="xs">
+                      Scheduling Mode
+                    </Text>
+                    <Radio.Group
+                      value={schedulingMode}
+                      onChange={(value) => onSchedulingModeChange(value as SchedulingMode)}
+                    >
+                      <Stack gap="xs">
+                        <Radio
+                          value="sequential"
+                          label={
+                            <Box>
+                              <Text size="sm" fw={500}>Sequential</Text>
+                              <Text size="xs" c="dimmed">
+                                Schedule episodes back-to-back starting from selected time
+                              </Text>
+                            </Box>
+                          }
+                        />
+                        <Radio
+                          value="random"
+                          label={
+                            <Box>
+                              <Text size="sm" fw={500}>Random</Text>
+                              <Text size="xs" c="dimmed">
+                                Schedule each episode at the next available time slot
+                              </Text>
+                            </Box>
+                          }
+                        />
+                      </Stack>
+                    </Radio.Group>
+                  </Box>
                 )}
               </Box>
             )}

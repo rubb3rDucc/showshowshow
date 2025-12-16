@@ -64,6 +64,8 @@ export function QueueBuilderCalendar({ expanded, onToggle }: QueueBuilderCalenda
     onDeleteItem,
     onQueueItemClick,
     onModalClose,
+    schedulingMode,
+    setSchedulingMode,
   } = useScheduleCalendar(expanded);
 
   const isLoading = scheduleLoading || queueLoading;
@@ -184,6 +186,8 @@ export function QueueBuilderCalendar({ expanded, onToggle }: QueueBuilderCalenda
         onScheduleNow={() => selectedQueueItem && handleScheduleItem(selectedQueueItem)}
         onResetSelection={resetModalSelection}
         isScheduling={isScheduling}
+        schedulingMode={schedulingMode}
+        onSchedulingModeChange={setSchedulingMode}
       />
     </>
   );

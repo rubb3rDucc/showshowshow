@@ -6,6 +6,8 @@ export interface TimeSlot {
   display: string;
 }
 
+export type SchedulingMode = 'sequential' | 'random';
+
 export interface PendingScheduleItem {
   id: string;
   content_id: string;
