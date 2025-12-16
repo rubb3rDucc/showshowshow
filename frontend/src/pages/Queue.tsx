@@ -32,7 +32,6 @@ import { Link, useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { getQueue, removeFromQueue, reorderQueue } from '../api/content';
 import { QueueItemCard } from '../components/queue/QueueItemCard';
-import { QueueBuilderModal } from '../components/queue/QueueBuilderModal';
 import { GenerateScheduleModal } from '../components/schedule/GenerateScheduleModal';
 import type { QueueItem } from '../types/api';
 
@@ -75,7 +74,6 @@ export function Queue() {
   });
 
   const [generateModalOpened, setGenerateModalOpened] = useState(false);
-  const [queueBuilderOpened, setQueueBuilderOpened] = useState(false);
 
   // Track if we're currently dragging
   const isDraggingRef = useRef(false);
