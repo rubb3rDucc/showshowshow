@@ -85,6 +85,22 @@ export async function markAsWatched(scheduleItemId: string): Promise<void> {
 }
 
 /**
+ * Create a schedule item manually
+ */
+export async function createScheduleItem(params: {
+  content_id: string;
+  season?: number;
+  episode?: number;
+  scheduled_time: string;
+  duration?: number;
+}): Promise<ScheduleItem> {
+  return apiCall<ScheduleItem>('/api/schedule', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+/**
  * Delete schedule item
  */
 export async function deleteScheduleItem(scheduleItemId: string): Promise<void> {
@@ -103,17 +119,19 @@ export async function clearSchedule(): Promise<{ success: boolean; message: stri
 }
 
 /**
- * Manually schedule a content item
+ * Clear schedule items for a specific date
+ * @param date - Date to clear (YYYY-MM-DD)
  */
-export async function createScheduleItem(params: {
-    content_id: string;
-  season?: number | null;
-  episode?: number | null;
-  scheduled_time: string; // ISO string
-  duration?: number;
-}): Promise<ScheduleItem> {
-  return apiCall<ScheduleItem>('/api/schedule', {
-    method: 'POST',
-    body: JSON.stringify(params),
+export async function clearScheduleForDate(date: string): Promise<{ success: boolean; message: string }> {
+  // Get user's timezone offset (e.g., "-05:00" for EST)
+  const offset = new Date().getTimezoneOffset();
+  const offsetHours = Math.floor(Math.abs(offset) / 60);
+  const offsetMinutes = Math.abs(offset) % 60;
+  const offsetSign = offset <= 0 ? '+' : '-'; // Note: getTimezoneOffset returns negative for ahead of UTC
+  const timezoneOffset = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+  
+  return apiCall<{ success: boolean; message: string }>(`/api/schedule/date/${date}?timezone_offset=${encodeURIComponent(timezoneOffset)}`, {
+    method: 'DELETE',
   });
 }
+

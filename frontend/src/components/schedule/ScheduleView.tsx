@@ -4,38 +4,27 @@ import {
   Card,
   Text,
   Stack,
-  Group,
-  Badge,
-  Image,
   Box,
-  Button,
   Loader,
   Center,
   Alert,
 } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
-import { IconCalendar, IconClock, IconCheck, IconAlertCircle, IconTrash } from '@tabler/icons-react';
+import { IconAlertCircle, IconCalendar } from '@tabler/icons-react';
 import { toast } from 'sonner';
-import { getSchedule, clearSchedule } from '../../api/schedule';
+import { getSchedule, clearScheduleForDate } from '../../api/schedule';
 import type { ScheduleItem } from '../../types/api';
-
-// Helper: Format UTC time in user's local timezone
-function formatTimeInLocalTimezone(utcDate: Date): string {
-  return utcDate.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
+import { ScheduleCard } from './ScheduleCard';
+import { adaptScheduleItemForCard, adaptScheduleItemToQueueCard } from './scheduleCardAdapters';
+import { ScheduleHeader } from './ScheduleHeader';
 
 export function ScheduleView() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [viewAll, setViewAll] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const queryClient = useQueryClient();
 
   // Get user's timezone info
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const timezoneAbbr = new Date().toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() || 'Local';
 
   // Format date as YYYY-MM-DD (using local date to preserve the calendar date selected)
   const formatDate = (date: Date | null | undefined): string | undefined => {
@@ -55,9 +44,46 @@ export function ScheduleView() {
     const day = String(dateObj.getDate()).padStart(2, '0');
     const formatted = `${year}-${month}-${day}`;
     
-    console.log('Formatting date:', { input: date, output: formatted, dateObj });
-    
     return formatted;
+  };
+
+  // Handle date change from header component
+  const handleDateChange = (date: Date | null) => {
+    // Handle different date types from Mantine DatePickerInput
+    let dateObj: Date | null = null;
+    
+    if (!date) {
+      dateObj = null;
+    } else {
+      // Mantine can return Date, string, or other types
+      const dateValue = date as unknown;
+      
+      if (dateValue instanceof Date) {
+        dateObj = dateValue;
+      } else if (typeof dateValue === 'string') {
+        // Parse string date (YYYY-MM-DD format)
+        dateObj = new Date(dateValue + 'T00:00:00'); // Add time to avoid timezone issues
+      } else {
+        // Try to convert to Date (handle unknown types)
+        const dateStr = String(dateValue);
+        dateObj = new Date(dateStr);
+      }
+    }
+    
+    // Validate the date
+    if (dateObj && isNaN(dateObj.getTime())) {
+      console.error('Invalid date:', date);
+      return;
+    }
+    
+    setSelectedDate(dateObj);
+    setViewAll(false);
+  };
+
+  // Handle clear day action
+  const handleClearDay = () => {
+    if (!selectedDate) return;
+    clearMutation.mutate();
   };
 
   const dateStr = viewAll ? undefined : formatDate(selectedDate);
@@ -70,11 +96,20 @@ export function ScheduleView() {
     staleTime: 30000, // Cache for 30 seconds
   });
 
-  // Clear schedule mutation
+  // Clear schedule for selected date mutation
   const clearMutation = useMutation({
-    mutationFn: clearSchedule,
+    mutationFn: async () => {
+      if (!selectedDate) {
+        throw new Error('Please select a date first');
+      }
+      const dateStr = formatDate(selectedDate);
+      if (!dateStr) {
+        throw new Error('Invalid date');
+      }
+      return clearScheduleForDate(dateStr);
+    },
     onSuccess: (data) => {
-      toast.success(data.message || 'Schedule cleared successfully!');
+      toast.success(data.message || 'Schedule cleared for selected date!');
       queryClient.invalidateQueries({ queryKey: ['schedule'] });
     },
     onError: (error: Error) => {
@@ -130,103 +165,15 @@ export function ScheduleView() {
 
   return (
     <Stack gap="lg">
-      <Group align="center" gap="xs">
-        <IconClock size={16} />
-        <Text size="sm" c="dimmed">
-          All times shown in your timezone: <strong>{timezoneAbbr}</strong> ({userTimezone})
-        </Text>
-      </Group>
-
-      {/* Date Picker and Controls */}
-      <Group justify="space-between" align="center">
-        <DatePickerInput
-          value={selectedDate}
-          onChange={(date) => {
-            // Handle different date types from Mantine DatePickerInput
-            let dateObj: Date | null = null;
-            
-            if (!date) {
-              dateObj = null;
-            } else {
-              // Mantine can return Date, string, or other types
-              const dateValue = date as unknown;
-              
-              if (dateValue instanceof Date) {
-                dateObj = dateValue;
-              } else if (typeof dateValue === 'string') {
-                // Parse string date (YYYY-MM-DD format)
-                dateObj = new Date(dateValue + 'T00:00:00'); // Add time to avoid timezone issues
-              } else {
-                // Try to convert to Date (handle unknown types)
-                const dateStr = String(dateValue);
-                dateObj = new Date(dateStr);
-              }
-            }
-            
-            // Validate the date
-            if (dateObj && isNaN(dateObj.getTime())) {
-              console.error('Invalid date:', date);
-              return;
-            }
-            
-            setSelectedDate(dateObj);
-            setViewAll(false);
-          }}
-          placeholder="Pick date"
-          leftSection={<IconCalendar size={16} />}
-          style={{ maxWidth: 250 }}
-          disabled={viewAll}
+      {/* Schedule Header - Only show when viewing by date */}
+      {!viewAll && (
+        <ScheduleHeader
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
+          onClearDay={handleClearDay}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
-        <Group gap="xs">
-          <Button
-            variant={viewAll ? 'filled' : 'subtle'}
-            onClick={() => setViewAll(!viewAll)}
-          >
-            {viewAll ? 'View by Date' : 'View All'}
-          </Button>
-          <Button
-            variant="subtle"
-            onClick={() => {
-              setSelectedDate(new Date());
-              setViewAll(false);
-            }}
-            disabled={viewAll}
-          >
-            Today
-          </Button>
-          <Button
-            variant="light"
-            color="red"
-            leftSection={<IconTrash size={16} />}
-            onClick={() => clearMutation.mutate()}
-            loading={clearMutation.isPending}
-            disabled={!schedule || schedule.length === 0}
-          >
-            Clear Schedule
-          </Button>
-        </Group>
-      </Group>
-
-      {/* Debug Info */}
-      <Text size="xs" c="dimmed">
-        {viewAll ? 'Viewing: All dates' : `Viewing: ${dateStr || 'Unknown date'}`} | Found: {schedule?.length || 0} items
-      </Text>
-
-      {/* Date Header - Always show when viewing by specific date */}
-      {!viewAll && selectedDate && (
-        <Text size="lg" fw={600} mb="md">
-          {selectedDate instanceof Date 
-            ? selectedDate.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'numeric',
-                day: 'numeric',
-              })
-            : new Date(selectedDate).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'numeric',
-                day: 'numeric',
-              })}
-        </Text>
       )}
 
       {/* Empty State */}
@@ -271,6 +218,9 @@ export function ScheduleView() {
             displayDate = groupedSchedule[dateKey].display;
           }
           
+          const dailyItems = groupedSchedule[dateKey].items
+            .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
+          
           return (
             <Box key={dateKey}>
               {/* Only show date header in "View All" mode (when viewing by date, header is shown above) */}
@@ -279,78 +229,71 @@ export function ScheduleView() {
                   {displayDate}
                 </Text>
               )}
-              <Stack gap="md">
-                {groupedSchedule[dateKey].items
-                  .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime())
-                  .map((item) => (
-                    <ScheduleItemCard key={item.id} item={item} />
-                  ))}
+              
+              {/* Table Header - Hidden on Mobile */}
+              {dailyItems.length > 0 && (
+                <div className="hidden md:block bg-black text-white border-2 border-black font-mono mb-0">
+                  <div className="grid grid-cols-12 py-3">
+                    <div className="col-span-1 border-r-2 border-white flex items-center justify-center">
+                      <span className="text-xs lg:text-sm font-black uppercase tracking-widest">
+                        NO.
+                      </span>
+                    </div>
+                    <div className="col-span-2 border-r-2 border-white flex items-center justify-center">
+                      <span className="text-xs lg:text-sm font-black uppercase tracking-widest">
+                        IMG
+                      </span>
+                    </div>
+                    <div className="col-span-3 border-r-2 border-white flex items-center justify-center">
+                      <span className="text-xs lg:text-sm font-black uppercase tracking-widest">
+                        TIME
+                      </span>
+                    </div>
+                    <div className="col-span-5 border-r-2 border-white flex items-center justify-center">
+                      <span className="text-xs lg:text-sm font-black uppercase tracking-widest">
+                        TITLE
+                      </span>
+                    </div>
+                    <div className="col-span-1 flex items-center justify-center">
+                      <span className="text-xs lg:text-sm font-black uppercase tracking-widest">
+                        DUR
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <Stack gap={0}>
+                {dailyItems.map((item, index) => {
+                  const scheduleCardItem = adaptScheduleItemForCard(item);
+                  // Create a queue-like item from the schedule item for poster/type info
+                  const queueCardItem = adaptScheduleItemToQueueCard(item);
+                  
+                  return (
+                    <ScheduleCard
+                      key={item.id}
+                      scheduleItem={scheduleCardItem}
+                      queueItem={queueCardItem}
+                      rowNumber={index + 1}
+                      season={item.season}
+                      episode={item.episode}
+                      episodeTitle={item.episode_title || null}
+                    />
+                  );
+                })}
               </Stack>
             </Box>
           );
         })}
+      
+      {/* Timezone Info */}
+      <div className="mt-8 md:mt-12 text-center border-t-2 border-black pt-6 md:pt-8 font-mono">
+        <Text size="xs" className="font-black uppercase tracking-widest">
+          TIMEZONE: {userTimezone}
+        </Text>
+      </div>
     </Stack>
   );
 }
 
-// Individual schedule item card
-function ScheduleItemCard({ item }: { item: ScheduleItem }) {
-  // Parse UTC time from backend
-  const scheduledTimeUTC = new Date(item.scheduled_time);
-  
-  // Convert UTC time to user's local timezone for display
-  const timeStr = formatTimeInLocalTimezone(scheduledTimeUTC);
-
-  const isShow = item.season !== null && item.episode !== null;
-  const displayTitle = isShow
-    ? `${item.title} - S${String(item.season).padStart(2, '0')}E${String(item.episode).padStart(2, '0')}`
-    : item.title;
-
-  return (
-    <Card shadow="sm" padding="md" radius="md" withBorder>
-      <Group wrap="nowrap" align="flex-start">
-        {/* Poster */}
-        {item.poster_url && (
-          <Image
-            src={item.poster_url}
-            h={100}
-            w="auto"
-            fit="contain"
-            radius="sm"
-            alt={item.title}
-          />
-        )}
-
-        {/* Content Info */}
-        <Stack gap="xs" style={{ flex: 1 }}>
-          <Group justify="space-between" align="flex-start">
-            <Text fw={600} size="md">
-              {displayTitle}
-            </Text>
-            {item.watched && (
-              <Badge color="green" leftSection={<IconCheck size={12} />}>
-                Watched
-              </Badge>
-            )}
-          </Group>
-
-          <Group gap="md">
-            <Group gap="xs">
-              <IconClock size={16} />
-              <Text size="sm" c="dimmed">
-                {timeStr}
-              </Text>
-            </Group>
-            <Text size="sm" c="dimmed">
-              {item.duration} min
-            </Text>
-            <Badge variant="light" size="sm">
-              {item.content_type === 'show' ? 'TV Show' : 'Movie'}
-            </Badge>
-          </Group>
-        </Stack>
-      </Group>
-    </Card>
-  );
-}
 

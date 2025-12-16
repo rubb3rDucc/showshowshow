@@ -118,6 +118,7 @@ export interface ScheduleItem {
   title: string;
   poster_url: string | null;
   content_type: 'show' | 'movie';
+  episode_title?: string | null;
 }
 
 export interface GenerateScheduleRequest {

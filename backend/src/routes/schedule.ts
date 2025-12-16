@@ -16,6 +16,12 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
     let query = db
       .selectFrom('schedule')
       .innerJoin('content', 'schedule.content_id', 'content.id')
+      .leftJoin('episodes', (join) =>
+        join
+          .onRef('episodes.content_id', '=', 'schedule.content_id')
+          .onRef('episodes.season', '=', 'schedule.season')
+          .onRef('episodes.episode_number', '=', 'schedule.episode')
+      )
       .select([
         'schedule.id',
         'schedule.scheduled_time',
@@ -32,6 +38,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
         'content.title',
         'content.poster_url',
         'content.content_type',
+        'episodes.title as episode_title',
       ])
       .where('schedule.user_id', '=', userId)
       .orderBy('schedule.scheduled_time', 'asc');
@@ -83,6 +90,12 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
     const schedule = await db
       .selectFrom('schedule')
       .innerJoin('content', 'schedule.content_id', 'content.id')
+      .leftJoin('episodes', (join) =>
+        join
+          .onRef('episodes.content_id', '=', 'schedule.content_id')
+          .onRef('episodes.season', '=', 'schedule.season')
+          .onRef('episodes.episode_number', '=', 'schedule.episode')
+      )
       .select([
         'schedule.id',
         'schedule.scheduled_time',
@@ -96,6 +109,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
         'content.title',
         'content.poster_url',
         'content.content_type',
+        'episodes.title as episode_title',
       ])
       .where('schedule.user_id', '=', userId)
       .where('schedule.scheduled_time', '>=', startDate)
@@ -264,6 +278,50 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
     return reply.send({ 
       success: true, 
       message: `Cleared ${result.length > 0 ? result[0].numDeletedRows : 0} schedule items` 
+    });
+  });
+
+  // Clear schedule items for a specific date
+  fastify.delete('/api/schedule/date/:date', { preHandler: authenticate }, async (request, reply) => {
+    if (!request.user) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+
+    const userId = request.user.userId;
+    const { date } = request.params as { date: string };
+    const { timezone_offset } = request.query as { timezone_offset?: string };
+
+    // Parse date string (YYYY-MM-DD)
+    const [year, month, day] = date.split('-').map(Number);
+    
+    // Parse timezone offset (e.g., "-05:00" for EST)
+    let offsetMinutes = 0;
+    if (timezone_offset) {
+      const offsetMatch = timezone_offset.match(/^([+-])(\d{2}):(\d{2})$/);
+      if (offsetMatch) {
+        const [, sign, hours, minutes] = offsetMatch;
+        offsetMinutes = (sign === '-' ? -1 : 1) * (parseInt(hours) * 60 + parseInt(minutes));
+      }
+    }
+
+    // Create date range in user's local timezone, then convert to UTC
+    const localMidnight = Date.UTC(year, month - 1, day, 0, 0, 0, 0);
+    const startDate = new Date(localMidnight - (offsetMinutes * 60 * 1000));
+    const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+
+    // Delete all schedule items for this user on this date
+    const deleted = await db
+      .deleteFrom('schedule')
+      .where('user_id', '=', userId)
+      .where('scheduled_time', '>=', startDate)
+      .where('scheduled_time', '<', endDate)
+      .execute();
+
+    const count = deleted.length > 0 ? Number(deleted[0].numDeletedRows) : 0;
+
+    return reply.send({ 
+      success: true, 
+      message: `Cleared ${count} schedule item${count !== 1 ? 's' : ''} for ${date}` 
     });
   });
 

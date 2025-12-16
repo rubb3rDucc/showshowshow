@@ -28,7 +28,16 @@ export function QueueItemsList({ queue, onItemClick }: QueueItemsListProps) {
                 <Text size="sm" fw={500}>
                   {item.title || 'Unknown'}
                 </Text>
-                <Badge size="sm" variant="light">
+                <Badge 
+                  size="sm"
+                  styles={{ 
+                    root: { 
+                      backgroundColor: '#000', 
+                      color: '#fff', 
+                      borderColor: '#000',
+                    } 
+                  }}
+                >
                   {item.content_type === 'show' ? 'TV' : 'Movie'}
                 </Badge>
               </Group>

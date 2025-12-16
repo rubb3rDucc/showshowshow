@@ -98,7 +98,13 @@ export function useScheduleCalendar(expanded: boolean) {
 
   // Schedule mutation
   const scheduleMutation = useMutation({
-    mutationFn: createScheduleItem,
+    mutationFn: (params: {
+      content_id: string;
+      season?: number;
+      episode?: number;
+      scheduled_time: string;
+      duration?: number;
+    }) => createScheduleItem(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedule'] });
       toast.success('Item scheduled successfully');
@@ -557,9 +563,8 @@ export function useScheduleCalendar(expanded: boolean) {
       
       scheduleMutation.mutate({
         content_id: queueItem.content_id,
-        season: null,
-        episode: null,
         scheduled_time: scheduledTime.toISOString(),
+        duration,
       });
 
       toast.success('Item scheduled');

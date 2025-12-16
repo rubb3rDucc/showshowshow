@@ -1,5 +1,5 @@
-import { Box, Group, Text, Button } from '@mantine/core';
-import { IconX } from '@tabler/icons-react';
+import { Box, Group, Text, Button, Stack } from '@mantine/core';
+import { IconX, IconGripVertical } from '@tabler/icons-react';
 import type { ScheduleItemWithType } from './types';
 import { getItemPosition } from './utils';
 
@@ -27,11 +27,22 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
   }
 
   const startTime = new Date(item.scheduled_time);
-  const timeStr = startTime.toLocaleTimeString('en-US', {
+  const endTime = new Date(startTime.getTime() + (item.duration || 0) * 60 * 1000);
+  
+  const startTimeStr = startTime.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
   });
+  
+  const endTimeStr = endTime.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  
+  const timeRange = `[${startTimeStr} - ${endTimeStr}]`;
+  const durationStr = `[${item.duration || 0}min]`;
 
   return (
     <Box
@@ -42,18 +53,14 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
         right: '8px',
         height: position.height,
         marginBottom: '8px',
-        paddingBottom: '4px',
-        backgroundColor: item.type === 'saved' ? '#4A90E2' : '#FFD700',
-        border: `1px solid ${item.type === 'saved' ? '#2563EB' : '#F59E0B'}`,
-        borderRadius: '2px',
+        backgroundColor: '#1A1B1E',
+        borderRadius: '8px',
         padding: position.duration <= 15 ? '8px 12px' : '12px 14px',
         cursor: 'default',
         zIndex: 2,
-        // boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        // margin: '6px 0px 7px 5px',
         pointerEvents: 'auto',
         minHeight: position.duration <= 15 ? '40px' : '60px',
         boxSizing: 'border-box',
@@ -81,10 +88,15 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
           style={{ width: '100%' }}
         >
           <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+            <IconGripVertical 
+              size={14} 
+              style={{ color: '#C1C2C5', flexShrink: 0 }} 
+              data-block-content
+            />
             <Text
               size="xs"
-              fw={600}
-              c="white"
+              fw={500}
+              c="#E9ECEF"
               style={{
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -95,8 +107,8 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
             >
               {displayTitle}
             </Text>
-            <Text size="xs" c="white" opacity={0.9} style={{ whiteSpace: 'nowrap' }} data-block-content>
-               {timeStr} - {item.duration || '?'} min
+            <Text size="xs" c="#ADB5BD" style={{ whiteSpace: 'nowrap' }} data-block-content>
+              {timeRange} {durationStr}
             </Text>
           </Group>
           <Button
@@ -107,7 +119,7 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
               padding: '2px 4px',
               minWidth: 'auto',
               height: '18px',
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -118,29 +130,33 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
           </Button>
         </Group>
       ) : (
-        <>
+        <Stack gap={4} data-block-content style={{ width: '100%' }}>
           <Group 
             justify="space-between" 
             wrap="nowrap" 
             gap="xs"
             data-block-content
           >
-            {/* media title */}
-            <Text
-              size="xs"
-              fw={600}
-              c="white"
-              style={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flex: 1,
-              }}
-              data-block-content
-            >
-              {displayTitle}
-            </Text>
-            {/* delete button */}
+            <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+              <IconGripVertical 
+                size={14} 
+                style={{ color: '#C1C2C5', flexShrink: 0 }} 
+                data-block-content
+              />
+              <Text
+                size="sm"
+                fw={500}
+                c="#E9ECEF"
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                data-block-content
+              >
+                {displayTitle}
+              </Text>
+            </Group>
             <Button
               size="xs"
               variant="subtle"
@@ -149,7 +165,7 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
                 padding: '4px 4px',
                 minWidth: 'auto',
                 height: '18px',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -159,10 +175,10 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
               <IconX size={12} />
             </Button>
           </Group>
-          <Text size="xs" c="white" opacity={0.9} data-block-content>
-            {timeStr} - {item.duration || '?'} min
+          <Text size="xs" c="#ADB5BD" data-block-content>
+            {timeRange} {durationStr}
           </Text>
-        </>
+        </Stack>
       )}
     </Box>
   );

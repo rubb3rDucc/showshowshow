@@ -42,10 +42,10 @@ export function ScheduleTimeline({
     <Card withBorder p="md">
       <Group justify="space-between" mb="md">
         <Text fw={600}>
-          Timeline - {toDate(selectedDate)?.toLocaleDateString('en-US', {
-            weekday: 'long',
+            {toDate(selectedDate)?.toLocaleDateString('en-US', {
+            weekday: 'short',
             year: 'numeric',
-            month: 'long',
+            month: 'short',
             day: 'numeric',
           }) || 'Select a date'}
         </Text>

@@ -19,8 +19,8 @@ export interface PendingScheduleItem {
 }
 
 export interface QueueBuilderCalendarProps {
-  expanded: boolean;
-  onToggle: () => void;
+  expanded?: boolean;
+  onToggle?: () => void;
 }
 
 export interface BlockPosition {
