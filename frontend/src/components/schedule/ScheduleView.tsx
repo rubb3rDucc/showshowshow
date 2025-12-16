@@ -1,12 +1,10 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
 import {
   Card,
   Text,
   Stack,
   Group,
-  Badge,
-  Image,
   Box,
   Button,
   Loader,
@@ -14,20 +12,13 @@ import {
   Alert,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconCalendar, IconClock, IconCheck, IconAlertCircle, IconTrash, IconEdit } from '@tabler/icons-react';
+import { IconCalendar, IconClock, IconAlertCircle, IconTrash, IconEdit } from '@tabler/icons-react';
 import { Link } from 'wouter';
 import { toast } from 'sonner';
 import { getSchedule, clearScheduleForDate } from '../../api/schedule';
+import { getEpisodes } from '../../api/content';
 import type { ScheduleItem } from '../../types/api';
-
-// Helper: Format UTC time in user's local timezone
-function formatTimeInLocalTimezone(utcDate: Date): string {
-  return utcDate.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
+import { ScheduleCard, adaptScheduleItemForCard, adaptScheduleItemToQueueCard } from './ScheduleCard';
 
 export function ScheduleView() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
@@ -70,6 +61,44 @@ export function ScheduleView() {
     retry: 1,
     staleTime: 30000, // Cache for 30 seconds
   });
+
+  // Get unique shows from schedule to fetch episode titles
+  const scheduleShows = useMemo(() => {
+    if (!schedule) return [];
+    const shows = new Map<string, { content_id: string; tmdb_id: number }>();
+    schedule.forEach(item => {
+      if (item.content_type === 'show' && item.tmdb_id && item.season !== null && item.episode !== null) {
+        if (!shows.has(item.content_id)) {
+          shows.set(item.content_id, { content_id: item.content_id, tmdb_id: item.tmdb_id });
+        }
+      }
+    });
+    return Array.from(shows.values());
+  }, [schedule]);
+
+  // Fetch episodes for all scheduled shows in parallel using useQueries
+  const scheduleEpisodesQueries = useQueries({
+    queries: scheduleShows.map(show => ({
+      queryKey: ['episodes', show.tmdb_id, 'schedule'],
+      queryFn: () => getEpisodes(show.tmdb_id),
+      enabled: !!show.tmdb_id,
+    })),
+  });
+
+  // Combine all episode data into a single map for easy lookup
+  const episodeTitleMap = useMemo(() => {
+    const map = new Map<string, string>();
+    scheduleEpisodesQueries.forEach((query, index) => {
+      if (query.data) {
+        const show = scheduleShows[index];
+        query.data.forEach(ep => {
+          const key = `${show.content_id}-${ep.season}-${ep.episode_number}`;
+          map.set(key, ep.title);
+        });
+      }
+    });
+    return map;
+  }, [scheduleEpisodesQueries, scheduleShows]);
 
   // Clear schedule for selected date mutation
   const clearMutation = useMutation({
@@ -297,12 +326,31 @@ export function ScheduleView() {
                   {displayDate}
                 </Text>
               )}
-              <Stack gap="md">
+              <Stack gap={0}>
                 {groupedSchedule[dateKey].items
                   .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime())
-                  .map((item) => (
-                    <ScheduleItemCard key={item.id} item={item} />
-                  ))}
+                  .map((item, index) => {
+                    const scheduleCardItem = adaptScheduleItemForCard(item);
+                    // Create a queue-like item from the schedule item for poster/type info
+                    const queueCardItem = adaptScheduleItemToQueueCard(item);
+                    
+                    // Get episode title if available
+                    const episodeTitle = item.season !== null && item.episode !== null
+                      ? episodeTitleMap.get(`${item.content_id}-${item.season}-${item.episode}`)
+                      : null;
+                    
+                    return (
+                      <ScheduleCard
+                        key={item.id}
+                        scheduleItem={scheduleCardItem}
+                        queueItem={queueCardItem}
+                        rowNumber={index + 1}
+                        season={item.season}
+                        episode={item.episode}
+                        episodeTitle={episodeTitle || null}
+                      />
+                    );
+                  })}
               </Stack>
             </Box>
           );
@@ -311,64 +359,4 @@ export function ScheduleView() {
   );
 }
 
-// Individual schedule item card
-function ScheduleItemCard({ item }: { item: ScheduleItem }) {
-  // Parse UTC time from backend
-  const scheduledTimeUTC = new Date(item.scheduled_time);
-  
-  // Convert UTC time to user's local timezone for display
-  const timeStr = formatTimeInLocalTimezone(scheduledTimeUTC);
-
-  const isShow = item.season !== null && item.episode !== null;
-  const displayTitle = isShow
-    ? `${item.title} - S${String(item.season).padStart(2, '0')}E${String(item.episode).padStart(2, '0')}`
-    : item.title;
-
-  return (
-    <Card shadow="sm" padding="md" radius="md" withBorder>
-      <Group wrap="nowrap" align="flex-start">
-        {/* Poster */}
-        {item.poster_url && (
-          <Image
-            src={item.poster_url}
-            h={100}
-            w="auto"
-            fit="contain"
-            radius="sm"
-            alt={item.title}
-          />
-        )}
-
-        {/* Content Info */}
-        <Stack gap="xs" style={{ flex: 1 }}>
-          <Group justify="space-between" align="flex-start">
-            <Text fw={600} size="md">
-              {displayTitle}
-            </Text>
-            {item.watched && (
-              <Badge color="green" leftSection={<IconCheck size={12} />}>
-                Watched
-              </Badge>
-            )}
-          </Group>
-
-          <Group gap="md">
-            <Group gap="xs">
-              <IconClock size={16} />
-              <Text size="sm" c="dimmed">
-                {timeStr}
-              </Text>
-            </Group>
-            <Text size="sm" c="dimmed">
-              {item.duration} min
-            </Text>
-            <Badge variant="light" size="sm">
-              {item.content_type === 'show' ? 'TV Show' : 'Movie'}
-            </Badge>
-          </Group>
-        </Stack>
-      </Group>
-    </Card>
-  );
-}
 

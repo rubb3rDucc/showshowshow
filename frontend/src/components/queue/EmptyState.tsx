@@ -1,4 +1,3 @@
-import React from 'react';
 import { Stack, Text, Button, Center } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { Link } from 'wouter';
