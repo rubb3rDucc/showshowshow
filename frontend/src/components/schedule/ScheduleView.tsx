@@ -14,9 +14,10 @@ import {
   Alert,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconCalendar, IconClock, IconCheck, IconAlertCircle, IconTrash } from '@tabler/icons-react';
+import { IconCalendar, IconClock, IconCheck, IconAlertCircle, IconTrash, IconEdit } from '@tabler/icons-react';
+import { Link } from 'wouter';
 import { toast } from 'sonner';
-import { getSchedule, clearSchedule } from '../../api/schedule';
+import { getSchedule, clearScheduleForDate } from '../../api/schedule';
 import type { ScheduleItem } from '../../types/api';
 
 // Helper: Format UTC time in user's local timezone
@@ -70,11 +71,20 @@ export function ScheduleView() {
     staleTime: 30000, // Cache for 30 seconds
   });
 
-  // Clear schedule mutation
+  // Clear schedule for selected date mutation
   const clearMutation = useMutation({
-    mutationFn: clearSchedule,
+    mutationFn: async () => {
+      if (!selectedDate) {
+        throw new Error('Please select a date first');
+      }
+      const dateStr = formatDate(selectedDate);
+      if (!dateStr) {
+        throw new Error('Invalid date');
+      }
+      return clearScheduleForDate(dateStr);
+    },
     onSuccess: (data) => {
-      toast.success(data.message || 'Schedule cleared successfully!');
+      toast.success(data.message || 'Schedule cleared for selected date!');
       queryClient.invalidateQueries({ queryKey: ['schedule'] });
     },
     onError: (error: Error) => {
@@ -200,10 +210,18 @@ export function ScheduleView() {
             leftSection={<IconTrash size={16} />}
             onClick={() => clearMutation.mutate()}
             loading={clearMutation.isPending}
-            disabled={!schedule || schedule.length === 0}
+            disabled={!schedule || schedule.length === 0 || viewAll || !selectedDate}
           >
-            Clear Schedule
+            Clear Schedule for Day
           </Button>
+          <Link href="/queue">
+            <Button
+              variant="subtle"
+              leftSection={<IconEdit size={16} />}
+            >
+              Edit Queue
+            </Button>
+          </Link>
         </Group>
       </Group>
 

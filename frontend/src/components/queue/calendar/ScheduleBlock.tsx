@@ -41,8 +41,8 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
     hour12: true,
   });
   
-  const timeRange = `${startTimeStr} - ${endTimeStr}`;
-  const durationStr = `${item.duration || 0}min`;
+  const timeRange = `[${startTimeStr} - ${endTimeStr}]`;
+  const durationStr = `[${item.duration || 0}min]`;
 
   return (
     <Box

@@ -83,7 +83,7 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
           {/* Date Picker */}
           <Group>
             <DatePickerInput
-              label="Select Date"
+              label="Date"
               value={selectedDate}
               onChange={(date) => {
                 // Handle different date types from Mantine DatePickerInput
@@ -125,7 +125,7 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
               style={{ flex: 1 }}
             />
             <Text size="sm" c="dimmed" mt="xl">
-              Timezone: {userTimezone}
+              TIMEZONE: {userTimezone.toUpperCase()}
             </Text>
           </Group>
 
