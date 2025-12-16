@@ -32,7 +32,6 @@ export function QueueItemCard({
   item, 
   onRemove, 
   isDragging,
-  dragHandleProps,
   openEpisodeDescriptionId,
   onToggleEpisodeDescription,
 }: QueueItemCardProps) {

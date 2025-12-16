@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stack, Box } from '@mantine/core';
+import { Box } from '@mantine/core';
 import { QueueItemCard } from './QueueItemCard';
 import { EmptyState } from './EmptyState';
 import type { QueueItem } from '../../types/api';
