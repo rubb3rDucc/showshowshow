@@ -106,7 +106,7 @@ export async function clearSchedule(): Promise<{ success: boolean; message: stri
  * Manually schedule a content item
  */
 export async function createScheduleItem(params: {
-  content_id: string;
+    content_id: string;
   season?: number | null;
   episode?: number | null;
   scheduled_time: string; // ISO string
