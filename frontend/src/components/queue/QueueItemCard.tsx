@@ -204,4 +204,3 @@ export function QueueItemCard({ item, onRemove, isDragging, dragHandleProps }: Q
     </Card>
   );
 }
-

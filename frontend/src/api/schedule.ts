@@ -102,3 +102,18 @@ export async function clearSchedule(): Promise<{ success: boolean; message: stri
   });
 }
 
+/**
+ * Manually schedule a content item
+ */
+export async function createScheduleItem(params: {
+    content_id: string;
+  season?: number | null;
+  episode?: number | null;
+  scheduled_time: string; // ISO string
+  duration?: number;
+}): Promise<ScheduleItem> {
+  return apiCall<ScheduleItem>('/api/schedule', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
