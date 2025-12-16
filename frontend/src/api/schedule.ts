@@ -85,6 +85,22 @@ export async function markAsWatched(scheduleItemId: string): Promise<void> {
 }
 
 /**
+ * Create a schedule item manually
+ */
+export async function createScheduleItem(params: {
+  content_id: string;
+  season?: number;
+  episode?: number;
+  scheduled_time: string;
+  duration?: number;
+}): Promise<ScheduleItem> {
+  return apiCall<ScheduleItem>('/api/schedule', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+/**
  * Delete schedule item
  */
 export async function deleteScheduleItem(scheduleItemId: string): Promise<void> {

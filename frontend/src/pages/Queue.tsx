@@ -13,16 +13,13 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import {
   Button,
   Group,
   Stack,
   Text,
-  Card,
   Center,
   Loader,
   Alert,
@@ -33,11 +30,12 @@ import {
   ActionIcon,
 } from '@mantine/core';
 import { useMediaQuery, useDisclosure } from '@mantine/hooks';
-import { IconPlus, IconAlertCircle, IconMenu2, IconList, IconTrash, IconChevronLeft, IconChevronDown } from '@tabler/icons-react';
+import { IconAlertCircle, IconList, IconChevronLeft, IconChevronDown } from '@tabler/icons-react';
 import { Link, useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { getQueue, removeFromQueue, reorderQueue } from '../api/content';
 import { QueueList } from '../components/queue/QueueList';
+import { QueueBuilderCalendar } from '../components/queue/QueueBuilderCalendar';
 import { GenerateScheduleModal } from '../components/schedule/GenerateScheduleModal';
 import { clearScheduleForDate } from '../api/schedule';
 import type { QueueItem } from '../types/api';
@@ -49,7 +47,8 @@ export function Queue() {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [opened, { open, close }] = useDisclosure(false);
   const [generateModalOpened, setGenerateModalOpened] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  // Default to today's date for "Clear Schedule for Day" - calendar manages its own date internally
+  const selectedDate = new Date();
   const [openEpisodeDescriptionId, setOpenEpisodeDescriptionId] = useState<string | null>(null);
 
   // Fetch queue
@@ -207,8 +206,6 @@ export function Queue() {
     );
   }
 
-  const isEmpty = !localQueue || localQueue.length === 0;
-
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white', paddingBottom: isMobile ? '80px' : 0 }}>
       <Box style={{ paddingTop: isMobile ? '24px' : '48px', paddingBottom: isMobile ? '24px' : '48px', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '100%' }}>
@@ -336,12 +333,7 @@ export function Queue() {
             }}
           >
             <Box style={{ height: 'calc(100vh - 16rem)' }}>
-              {/* TODO: Add QueueBuilderCalendar component here when available */}
-              <Card shadow="sm" padding="lg" radius="md" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Center style={{ flex: 1 }}>
-                  <Text c="dimmed">Calendar Builder - Coming Soon</Text>
-                </Center>
-              </Card>
+              <QueueBuilderCalendar />
             </Box>
           </Grid.Col>
         </Grid>
@@ -421,7 +413,23 @@ export function Queue() {
             }}
           >
             <Box style={{ padding: '16px', overflowY: 'auto', height: '100%' }}>
-              <QueueList />
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={localQueue.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                  <QueueList
+                    items={localQueue}
+                    onRemove={handleRemove}
+                    openEpisodeDescriptionId={openEpisodeDescriptionId}
+                    onToggleEpisodeDescription={(id) => {
+                      setOpenEpisodeDescriptionId(openEpisodeDescriptionId === id ? null : id);
+                    }}
+                  />
+                </SortableContext>
+              </DndContext>
             </Box>
           </Drawer>
         </>
