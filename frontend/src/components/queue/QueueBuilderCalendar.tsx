@@ -104,12 +104,37 @@ export function QueueBuilderCalendar({ expanded, onToggle }: QueueBuilderCalenda
                   <DatePickerInput
                     label="Select Date"
                     value={selectedDate}
-                    onChange={(value) => {
-                      // Handle date picker value - ensure we get the correct date
-                      if (value) {
-                        // Create date at midnight in local timezone to avoid timezone issues
-                        const date = value instanceof Date ? value : new Date(value);
-                        const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                    onChange={(date) => {
+                      // Handle different date types from Mantine DatePickerInput
+                      let dateObj: Date | null = null;
+                      
+                      if (!date) {
+                        dateObj = null;
+                      } else {
+                        // Mantine can return Date, string, or other types
+                        const dateValue = date as unknown;
+                        
+                        if (dateValue instanceof Date) {
+                          dateObj = dateValue;
+                        } else if (typeof dateValue === 'string') {
+                          // Parse string date (YYYY-MM-DD format) - add time to avoid timezone issues
+                          dateObj = new Date(dateValue + 'T00:00:00');
+                        } else {
+                          // Try to convert to Date (handle unknown types)
+                          const dateStr = String(dateValue);
+                          dateObj = new Date(dateStr);
+                        }
+                      }
+                      
+                      // Validate the date
+                      if (dateObj && isNaN(dateObj.getTime())) {
+                        console.error('Invalid date:', date);
+                        return;
+                      }
+                      
+                      // Create date at midnight in local timezone to preserve the calendar date selected
+                      if (dateObj) {
+                        const localDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
                         setSelectedDate(localDate);
                       } else {
                         setSelectedDate(null);
