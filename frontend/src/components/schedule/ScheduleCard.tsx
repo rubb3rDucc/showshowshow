@@ -164,7 +164,8 @@ export function ScheduleCard({
               <Badge
                 className="bg-black text-white border-black font-black uppercase tracking-wider text-[10px]"
                 size="sm"
-                radius="xs"
+                color='black'
+                // radius="xs"
               >
                 {queueItem?.type === 'movie' ? 'FILM' : 'TV'}
               </Badge>
@@ -271,10 +272,32 @@ export function ScheduleCard({
   )
 }
 
+// Helper function to round time to next 15-minute interval
+function roundToNext15Minutes(date: Date): Date {
+  const rounded = new Date(date)
+  const minutes = rounded.getMinutes()
+  const remainder = minutes % 15
+  
+  if (remainder === 0) {
+    // Already on a 15-minute interval
+    return rounded
+  }
+  
+  // Round up to next 15-minute interval
+  const minutesToAdd = 15 - remainder
+  rounded.setMinutes(minutes + minutesToAdd)
+  rounded.setSeconds(0)
+  rounded.setMilliseconds(0)
+  
+  return rounded
+}
+
 // Helper function to convert API ScheduleItem to ScheduleCardItem
 export function adaptScheduleItemForCard(item: ScheduleItem): ScheduleCardItem {
   const startTime = new Date(item.scheduled_time)
-  const endTime = new Date(startTime.getTime() + item.duration * 60 * 1000)
+  const calculatedEndTime = new Date(startTime.getTime() + item.duration * 60 * 1000)
+  // Round end time to next 15-minute interval
+  const endTime = roundToNext15Minutes(calculatedEndTime)
   
   return {
     id: item.id,

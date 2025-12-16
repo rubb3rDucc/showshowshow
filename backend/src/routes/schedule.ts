@@ -16,6 +16,12 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
     let query = db
       .selectFrom('schedule')
       .innerJoin('content', 'schedule.content_id', 'content.id')
+      .leftJoin('episodes', (join) =>
+        join
+          .onRef('episodes.content_id', '=', 'schedule.content_id')
+          .onRef('episodes.season', '=', 'schedule.season')
+          .onRef('episodes.episode_number', '=', 'schedule.episode')
+      )
       .select([
         'schedule.id',
         'schedule.scheduled_time',
@@ -32,6 +38,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
         'content.title',
         'content.poster_url',
         'content.content_type',
+        'episodes.title as episode_title',
       ])
       .where('schedule.user_id', '=', userId)
       .orderBy('schedule.scheduled_time', 'asc');
@@ -83,6 +90,12 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
     const schedule = await db
       .selectFrom('schedule')
       .innerJoin('content', 'schedule.content_id', 'content.id')
+      .leftJoin('episodes', (join) =>
+        join
+          .onRef('episodes.content_id', '=', 'schedule.content_id')
+          .onRef('episodes.season', '=', 'schedule.season')
+          .onRef('episodes.episode_number', '=', 'schedule.episode')
+      )
       .select([
         'schedule.id',
         'schedule.scheduled_time',
@@ -96,6 +109,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
         'content.title',
         'content.poster_url',
         'content.content_type',
+        'episodes.title as episode_title',
       ])
       .where('schedule.user_id', '=', userId)
       .where('schedule.scheduled_time', '>=', startDate)
