@@ -24,7 +24,7 @@ import {
   IconDeviceTv,
 } from '@tabler/icons-react';
 import { getEpisodes } from '../../api/content';
-import type { QueueItem } from '../../types/api';
+import type { QueueItem, Episode } from '../../types/api';
 
 interface QueueItemCardProps {
   item: QueueItem;
@@ -204,4 +204,3 @@ export function QueueItemCard({ item, onRemove, isDragging, dragHandleProps }: Q
     </Card>
   );
 }
-

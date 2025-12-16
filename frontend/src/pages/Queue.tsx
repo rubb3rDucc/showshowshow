@@ -32,6 +32,7 @@ import { Link, useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { getQueue, removeFromQueue, reorderQueue } from '../api/content';
 import { QueueItemCard } from '../components/queue/QueueItemCard';
+import { QueueBuilderCalendar } from '../components/queue/QueueBuilderCalendar';
 import { GenerateScheduleModal } from '../components/schedule/GenerateScheduleModal';
 import type { QueueItem } from '../types/api';
 
@@ -74,6 +75,7 @@ export function Queue() {
   });
 
   const [generateModalOpened, setGenerateModalOpened] = useState(false);
+  const [calendarExpanded, setCalendarExpanded] = useState(false);
 
   // Track if we're currently dragging
   const isDraggingRef = useRef(false);
@@ -286,6 +288,12 @@ export function Queue() {
             💡 Tip: Drag items to reorder them in your schedule
           </Text>
         )}
+
+        {/* Calendar Builder - Collapsible */}
+        <QueueBuilderCalendar
+          expanded={calendarExpanded}
+          onToggle={() => setCalendarExpanded(!calendarExpanded)}
+        />
       </div>
 
       {/* Generate Schedule Modal */}
