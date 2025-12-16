@@ -26,65 +26,45 @@ import {
   Center,
   Loader,
   Alert,
+  Grid,
+  Drawer,
+  Menu,
+  Box,
+  ActionIcon,
 } from '@mantine/core';
-import { IconPlus, IconAlertCircle } from '@tabler/icons-react';
+import { useMediaQuery, useDisclosure } from '@mantine/hooks';
+import { IconPlus, IconAlertCircle, IconMenu2, IconList, IconTrash, IconChevronLeft, IconChevronDown } from '@tabler/icons-react';
 import { Link, useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { getQueue, removeFromQueue, reorderQueue } from '../api/content';
-import { QueueItemCard } from '../components/queue/QueueItemCard';
+import { QueueList } from '../components/queue/QueueList';
 import { GenerateScheduleModal } from '../components/schedule/GenerateScheduleModal';
+import { clearScheduleForDate } from '../api/schedule';
 import type { QueueItem } from '../types/api';
 
-// Sortable wrapper for queue items
-function SortableQueueItem({
-  item,
-  onRemove,
-}: {
-  item: QueueItem;
-  onRemove: (id: string) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: item.id,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style}>
-      <QueueItemCard 
-        item={item} 
-        onRemove={onRemove} 
-        isDragging={isDragging}
-        dragHandleProps={{ ...attributes, ...listeners }}
-      />
-    </div>
-  );
-}
 
 export function Queue() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const [opened, { open, close }] = useDisclosure(false);
+  const [generateModalOpened, setGenerateModalOpened] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [openEpisodeDescriptionId, setOpenEpisodeDescriptionId] = useState<string | null>(null);
+
   // Fetch queue
   const { data: queue, isLoading, error } = useQuery({
     queryKey: ['queue'],
     queryFn: getQueue,
   });
 
-  const [generateModalOpened, setGenerateModalOpened] = useState(false);
-
   // Track if we're currently dragging
   const isDraggingRef = useRef(false);
   
   // Local queue state for drag-and-drop reordering (optimistic updates)
-  // Initialize from queue prop using lazy initializer
   const [localQueue, setLocalQueue] = useState<QueueItem[]>(() => queue || []);
   
   // Sync localQueue with server data when queue changes (but not during drag)
-  // This is necessary for drag-and-drop: we need local state for optimistic updates,
-  // but must sync back when server data changes.
   useEffect(() => {
     if (queue && !isDraggingRef.current) {
       setLocalQueue(queue);
@@ -100,27 +80,18 @@ export function Queue() {
   >({
     mutationFn: removeFromQueue,
     onMutate: async (itemId) => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['queue'] });
-      
-      // Snapshot previous value
       const previousQueue = queryClient.getQueryData<QueueItem[]>(['queue']);
-      
-      // Optimistically update cache
       queryClient.setQueryData<QueueItem[]>(['queue'], (old) => 
         old ? old.filter((item) => item.id !== itemId) : []
       );
-      
-      // Also update local state optimistically
       setLocalQueue((prev) => prev.filter((item) => item.id !== itemId));
-      
       return { previousQueue };
     },
     onSuccess: () => {
       toast.success('Removed from queue');
     },
     onError: (error, _itemId, context) => {
-      // Revert to previous state on error
       if (context?.previousQueue) {
         queryClient.setQueryData(['queue'], context.previousQueue);
         setLocalQueue(context.previousQueue);
@@ -128,7 +99,6 @@ export function Queue() {
       toast.error(error.message || 'Failed to remove from queue');
     },
     onSettled: () => {
-      // Always refetch after mutation completes
       queryClient.invalidateQueries({ queryKey: ['queue'] });
     },
   });
@@ -138,15 +108,31 @@ export function Queue() {
     mutationFn: reorderQueue,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue'] });
-      // Silent success - no toast for reordering
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to reorder queue');
-      // Revert to server state on error
       isDraggingRef.current = false;
       if (queue) {
         setLocalQueue(queue);
       }
+    },
+  });
+
+  // Clear schedule for date mutation
+  const clearScheduleMutation = useMutation({
+    mutationFn: async (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      return clearScheduleForDate(dateStr);
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || 'Schedule cleared for selected date');
+      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to clear schedule');
     },
   });
 
@@ -176,11 +162,9 @@ export function Queue() {
     const newQueue = arrayMove(localQueue, oldIndex, newIndex);
     setLocalQueue(newQueue);
 
-    // Send reorder request to backend
     const itemIds = newQueue.map((item) => item.id);
     reorderMutation.mutate(itemIds);
     
-    // Reset dragging flag after mutation
     isDraggingRef.current = false;
   };
 
@@ -188,10 +172,18 @@ export function Queue() {
     removeMutation.mutate(id);
   };
 
+  const handleClearScheduleForDate = () => {
+    if (!selectedDate) {
+      toast.error('Please select a date first');
+      return;
+    }
+    clearScheduleMutation.mutate(selectedDate);
+  };
+
   if (isLoading) {
     return (
-      <div className="p-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="p-4 md:p-8">
+        <div style={{ width: '100%', padding: '0 16px' }}>
           <Center py={60}>
             <Stack align="center" gap="md">
               <Loader size="lg" />
@@ -205,8 +197,8 @@ export function Queue() {
 
   if (error) {
     return (
-      <div className="p-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="p-4 md:p-8">
+        <div style={{ width: '100%', padding: '0 16px' }}>
           <Alert color="red" title="Error" icon={<IconAlertCircle />}>
             Failed to load queue. Please try again.
           </Alert>
@@ -218,75 +210,222 @@ export function Queue() {
   const isEmpty = !localQueue || localQueue.length === 0;
 
   return (
-    <div className="p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <Group justify="space-between" align="flex-start">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Your Queue</h1>
-            <p className="text-gray-600">
-              {isEmpty
-                ? 'Your playlist builder - add shows and movies to get started'
-                : `${localQueue.length} item${localQueue.length !== 1 ? 's' : ''} in queue`}
-            </p>
-          </div>
-          {!isEmpty && (
-            <Button
-              size="lg"
-              onClick={() => setGenerateModalOpened(true)}
+    <div style={{ minHeight: '100vh', backgroundColor: 'white', paddingBottom: isMobile ? '80px' : 0 }}>
+      <Box style={{ paddingTop: isMobile ? '24px' : '48px', paddingBottom: isMobile ? '24px' : '48px', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '100%' }}>
+        {/* Header with Back Button */}
+        <Box mb={isMobile ? '32px' : '48px'}>
+          <Group justify="space-between" align="center" mb="lg">
+            {/* Back to Search Button */}
+            <Link href="/search">
+              <Button
+                variant="subtle"
+                color="gray"
+                size="sm"
+                leftSection={<IconChevronLeft size={14} />}
+                style={{ fontWeight: 300 }}
+              >
+                Search
+              </Button>
+            </Link>
+
+            {/* Schedule Actions Dropdown */}
+            <Menu shadow="sm" width={200}>
+              <Menu.Target>
+                <Button
+                  variant="subtle"
+                  color="dark"
+                  size="sm"
+                  style={{ fontWeight: 300 }}
+                  rightSection={<IconChevronDown size={14} />}
+                >
+                  Schedule
+                </Button>
+              </Menu.Target>
+
+              <Menu.Dropdown>
+                <Menu.Label style={{ fontWeight: 300, fontSize: '12px' }}>
+                  Auto-fill
+                </Menu.Label>
+                <Menu.Item
+                  onClick={() => setGenerateModalOpened(true)}
+                  style={{ fontWeight: 300, fontSize: '14px' }}
+                >
+                  Generate Schedule
+                </Menu.Item>
+
+                <Menu.Divider />
+
+                <Menu.Item
+                  onClick={handleClearScheduleForDate}
+                  disabled={!selectedDate || clearScheduleMutation.isPending}
+                  style={{ fontWeight: 300, fontSize: '14px' }}
+                  color="red"
+                >
+                  Clear Schedule for Day
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </Group>
+
+          {/* Title Section */}
+          <Box style={{ display: isMobile ? 'none' : 'block' }}>
+            <Text
+              size="xl"
+              fw={300}
+              style={{ color: '#111827', letterSpacing: '-0.025em', marginBottom: '4px' }}
             >
-              Generate Schedule
-            </Button>
-          )}
-        </Group>
+              Queue
+            </Text>
+            <Text size="sm" c="dimmed" fw={300}>
+              {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'}
+            </Text>
+          </Box>
 
-        {/* Empty State */}
-        {isEmpty && (
-          <Card shadow="sm" padding="xl" radius="md" withBorder>
-            <Center py={40}>
-              <Stack align="center" gap="md">
-                <IconPlus size={48} stroke={1.5} opacity={0.3} />
-                <Text size="lg" fw={500} c="dimmed">
-                  Queue is Empty
-                </Text>
-                <Text size="sm" c="dimmed" ta="center">
-                  Add shows and movies from the search page
-                </Text>
-                <Link href="/search">
-                  <Button variant="light" leftSection={<IconPlus size={16} />}>
-                    Browse Content
-                  </Button>
-                </Link>
-              </Stack>
-            </Center>
-          </Card>
-        )}
+          <Box style={{ display: isMobile ? 'block' : 'none' }}>
+            <Text
+              size="xl"
+              fw={300}
+              style={{ color: '#111827', letterSpacing: '-0.025em', marginBottom: '4px' }}
+            >
+              Schedule
+            </Text>
+            <Text size="sm" c="dimmed" fw={300}>
+              {/* TODO: Get schedule count when available */}
+              0 items
+            </Text>
+          </Box>
+        </Box>
 
-        {/* Queue List with Drag and Drop */}
-        {!isEmpty && (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
+        <Grid gutter="xl" align="flex-start">
+          {/* Queue Section - Desktop Only */}
+          <Grid.Col
+            span={{
+              base: 12,
+              md: 5,
+              lg: 4,
+            }}
+            style={{ display: isMobile ? 'none' : 'block' }}
           >
-            <SortableContext items={localQueue.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-              <Stack gap="md">
-                {localQueue.map((item) => (
-                  <SortableQueueItem key={item.id} item={item} onRemove={handleRemove} />
-                ))}
-              </Stack>
-            </SortableContext>
-          </DndContext>
-        )}
+            <Box style={{ maxHeight: 'calc(100vh - 16rem)', overflowY: 'auto' }}>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={localQueue.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                  <QueueList
+                    items={localQueue}
+                    onRemove={handleRemove}
+                    openEpisodeDescriptionId={openEpisodeDescriptionId}
+                    onToggleEpisodeDescription={(id) => {
+                      setOpenEpisodeDescriptionId(openEpisodeDescriptionId === id ? null : id);
+                    }}
+                  />
+                </SortableContext>
+              </DndContext>
+            </Box>
+          </Grid.Col>
 
-        {/* Hint */}
-        {!isEmpty && (
-          <Text size="sm" c="dimmed" ta="center" mt="xl">
-            💡 Tip: Drag items to reorder them in your schedule
-          </Text>
-        )}
-      </div>
+          {/* Calendar Section - Always Visible */}
+          <Grid.Col
+            span={{
+              base: 12,
+              md: 7,
+              lg: 8,
+            }}
+          >
+            <Box style={{ height: 'calc(100vh - 16rem)' }}>
+              {/* TODO: Add QueueBuilderCalendar component here when available */}
+              <Card shadow="sm" padding="lg" radius="md" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Center style={{ flex: 1 }}>
+                  <Text c="dimmed">Calendar Builder - Coming Soon</Text>
+                </Center>
+              </Card>
+            </Box>
+          </Grid.Col>
+        </Grid>
+      </Box>
+
+      {/* Mobile Queue Drawer */}
+      {isMobile && (
+        <>
+          {/* Mobile Bottom Bar */}
+          <Box
+            style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: 'white',
+              borderTop: '1px solid #e5e7eb',
+              padding: '16px',
+              zIndex: 40,
+            }}
+          >
+            <Group justify="space-between" align="center">
+              <Link href="/search">
+                <Button
+                  variant="subtle"
+                  color="gray"
+                  size="xs"
+                  leftSection={<IconChevronLeft size={12} />}
+                  style={{ fontWeight: 300 }}
+                >
+                  Search
+                </Button>
+              </Link>
+
+              <Group gap="sm">
+                <ActionIcon
+                  variant="subtle"
+                  size="md"
+                  color="gray"
+                  onClick={open}
+                >
+                  <IconList size={18} />
+                </ActionIcon>
+                <Text size="sm" fw={300} style={{ color: '#374151' }}>
+                  {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'}
+                </Text>
+              </Group>
+
+              <Button
+                variant="subtle"
+                size="xs"
+                color="dark"
+                onClick={open}
+                style={{ fontWeight: 300 }}
+              >
+                Queue
+              </Button>
+            </Group>
+          </Box>
+
+          <Drawer
+            opened={opened}
+            onClose={close}
+            position="bottom"
+            size="90%"
+            title="Queue"
+            padding="md"
+            styles={{
+              header: {
+                borderBottom: '1px solid #e5e7eb',
+                fontWeight: 300,
+              },
+              body: {
+                padding: 0,
+                height: 'calc(100% - 60px)',
+              },
+            }}
+          >
+            <Box style={{ padding: '16px', overflowY: 'auto', height: '100%' }}>
+              <QueueList />
+            </Box>
+          </Drawer>
+        </>
+      )}
 
       {/* Generate Schedule Modal */}
       <GenerateScheduleModal
@@ -297,5 +436,3 @@ export function Queue() {
     </div>
   );
 }
-
-
