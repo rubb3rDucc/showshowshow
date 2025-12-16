@@ -517,7 +517,7 @@ export function useScheduleCalendar(expanded: boolean) {
           } else {
             currentTime = new Date(scheduleTime.getTime() + duration * 60 * 1000);
           }
-        } catch (error) {
+        } catch {
           failed.push({
             season: ep.season,
             episode: ep.episode,

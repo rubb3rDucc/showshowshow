@@ -11,12 +11,10 @@ import {
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconCalendar, IconChevronDown, IconChevronUp, IconAlertCircle } from '@tabler/icons-react';
-import { QueueItemsList } from './calendar/QueueItemsList';
 import { PendingItemsSummary } from './calendar/PendingItemsSummary';
 import { ScheduleTimeline } from './calendar/ScheduleTimeline';
 import { ScheduleModal } from './calendar/ScheduleModal';
 import { useScheduleCalendar } from './calendar/hooks/useScheduleCalendar';
-import { toDate } from './calendar/utils';
 import type { QueueBuilderCalendarProps } from './calendar/types';
 
 export function QueueBuilderCalendar({ expanded, onToggle }: QueueBuilderCalendarProps) {
@@ -33,7 +31,6 @@ export function QueueBuilderCalendar({ expanded, onToggle }: QueueBuilderCalenda
     hoveredTime,
     
     // Data
-    schedule,
     queue,
     episodes,
     episodesBySeason,
@@ -62,7 +59,6 @@ export function QueueBuilderCalendar({ expanded, onToggle }: QueueBuilderCalenda
     handleRemovePending,
     resetModalSelection,
     onDeleteItem,
-    onQueueItemClick,
     onModalClose,
     schedulingMode,
     setSchedulingMode,
