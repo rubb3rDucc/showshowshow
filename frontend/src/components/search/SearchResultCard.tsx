@@ -116,7 +116,7 @@ export function SearchResultCard({
                 size="xs"
                 color='black'
           >
-            {item.content_type === 'movie' ? 'FILM' : 'TV'}
+            {item.content_type === 'movie' ? 'FILM' : 'SERIES'}
           </Badge>
           {/* Year Badge */}
           {item.release_date && (

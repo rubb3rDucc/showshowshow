@@ -153,7 +153,7 @@ export function ScheduleCard({
                 color='black'
                 // radius="xs"
               >
-                {queueItem?.type === 'movie' ? 'FILM' : 'TV'}
+                {queueItem?.type === 'movie' ? 'FILM' : 'SERIES'}
               </Badge>
             </div>
             <div className="flex justify-between items-end mt-2">
@@ -237,7 +237,7 @@ export function ScheduleCard({
                 color='black'
                 // radius="xs"
               >
-              {queueItem?.type === 'movie' ? 'FILM' : 'TV'}
+              {queueItem?.type === 'movie' ? 'FILM' : 'SERIES'}
             </Badge>
           </div>
         </div>

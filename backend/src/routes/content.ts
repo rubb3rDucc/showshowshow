@@ -123,7 +123,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
 
     // If type is specified and existing content doesn't match, delete and re-fetch
     if (existing && type) {
-      const existingType = existing.content_type === 'show' ? 'tv' : 'movie';
+      const existingType = existing.content_type === 'show' ? 'series' : 'movie';
       if (existingType !== type) {
         console.log(`Content ${tmdbIdNum} exists as ${existingType} but ${type} requested. Deleting and re-fetching...`);
         

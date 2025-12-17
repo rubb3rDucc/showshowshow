@@ -229,7 +229,7 @@ export function ScheduleModal({
                 placeholder="Choose an item"
                 data={queue.map((item) => ({
                   value: item.id,
-                  label: `${item.title || 'Unknown'} (${item.content_type === 'show' ? 'TV' : 'Movie'})`,
+                  label: `${item.title || 'Unknown'} (${item.content_type === 'show' ? 'SERIES' : 'Movie'})`,
                 }))}
                 onChange={(value) => {
                   const item = queue.find((q) => q.id === value);

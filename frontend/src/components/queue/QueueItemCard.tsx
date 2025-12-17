@@ -125,7 +125,7 @@ export function QueueItemCard({
                 }}
               >
                 <Text size="xs" c="dimmed">
-                  {isShow ? 'TV' : 'Movie'}
+                  {isShow ? 'SERIES' : 'Movie'}
                 </Text>
               </Box>
             )}
