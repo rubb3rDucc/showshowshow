@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Badge } from '@mantine/core'
 import type { ScheduleCardItem, QueueCardItem } from './scheduleCardAdapters'
+import { getGifForTitle } from '../../utils/gif'
 
 interface ScheduleCardProps {
   scheduleItem: ScheduleCardItem
@@ -73,6 +75,10 @@ export function ScheduleCard({
   episode,
   episodeTitle,
 }: ScheduleCardProps) {
+  const [isHovered, setIsHovered] = useState(false)
+  const [gifUrl, setGifUrl] = useState<string | null>(null)
+  const [isLoadingGif, setIsLoadingGif] = useState(false)
+
   const colorIndex =
     parseInt(scheduleItem.id.replace(/\D/g, '') || '0') % COLOR_SCHEMES.length
   const colors = COLOR_SCHEMES[colorIndex]
@@ -89,6 +95,23 @@ export function ScheduleCard({
     minute: '2-digit',
     hour12: false,
   })
+
+  const title = queueItem?.title || scheduleItem.title
+
+  // Fetch GIF when hovering
+  const handleMouseEnter = async () => {
+    setIsHovered(true)
+    if (!gifUrl && !isLoadingGif) {
+      setIsLoadingGif(true)
+      const gif = await getGifForTitle(title)
+      setGifUrl(gif)
+      setIsLoadingGif(false)
+    }
+  }
+
+  const handleMouseLeave = () => {
+    setIsHovered(false)
+  }
   return (
     <div
       className={`
@@ -113,16 +136,29 @@ export function ScheduleCard({
           {/* Poster */}
           <div
             className={`w-16 border-r-2 ${colors.border} flex items-center justify-center p-1 flex-shrink-0`}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
           >
             {queueItem?.posterUrl ? (
               <div
-                className={`w-full h-20 border ${colors.border} overflow-hidden`}
+                className={`w-full h-20 border ${colors.border} overflow-hidden relative`}
               >
+                {/* Static Poster */}
                 <img
                   src={queueItem.posterUrl}
                   alt=""
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full object-cover transition-opacity duration-300 absolute inset-0 ${
+                    isHovered && gifUrl ? 'opacity-0' : 'opacity-100'
+                  }`}
                 />
+                {/* Animated GIF on Hover */}
+                {isHovered && gifUrl && (
+                  <img
+                    src={gifUrl}
+                    alt=""
+                    className="w-full h-full object-cover absolute inset-0 opacity-100 transition-opacity duration-300"
+                  />
+                )}
               </div>
             ) : (
               <div
@@ -182,16 +218,29 @@ export function ScheduleCard({
         {/* Column 2: Poster */}
         <div
           className={`col-span-2 border-r-2 ${colors.border} flex items-center justify-center p-2`}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           {queueItem?.posterUrl ? (
             <div
-              className={`w-full h-20 lg:h-24 border ${colors.border} overflow-hidden`}
+              className={`w-full h-20 lg:h-24 border ${colors.border} overflow-hidden relative`}
             >
+              {/* Static Poster */}
               <img
                 src={queueItem.posterUrl}
                 alt=""
-                className="w-full h-full object-cover"
+                className={`w-full h-full object-cover transition-opacity duration-300 absolute inset-0 ${
+                  isHovered && gifUrl ? 'opacity-0' : 'opacity-100'
+                }`}
               />
+              {/* Animated GIF on Hover */}
+              {isHovered && gifUrl && (
+                <img
+                  src={gifUrl}
+                  alt=""
+                  className="w-full h-full object-cover absolute inset-0 opacity-100 transition-opacity duration-300"
+                />
+              )}
             </div>
           ) : (
             <div
