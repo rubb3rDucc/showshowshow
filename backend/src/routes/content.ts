@@ -21,8 +21,14 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
     const pageNum = parseInt(page, 10) || 1;
     const searchResults = await searchTMDB(q, pageNum);
 
+    // Filter out people/actors and only keep movies and TV shows
+    const contentResults = searchResults.results.filter((result: any) => {
+      const mediaType = result.media_type || getContentType(result);
+      return mediaType === 'tv' || mediaType === 'movie';
+    });
+
     // Transform results to include image URLs and normalize media_type
-    let results = searchResults.results.map((result: any) => {
+    let results = contentResults.map((result: any) => {
       const mediaType = result.media_type || getContentType(result);
       const normalizedType = mediaType === 'tv' ? 'tv' : 'movie';
       
