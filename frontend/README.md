@@ -27,7 +27,13 @@ Create a `.env` file:
 
 ```bash
 VITE_API_URL=http://localhost:3000
+VITE_GIPHY_API_KEY=your_giphy_api_key_here  # Optional: For GIF hover feature on schedule cards
 ```
+
+**Giphy API Key (Optional):**
+- The GIF hover feature on schedule cards requires a Giphy API key
+- Get a free API key at: https://developers.giphy.com/
+- Without the key, the hover feature will gracefully fail (posters will still work normally)
 
 ### 3. Start Development Server
 
