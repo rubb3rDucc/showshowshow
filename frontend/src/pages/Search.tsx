@@ -159,7 +159,7 @@ export function Search() {
   // Show results if we have data (even if it's placeholder from previous page)
   // This is the whole point of placeholderData - keep previous data visible
   const searchResults = data?.results || [];
-  const resultsCount = paginationMetadata?.total_results || data?.total_results || 0;
+  const resultsCount = effectivePaginationMetadata?.total_results || data?.total_results || 0;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
