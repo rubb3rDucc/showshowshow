@@ -1,5 +1,5 @@
 import { Box, Group, Text, Button, Stack } from '@mantine/core';
-import { IconX, IconGripVertical } from '@tabler/icons-react';
+import { IconX, IconGripVertical, IconPlayerPlay, IconArrowRight } from '@tabler/icons-react';
 import type { ScheduleItemWithType } from './types';
 import { getItemPosition } from './utils';
 
@@ -49,7 +49,7 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
       style={{
         position: 'absolute',
         top: position.top,
-        left: '8px',
+        left: '1px',
         right: '8px',
         height: position.height,
         marginBottom: '8px',
@@ -138,11 +138,19 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
             data-block-content
           >
             <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-              <IconGripVertical 
+              {/* <IconGripVertical 
                 size={14} 
                 style={{ color: '#C1C2C5', flexShrink: 0 }} 
                 data-block-content
+              /> */}
+
+              <IconArrowRight
+                size={14} 
+                style={{ color: '#C1C2C5', flexShrink: 0 }} 
+                data-block-content
+              
               />
+
               <Text
                 size="sm"
                 fw={500}
@@ -159,7 +167,7 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
             </Group>
             <Button
               size="xs"
-              variant="subtle"
+              variant="filled"
               color="red"
               style={{
                 padding: '4px 4px',

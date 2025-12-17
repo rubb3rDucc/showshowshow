@@ -83,8 +83,9 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
           {/* Date Picker */}
           <Group>
             <DatePickerInput
-              label="Date"
+              label="CURRENT DATE"
               value={selectedDate}
+              // styles={{ fontWeight: 300 }}
               onChange={(date) => {
                 // Handle different date types from Mantine DatePickerInput
                 let dateObj: Date | null = null;
@@ -122,19 +123,19 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
                 }
               }}
               leftSection={<IconCalendar size={16} />}
-              style={{ flex: 1 }}
+              style={{ flex: 1, fontStyle:'italic',  }}
             />
-            <Text size="sm" c="dimmed" mt="xl">
+            <Text size="xs" c="dimmed" mt="xl">
               TIMEZONE: {userTimezone.toUpperCase()}
             </Text>
           </Group>
 
           {/* Empty Queue State */}
-          {isEmpty && (
+          {/* {isEmpty && (
             <Alert icon={<IconAlertCircle size={16} />} title="Empty Queue" color="yellow">
               Add items to your queue from the search page to schedule them.
             </Alert>
-          )}
+          )} */}
 
           {/* Pending Items Summary */}
           <PendingItemsSummary

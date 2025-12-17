@@ -7,7 +7,7 @@ export function TimeLabels() {
         position: 'absolute',
         left: 0,
         top: 0,
-        width: '80px',
+        width: '50px',
         height: '100%',
         borderRight: '1px solid #e0e0e0',
         backgroundColor: 'white',
@@ -32,9 +32,9 @@ export function TimeLabels() {
           >
             <Text size="xs" fw={500} c="dimmed">
               {time.toLocaleTimeString('en-US', {
-                hour: 'numeric',
+                hour: '2-digit',
                 minute: '2-digit',
-                hour12: true,
+                hour12: false,
               })}
             </Text>
           </Box>

@@ -208,12 +208,30 @@ export function Queue() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white', paddingBottom: isMobile ? '80px' : 0 }}>
-      <Box style={{ paddingTop: isMobile ? '24px' : '48px', paddingBottom: isMobile ? '24px' : '48px', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '100%' }}>
+      <Box style={{ paddingTop: isMobile ? '6px' : '12px', paddingBottom: isMobile ? '6px' : '6px', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '100%' }}>
         {/* Header with Back Button */}
         <Box mb={isMobile ? '32px' : '48px'}>
-          <Group justify="space-between" align="center" mb="lg">
+          <Group justify="space-between" align="center" mb="md">
+          {/* Title Section */}
+          <Box style={{ display: isMobile ? 'none' : 'block' }}>
+            <Text
+              size="xl"
+              fw={300}
+              style={{ color: '#111827', letterSpacing: '-0.025em', marginBottom: '4px' }}
+            >
+              Queue
+            </Text>
+            <Text size="sm" c="dimmed" fw={300}>
+              {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'}
+            </Text>
+          
+          </Box>
+
+          
+          
+
             {/* Back to Search Button */}
-            <Link href="/search">
+            {/* <Link href="/search">
               <Button
                 variant="subtle"
                 color="gray"
@@ -223,7 +241,28 @@ export function Queue() {
               >
                 Search
               </Button>
-            </Link>
+            </Link> */}
+
+
+            
+          </Group>
+
+          
+          <Box style={{ display: isMobile ? 'block' : 'none' }}>
+            
+            <Text
+              size="xl"
+              fw={300}
+              style={{ color: '#111827', letterSpacing: '-0.025em', marginBottom: '4px' }}
+            >
+              Schedule
+            </Text>
+            <Text size="sm" c="dimmed" fw={300}>
+              {/* TODO: Get schedule count when available */}
+              0 items
+            </Text>
+            
+          </Box>
 
             {/* Schedule Actions Dropdown */}
             <Menu shadow="sm" width={200}>
@@ -232,10 +271,10 @@ export function Queue() {
                   variant="subtle"
                   color="dark"
                   size="sm"
-                  style={{ fontWeight: 300 }}
+
                   rightSection={<IconChevronDown size={14} />}
                 >
-                  Schedule
+                  RANDOM BULK SCHEDULE GENERATE
                 </Button>
               </Menu.Target>
 
@@ -262,37 +301,10 @@ export function Queue() {
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>
-          </Group>
-
-          {/* Title Section */}
-          <Box style={{ display: isMobile ? 'none' : 'block' }}>
-            <Text
-              size="xl"
-              fw={300}
-              style={{ color: '#111827', letterSpacing: '-0.025em', marginBottom: '4px' }}
-            >
-              Queue
-            </Text>
-            <Text size="sm" c="dimmed" fw={300}>
-              {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'}
-            </Text>
-          </Box>
-
-          <Box style={{ display: isMobile ? 'block' : 'none' }}>
-            <Text
-              size="xl"
-              fw={300}
-              style={{ color: '#111827', letterSpacing: '-0.025em', marginBottom: '4px' }}
-            >
-              Schedule
-            </Text>
-            <Text size="sm" c="dimmed" fw={300}>
-              {/* TODO: Get schedule count when available */}
-              0 items
-            </Text>
-          </Box>
+          
+          
         </Box>
-
+      
         <Grid gutter="xl" align="flex-start">
           {/* Queue Section - Desktop Only */}
           <Grid.Col

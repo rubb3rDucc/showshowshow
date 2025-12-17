@@ -39,24 +39,8 @@ export function ScheduleTimeline({
   ];
 
   return (
-    <Card withBorder p="md">
-      <Group justify="space-between" mb="md">
-        <Text fw={600}>
-            {toDate(selectedDate)?.toLocaleDateString('en-US', {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          }) || 'Select a date'}
-        </Text>
-        {pendingItemsCount > 0 && (
-          <Badge color="yellow" variant="light">
-            {pendingItemsCount} pending
-          </Badge>
-        )}
-      </Group>
-
-      <ScrollArea h={600}>
+    <>
+        <ScrollArea h={600}>
         <Box
           style={{
             position: 'relative',
@@ -174,7 +158,7 @@ export function ScheduleTimeline({
           )}
         </Box>
       </ScrollArea>
-    </Card>
+    </>
   );
 }
 

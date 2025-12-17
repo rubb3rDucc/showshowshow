@@ -17,7 +17,7 @@ export function TimelineGrid() {
             style={{
               position: 'absolute',
               top: `${topPixels}px`,
-              left: '80px',
+              left: '40px',
               right: 0,
               height: '1px',
               backgroundColor: isHourly ? '#d0d0d0' : '#f0f0f0',
