@@ -1,41 +1,105 @@
-import { useState, useEffect } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useRef } from 'react';
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
+  Container,
   TextInput,
-  Card,
-  Image,
-  Text,
-  Badge,
   Button,
-  Group,
-  Stack,
-  Grid,
+  Text,
   Loader,
   Center,
-  Alert,
+  Stack,
   Pagination,
 } from '@mantine/core';
-import { IconSearch, IconPlus, IconCheck } from '@tabler/icons-react';
+import { Search as SearchIcon, ArrowLeft } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { toast } from 'sonner';
-import { searchContent, getContentByTmdbId, addToQueue } from '../api/content';
-import type { SearchResult } from '../types/api';
+import { searchContent, getContentByTmdbId, addToQueue, getQueue } from '../api/content';
+import { SearchResultCard } from '../components/search/SearchResultCard';
+import type { SearchResult, SearchResponse } from '../types/api';
 
 export function Search() {
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [query, setQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
+  
+  // Store pagination metadata separately to keep pagination controls stable
+  const paginationMetadataRef = useRef<{
+    total_pages: number;
+    total_results: number;
+    searchQuery: string;
+  } | null>(null);
 
-  // Search query
-  const { data, isLoading, error } = useQuery({
+  // Search query - trigger on query change with debounce
+  // Use placeholderData: keepPreviousData to keep previous page data visible during transitions
+  const { data, isLoading, isFetching, isPlaceholderData, error } = useQuery<SearchResponse>({
     queryKey: ['search', searchQuery, page],
     queryFn: () => searchContent(searchQuery, page),
     enabled: searchQuery.length > 0,
+    placeholderData: keepPreviousData,
+    staleTime: 30000, // Cache results for 30 seconds to reduce API calls
+    gcTime: 300000, // Keep in cache for 5 minutes (formerly cacheTime)
+  });
+  
+  // Update pagination metadata when we get valid data
+  useEffect(() => {
+    if (data && !isPlaceholderData && data.page === page) {
+      paginationMetadataRef.current = {
+        total_pages: data.total_pages,
+        total_results: data.total_results,
+        searchQuery: searchQuery,
+      };
+    }
+  }, [data, isPlaceholderData, page, searchQuery]);
+  
+  // Clear pagination metadata when search query changes
+  useEffect(() => {
+    if (searchQuery !== paginationMetadataRef.current?.searchQuery) {
+      paginationMetadataRef.current = null;
+    }
+  }, [searchQuery]);
+  
+  // Get pagination metadata (use stored if available, otherwise use current data)
+  const paginationMetadata = paginationMetadataRef.current || (data ? {
+    total_pages: data.total_pages,
+    total_results: data.total_results,
+    searchQuery: searchQuery,
+  } : null);
+
+  // Get queue to check if items are already in queue
+  const { data: queue } = useQuery({
+    queryKey: ['queue'],
+    queryFn: getQueue,
   });
 
   // Scroll to top when page changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [page]);
+
+  // Update search query when user types (with debounce effect)
+  // Only search if query is 3+ characters to reduce unnecessary API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmedQuery = query.trim();
+      if (trimmedQuery.length >= 3) {
+        setSearchQuery(trimmedQuery);
+        setPage(1); // Reset to first page on new search
+      } else if (trimmedQuery.length === 0) {
+        setSearchQuery('');
+      }
+      // If 1-2 characters, don't update searchQuery (prevents API calls for very short queries)
+    }, 500); // 500ms debounce - increased to reduce API calls further
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Check if a search result is already in the queue
+  const isInQueue = (result: SearchResult): boolean => {
+    if (!queue || !result.cached_id) return false;
+    return queue.some((item) => item.content_id === result.cached_id);
+  };
 
   // Add to queue mutation
   const addToQueueMutation = useMutation({
@@ -53,191 +117,161 @@ export function Search() {
     },
     onSuccess: () => {
       toast.success('Added to queue!');
+      // Invalidate queue query to update "IN QUEUE" state
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to add to queue');
     },
   });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      setSearchQuery(query.trim());
-      setPage(1); // Reset to first page on new search
-    }
-  };
+  // Use data if it exists (placeholderData keeps previous data visible)
+  // With placeholderData, we show previous page data while fetching new page
+  const isDataForCurrentPage = data && data.page === page;
+  // Show results if we have data (even if it's placeholder from previous page)
+  // This is the whole point of placeholderData - keep previous data visible
+  const searchResults = data?.results || [];
+  const resultsCount = paginationMetadata?.total_results || data?.total_results || 0;
 
   return (
-    <div className="p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <Container size="xl" className="py-4 md:py-8 lg:py-12 px-2 md:px-4">
+        {/* Back Button */}
+        <Button
+          variant="subtle"
+          color="gray"
+          size="sm"
+          leftSection={<ArrowLeft size={16} />}
+          onClick={() => setLocation('/queue')}
+          className="mb-4 md:mb-6 font-light hover:bg-gray-100"
+        >
+          Back to Queue
+        </Button>
+
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Search</h1>
-          <p className="text-gray-600">
-            Find shows and movies to add to your queue
-          </p>
+        <div className="mb-6 md:mb-8">
+          <Text
+            size="xs"
+            c="dimmed"
+            fw={500}
+            className="uppercase tracking-widest mb-1"
+          >
+            Search Media
+          </Text>
+          <Text
+            size="3xl"
+            fw={300}
+            className="text-gray-900 tracking-tight mb-4"
+          >
+            Find Shows & Movies
+          </Text>
+
+          {/* Search Bar */}
+          <div className="bg-white border-2 border-gray-900 font-mono">
+            <TextInput
+              placeholder="SEARCH TITLES..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              leftSection={<SearchIcon size={16} className="text-gray-900" />}
+              rightSection={isFetching ? <Loader size="sm" /> : null}
+              size="md"
+              classNames={{
+                input:
+                  'border-0 font-mono font-black uppercase tracking-wider placeholder:font-black',
+              }}
+            />
+          </div>
         </div>
 
-        {/* Search Form */}
-        <form onSubmit={handleSearch}>
-          <TextInput
-            size="lg"
-            placeholder="Search for shows and movies..."
-            leftSection={<IconSearch size={20} />}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            rightSection={
-              isLoading ? <Loader size="sm" /> : null
-            }
-          />
-        </form>
-
-        {/* Error State */}
-        {error && (
-          <Alert color="red" title="Error">
-            Failed to search. Please try again.
-          </Alert>
-        )}
-
-        {/* Loading State */}
-        {isLoading && (
+        {/* Loading State - Only show on initial load, not during page transitions */}
+        {isLoading && searchQuery && (
           <Center py={60}>
             <Stack align="center" gap="md">
               <Loader size="lg" />
-              <Text c="dimmed">Searching...</Text>
+              <Text c="dimmed" className="font-mono">Searching...</Text>
             </Stack>
           </Center>
         )}
 
-        {/* Empty State */}
-        {!searchQuery && !isLoading && (
-          <Card shadow="sm" padding="xl" radius="md" withBorder>
-            <Center py={40}>
-              <Stack align="center" gap="sm">
-                <IconSearch size={48} stroke={1.5} opacity={0.3} />
-                <Text size="lg" fw={500} c="dimmed">
-                  Start searching
-                </Text>
-                <Text size="sm" c="dimmed">
-                  Enter a show or movie title above
-                </Text>
-              </Stack>
-            </Center>
-          </Card>
+        {/* Error State */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border-2 border-red-900">
+            <Text className="font-mono font-black text-red-900">
+              ERROR: Failed to search. Please try again.
+            </Text>
+          </div>
         )}
 
-        {/* No Results */}
-        {searchQuery && !isLoading && data && data.results.length === 0 && (
-          <Card shadow="sm" padding="xl" radius="md" withBorder>
-            <Center py={40}>
-              <Stack align="center" gap="sm">
-                <Text size="lg" fw={500} c="dimmed">
-                  No results found
-                </Text>
-                <Text size="sm" c="dimmed">
-                  Try a different search term
-                </Text>
-              </Stack>
-            </Center>
-          </Card>
+        {/* Results Count - Show if we have pagination metadata or data */}
+        {searchQuery && paginationMetadata && (
+          <div className="mb-4">
+            <Text
+              size="sm"
+              className="font-mono font-black uppercase tracking-wider"
+            >
+              FOUND {resultsCount} RESULTS
+              {paginationMetadata.total_pages > 1 && ` (PAGE ${page} OF ${paginationMetadata.total_pages})`}
+            </Text>
+          </div>
         )}
 
-        {/* Results Grid */}
-        {data && data.results.length > 0 && (
-          <>
-            <Group justify="space-between" align="center">
-              <Text size="sm" c="dimmed">
-                Found {data.total_results} results (Page {data.page} of {data.total_pages})
+        {/* Results Grid - Show if we have results (placeholder data is fine) */}
+        {searchQuery && searchResults.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+            {searchResults.map((result) => (
+              <SearchResultCard
+                key={`${result.tmdb_id}-${result.content_type}`}
+                item={result}
+                isInQueue={isInQueue(result)}
+                onAddToQueue={(item) => addToQueueMutation.mutate(item)}
+                isLoading={addToQueueMutation.isPending}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* No Results - Only show if we have data for current page and it's truly empty (not placeholder) */}
+        {searchQuery && !isLoading && !isPlaceholderData && isDataForCurrentPage && data && data.results.length === 0 && searchResults.length === 0 && (
+          <Center py={60}>
+            <Stack align="center" gap="sm">
+              <Text size="lg" fw={500} c="dimmed" className="font-mono">
+                NO RESULTS FOUND
               </Text>
-            </Group>
-            
-            <Grid>
-              {data.results.map((result) => (
-                <Grid.Col key={`${result.tmdb_id}-${result.content_type}`} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-                  <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
-                    <Card.Section>
-                      {result.poster_url ? (
-                        <Image
-                          src={result.poster_url}
-                          height={300}
-                          alt={result.title}
-                          fit="cover"
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            height: 300,
-                            backgroundColor: '#f0f0f0',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <Text c="dimmed">No poster</Text>
-                        </div>
-                      )}
-                    </Card.Section>
-
-                    <Stack gap="sm" mt="md">
-                      <Group justify="space-between" align="flex-start">
-                        <Text fw={600} lineClamp={2} style={{ flex: 1 }}>
-                          {result.title}
-                        </Text>
-                      </Group>
-
-                      <Group gap="xs">
-                        <Badge variant="light" size="sm">
-                          {result.content_type === 'tv' ? 'TV Show' : 'Movie'}
-                        </Badge>
-                        {result.is_cached && (
-                          <Badge variant="light" color="green" size="sm">
-                            Cached
-                          </Badge>
-                        )}
-                      </Group>
-
-                      {result.release_date && (
-                        <Text size="sm" c="dimmed">
-                          {new Date(result.release_date).getFullYear()}
-                        </Text>
-                      )}
-
-                      <Text size="sm" c="dimmed" lineClamp={3}>
-                        {result.overview || 'No description available'}
-                      </Text>
-
-                      <Button
-                        fullWidth
-                        leftSection={
-                          result.is_cached ? <IconCheck size={16} /> : <IconPlus size={16} />
-                        }
-                        onClick={() => addToQueueMutation.mutate(result)}
-                        loading={addToQueueMutation.isPending}
-                        variant={result.is_cached ? 'light' : 'filled'}
-                      >
-                        Add to Queue
-                      </Button>
-                    </Stack>
-                  </Card>
-                </Grid.Col>
-              ))}
-            </Grid>
-
-            {/* Pagination */}
-            {data.total_pages > 1 && (
-              <Center mt="xl">
-                <Pagination
-                  value={page}
-                  onChange={setPage}
-                  total={data.total_pages}
-                  siblings={1}
-                  boundaries={1}
-                />
-              </Center>
-            )}
-          </>
+              <Text size="sm" c="dimmed" className="font-mono">
+                Try a different search term
+              </Text>
+            </Stack>
+          </Center>
         )}
-      </div>
+
+        {/* Pagination - Always visible when we have metadata, independent of results display */}
+        {searchQuery && paginationMetadata && paginationMetadata.total_pages > 1 && (
+          <Center mt="xl">
+            <Pagination
+              value={page}
+              onChange={setPage}
+              total={paginationMetadata.total_pages}
+              siblings={1}
+              boundaries={1}
+              disabled={isPlaceholderData}
+            />
+          </Center>
+        )}
+
+        {/* Empty State - No search query */}
+        {!searchQuery && !isLoading && (
+          <Center py={60}>
+            <Stack align="center" gap="sm">
+              <Text size="lg" fw={500} c="dimmed" className="font-mono">
+                START SEARCHING
+              </Text>
+              <Text size="sm" c="dimmed" className="font-mono">
+                Enter a show or movie title above
+              </Text>
+            </Stack>
+          </Center>
+        )}
+      </Container>
     </div>
   );
 }
