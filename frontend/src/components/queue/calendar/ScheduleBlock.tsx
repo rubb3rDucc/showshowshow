@@ -1,5 +1,5 @@
 import { Box, Group, Text, Button, Stack } from '@mantine/core';
-import { IconX, IconGripVertical, IconPlayerPlay, IconArrowRight } from '@tabler/icons-react';
+import { IconX, IconGripVertical, IconArrowRight } from '@tabler/icons-react';
 import type { ScheduleItemWithType } from './types';
 import { getItemPosition } from './utils';
 

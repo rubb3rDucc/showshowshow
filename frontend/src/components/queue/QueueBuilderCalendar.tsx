@@ -6,12 +6,11 @@ import {
   Button,
   Loader,
   Center,
-  Alert,
   Collapse,
   Box,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconCalendar, IconChevronDown, IconChevronUp, IconAlertCircle } from '@tabler/icons-react';
+import { IconCalendar, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { PendingItemsSummary } from './calendar/PendingItemsSummary';
 import { ScheduleTimeline } from './calendar/ScheduleTimeline';
 import { ScheduleModal } from './calendar/ScheduleModal';

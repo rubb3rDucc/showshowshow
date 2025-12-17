@@ -1,10 +1,9 @@
-import { Card, Group, Text, Badge, ScrollArea, Box } from '@mantine/core';
+import { Text, ScrollArea, Box } from '@mantine/core';
 import { TimeLabels } from './TimeLabels';
 import { TimelineGrid } from './TimelineGrid';
 import { ScheduleBlock } from './ScheduleBlock';
 import type { ScheduleItemWithType, PendingScheduleItem, HoveredTime } from './types';
 import type { ScheduleItem } from '../../../types/api';
-import { toDate } from './utils';
 
 interface ScheduleTimelineProps {
   selectedDate: Date | null;
@@ -21,8 +20,6 @@ interface ScheduleTimelineProps {
 }
 
 export function ScheduleTimeline({
-  selectedDate,
-  pendingItemsCount,
   isEmpty,
   savedItems,
   pendingItems,
