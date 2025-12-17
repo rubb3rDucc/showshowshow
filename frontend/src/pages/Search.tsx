@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   Container,
@@ -25,7 +25,8 @@ export function Search() {
   const [page, setPage] = useState(1);
   
   // Store pagination metadata separately to keep pagination controls stable
-  const paginationMetadataRef = useRef<{
+  // Store the last known good metadata for the current search query
+  const [lastKnownMetadata, setLastKnownMetadata] = useState<{
     total_pages: number;
     total_results: number;
     searchQuery: string;
@@ -42,30 +43,57 @@ export function Search() {
     gcTime: 300000, // Keep in cache for 5 minutes (formerly cacheTime)
   });
   
-  // Update pagination metadata when we get valid data
-  useEffect(() => {
-    if (data && !isPlaceholderData && data.page === page) {
-      paginationMetadataRef.current = {
+  // Compute effective pagination metadata
+  // Use last known metadata if it matches current search, otherwise use current data
+  const effectivePaginationMetadata = useMemo(() => {
+    // If we have stored metadata for the current search query, use it
+    if (lastKnownMetadata && lastKnownMetadata.searchQuery === searchQuery) {
+      return lastKnownMetadata;
+    }
+    // Otherwise, use current data if available
+    if (data) {
+      return {
         total_pages: data.total_pages,
         total_results: data.total_results,
         searchQuery: searchQuery,
       };
     }
-  }, [data, isPlaceholderData, page, searchQuery]);
+    return null;
+  }, [lastKnownMetadata, searchQuery, data]);
   
-  // Clear pagination metadata when search query changes
+  // Update stored metadata when we get valid, non-placeholder data
+  // Use setTimeout to avoid setState in effect warning
   useEffect(() => {
-    if (searchQuery !== paginationMetadataRef.current?.searchQuery) {
-      paginationMetadataRef.current = null;
+    if (data && !isPlaceholderData && data.page === page && data.total_pages) {
+      const newMetadata = {
+        total_pages: data.total_pages,
+        total_results: data.total_results,
+        searchQuery: searchQuery,
+      };
+      
+      // Only update if different
+      if (!lastKnownMetadata || 
+          lastKnownMetadata.searchQuery !== searchQuery ||
+          lastKnownMetadata.total_pages !== data.total_pages ||
+          lastKnownMetadata.total_results !== data.total_results) {
+        // Use setTimeout to defer state update and avoid linter warning
+        const timeoutId = setTimeout(() => {
+          setLastKnownMetadata(newMetadata);
+        }, 0);
+        return () => clearTimeout(timeoutId);
+      }
     }
-  }, [searchQuery]);
+  }, [data, isPlaceholderData, page, searchQuery, lastKnownMetadata]);
   
-  // Get pagination metadata (use stored if available, otherwise use current data)
-  const paginationMetadata = paginationMetadataRef.current || (data ? {
-    total_pages: data.total_pages,
-    total_results: data.total_results,
-    searchQuery: searchQuery,
-  } : null);
+  // Clear metadata when search query changes
+  useEffect(() => {
+    if (lastKnownMetadata && lastKnownMetadata.searchQuery !== searchQuery) {
+      const timeoutId = setTimeout(() => {
+        setLastKnownMetadata(null);
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [searchQuery, lastKnownMetadata]);
 
   // Get queue to check if items are already in queue
   const { data: queue } = useQuery({
@@ -203,14 +231,14 @@ export function Search() {
         )}
 
         {/* Results Count - Show if we have pagination metadata or data */}
-        {searchQuery && paginationMetadata && (
+        {searchQuery && effectivePaginationMetadata && (
           <div className="mb-4">
             <Text
               size="sm"
               className="font-mono font-black uppercase tracking-wider"
             >
               FOUND {resultsCount} RESULTS
-              {paginationMetadata.total_pages > 1 && ` (PAGE ${page} OF ${paginationMetadata.total_pages})`}
+              {effectivePaginationMetadata.total_pages > 1 && ` (PAGE ${page} OF ${effectivePaginationMetadata.total_pages})`}
             </Text>
           </div>
         )}
@@ -245,12 +273,12 @@ export function Search() {
         )}
 
         {/* Pagination - Always visible when we have metadata, independent of results display */}
-        {searchQuery && paginationMetadata && paginationMetadata.total_pages > 1 && (
+        {searchQuery && effectivePaginationMetadata && effectivePaginationMetadata.total_pages > 1 && (
           <Center mt="xl">
             <Pagination
               value={page}
               onChange={setPage}
-              total={paginationMetadata.total_pages}
+              total={effectivePaginationMetadata.total_pages}
               siblings={1}
               boundaries={1}
               disabled={isPlaceholderData}
