@@ -1,5 +1,6 @@
 import { db } from '../db/index.js';
 import { searchTMDB, getShowDetails, getMovieDetails, getSeason, getImageUrl, getContentType, getDefaultDuration } from '../lib/tmdb.js';
+import { searchJikan, jikanSearchToSearchResult, getAnimeDetails, getAnimeEpisodes, jikanToContentFormat } from '../lib/jikan.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import { authenticate } from '../plugins/auth.js';
 import type { FastifyInstance } from 'fastify';
@@ -7,11 +8,12 @@ import type { FastifyInstance } from 'fastify';
 export const contentRoutes = async (fastify: FastifyInstance) => {
   // Search for shows and movies
   fastify.get('/api/content/search', async (request, reply) => {
-    const { q, page = '1', type, include_adult = 'false' } = request.query as { 
+    const { q, page = '1', type, include_adult = 'false', source = 'tmdb' } = request.query as { 
       q?: string; 
       page?: string; 
       type?: 'tv' | 'movie';
       include_adult?: string;
+      source?: 'tmdb' | 'jikan' | 'auto';
     };
     
     if (!q || q.trim().length === 0) {
@@ -23,9 +25,52 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       throw new ValidationError('Type must be either "tv" or "movie"');
     }
 
+    // Validate source parameter
+    if (source && source !== 'tmdb' && source !== 'jikan' && source !== 'auto') {
+      throw new ValidationError('Source must be either "tmdb", "jikan", or "auto"');
+    }
+
     const pageNum = parseInt(page, 10) || 1;
-    const includeAdult = include_adult === 'true';
-    const searchResults = await searchTMDB(q, pageNum, includeAdult);
+    let results: any[] = [];
+    let totalPages = 1;
+    let totalResults = 0;
+    let currentPage = pageNum;
+
+    // Search Jikan if source is jikan or auto
+    if (source === 'jikan' || source === 'auto') {
+      try {
+        const jikanResults = await searchJikan(q, pageNum);
+        const jikanFormatted = jikanResults.results.map((anime: any) => jikanSearchToSearchResult(anime));
+        
+        if (source === 'jikan') {
+          // Only Jikan results
+          results = jikanFormatted;
+          totalPages = jikanResults.total_pages;
+          totalResults = jikanResults.total_results;
+          currentPage = jikanResults.page;
+        } else {
+          // Auto mode: use Jikan results, but could merge with TMDB later
+          results = jikanFormatted;
+          totalPages = jikanResults.total_pages;
+          totalResults = jikanResults.total_results;
+          currentPage = jikanResults.page;
+        }
+      } catch (error) {
+        // If Jikan fails and source is auto, fallback to TMDB
+        if (source === 'auto') {
+          console.warn('Jikan search failed, falling back to TMDB:', error);
+          // Continue to TMDB search below
+        } else {
+          // If source is jikan and it fails, throw error
+          throw error;
+        }
+      }
+    }
+
+    // Search TMDB if source is tmdb or auto (and Jikan didn't provide results)
+    if (source === 'tmdb' || (source === 'auto' && results.length === 0)) {
+      const includeAdult = include_adult === 'true';
+      const searchResults = await searchTMDB(q, pageNum, includeAdult);
 
     // Filter out people/actors and only keep movies and TV shows
     const contentResults = searchResults.results.filter((result: any) => {
@@ -34,12 +79,13 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
     });
 
     // Transform results to include image URLs and normalize media_type
-    let results = contentResults.map((result: any) => {
+      const tmdbResults = contentResults.map((result: any) => {
       const mediaType = result.media_type || getContentType(result);
       const normalizedType = mediaType === 'tv' ? 'tv' : 'movie';
       
       return {
         tmdb_id: result.id,
+          mal_id: null,
         title: result.name || result.title || 'Unknown',
         overview: result.overview,
         poster_url: getImageUrl(result.poster_path),
@@ -49,8 +95,17 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         release_date: result.release_date || result.first_air_date || null,
         vote_average: result.vote_average || 0,
         popularity: result.popularity || 0,
+          data_source: 'tmdb',
       };
     });
+
+      if (source === 'tmdb' || results.length === 0) {
+        results = tmdbResults;
+        totalPages = searchResults.total_pages;
+        totalResults = searchResults.total_results;
+        currentPage = searchResults.page;
+      }
+    }
 
     // Filter by type if specified
     if (type) {
@@ -60,11 +115,25 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
     // Check which results are already cached in the database
     const resultsWithCacheStatus = await Promise.all(
       results.map(async (result: any) => {
-        const cached = await db
+        let cached = null;
+        
+        // Check by tmdb_id if available
+        if (result.tmdb_id) {
+          cached = await db
           .selectFrom('content')
           .select(['id', 'content_type'])
           .where('tmdb_id', '=', result.tmdb_id)
           .executeTakeFirst();
+        }
+        
+        // Check by mal_id if available and not found by tmdb_id
+        if (!cached && result.mal_id) {
+          cached = await db
+            .selectFrom('content')
+            .select(['id', 'content_type'])
+            .where('mal_id', '=', result.mal_id)
+            .executeTakeFirst();
+        }
         
         return {
           ...result,
@@ -77,32 +146,102 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
 
     return reply.send({
       results: resultsWithCacheStatus,
-      page: searchResults.page,
-      total_pages: searchResults.total_pages,
-      total_results: type ? resultsWithCacheStatus.length : searchResults.total_results,
+      page: currentPage,
+      total_pages: totalPages,
+      total_results: type ? resultsWithCacheStatus.length : totalResults,
     });
   });
 
   // Check if content is already cached (without caching it)
   fastify.get('/api/content/:tmdbId/check', async (request, reply) => {
     const { tmdbId } = request.params as { tmdbId: string };
+    const { mal_id } = request.query as { mal_id?: string };
     const tmdbIdNum = parseInt(tmdbId, 10);
 
-    if (isNaN(tmdbIdNum)) {
-      throw new ValidationError('Invalid TMDB ID');
-    }
+    let cached = null;
 
-    const cached = await db
+    // Check by tmdb_id if provided
+    if (!isNaN(tmdbIdNum)) {
+      cached = await db
       .selectFrom('content')
       .selectAll()
       .where('tmdb_id', '=', tmdbIdNum)
       .executeTakeFirst();
+    }
+
+    // Check by mal_id if not found and mal_id provided
+    if (!cached && mal_id) {
+      const malIdNum = parseInt(mal_id, 10);
+      if (!isNaN(malIdNum)) {
+        cached = await db
+          .selectFrom('content')
+          .selectAll()
+          .where('mal_id', '=', malIdNum)
+          .executeTakeFirst();
+      }
+    }
 
     return reply.send({
-      tmdb_id: tmdbIdNum,
+      tmdb_id: isNaN(tmdbIdNum) ? null : tmdbIdNum,
+      mal_id: mal_id ? parseInt(mal_id, 10) : null,
       is_cached: !!cached,
       content: cached || null,
     });
+  });
+
+  // Get or cache Jikan content by MAL ID
+  fastify.get('/api/content/jikan/:malId', async (request, reply) => {
+    const { malId } = request.params as { malId: string };
+    const malIdNum = parseInt(malId, 10);
+
+    if (isNaN(malIdNum)) {
+      throw new ValidationError('Invalid MAL ID');
+    }
+
+    // Check if already in database
+    const existing = await db
+      .selectFrom('content')
+      .selectAll()
+      .where('mal_id', '=', malIdNum)
+      .executeTakeFirst();
+
+    if (existing) {
+      return reply.send(existing);
+    }
+
+    // Fetch from Jikan
+    const jikanAnime = await getAnimeDetails(malIdNum);
+    const contentData = jikanToContentFormat(jikanAnime);
+
+    // Save to database
+    const saved = await db
+      .insertInto('content')
+      .values({
+        id: crypto.randomUUID(),
+        tmdb_id: null, // Jikan content doesn't have TMDB ID
+        mal_id: contentData.mal_id,
+        data_source: 'jikan',
+        content_type: contentData.content_type, // 'show' or 'movie'
+        title: contentData.title,
+        title_english: contentData.title_english,
+        title_japanese: contentData.title_japanese,
+        overview: contentData.overview,
+        poster_url: contentData.poster_url,
+        backdrop_url: contentData.backdrop_url,
+        release_date: contentData.release_date, // For movies
+        first_air_date: contentData.first_air_date, // For shows
+        default_duration: contentData.default_duration,
+        number_of_episodes: contentData.number_of_episodes,
+        number_of_seasons: contentData.number_of_seasons,
+        status: contentData.status,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    // Episodes will be fetched on-demand when user requests them via /api/content/by-id/:contentId/episodes
+    return reply.send(saved);
   });
 
   // Get show or movie details (and cache in database)
@@ -241,7 +380,209 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
     return reply.send(saved);
   });
 
-  // Get episodes for a show (and cache in database)
+  // Get episodes for a show by content_id (supports both TMDB and Jikan)
+  fastify.get('/api/content/by-id/:contentId/episodes', async (request, reply) => {
+    const { contentId } = request.params as { contentId: string };
+    const { season } = request.query as { season?: string };
+
+    // Get content from database
+    const content = await db
+      .selectFrom('content')
+      .selectAll()
+      .where('id', '=', contentId)
+      .executeTakeFirst();
+
+    if (!content) {
+      throw new NotFoundError('Content not found');
+    }
+
+    if (content.content_type !== 'show') {
+      throw new ValidationError('Episodes are only available for TV shows');
+    }
+
+    // If specific season requested
+    if (season) {
+      const seasonNum = parseInt(season, 10);
+      if (isNaN(seasonNum)) {
+        throw new ValidationError('Invalid season number');
+      }
+
+      // Check if episodes already in database
+      const existingEpisodes = await db
+        .selectFrom('episodes')
+        .selectAll()
+        .where('content_id', '=', content.id)
+        .where('season', '=', seasonNum)
+        .execute();
+
+      if (existingEpisodes.length > 0) {
+        return reply.send(existingEpisodes);
+      }
+
+      // Fetch episodes based on data source
+      if (content.data_source === 'jikan' && content.mal_id) {
+        // Fetch from Jikan (Jikan doesn't have seasons, all episodes are in one list)
+        // For season 1, fetch all episodes
+        if (seasonNum === 1) {
+          const allEpisodes: any[] = [];
+          let page = 1;
+          let hasMore = true;
+
+          while (hasMore) {
+            const jikanEpisodes = await getAnimeEpisodes(content.mal_id, page);
+            const episodes = jikanEpisodes.episodes || [];
+            
+            for (const ep of episodes) {
+              const episodeNum = ep.episode || allEpisodes.length + 1;
+              const saved = await db
+                .insertInto('episodes')
+                .values({
+                  id: crypto.randomUUID(),
+                  content_id: content.id,
+                  season: 1, // Jikan doesn't have seasons
+                  episode_number: episodeNum,
+                  title: ep.title || `Episode ${episodeNum}`,
+                  overview: null, // Jikan API doesn't provide episode descriptions
+                  duration: content.default_duration,
+                  air_date: ep.aired ? new Date(ep.aired) : null,
+                  still_url: ep.images?.jpg?.image_url || null,
+                  created_at: new Date(),
+                })
+                .returningAll()
+                .executeTakeFirstOrThrow();
+              allEpisodes.push(saved);
+            }
+
+            hasMore = page < (jikanEpisodes.pagination?.last_visible_page || 1);
+            page++;
+          }
+
+          return reply.send(allEpisodes);
+        } else {
+          // Jikan doesn't have multiple seasons
+          return reply.send([]);
+        }
+      } else if (content.tmdb_id) {
+        // Fetch from TMDB
+        const tmdbSeason = await getSeason(content.tmdb_id, seasonNum);
+
+        // Save episodes to database
+        const episodes = await Promise.all(
+          tmdbSeason.episodes.map(async (ep: any) => {
+            return db
+              .insertInto('episodes')
+              .values({
+                id: crypto.randomUUID(),
+                content_id: content.id,
+                season: ep.season_number,
+                episode_number: ep.episode_number,
+                title: ep.name,
+                overview: ep.overview,
+                duration: ep.runtime || content.default_duration,
+                air_date: ep.air_date ? new Date(ep.air_date) : null,
+                still_url: getImageUrl(ep.still_path),
+                created_at: new Date(),
+              })
+              .returningAll()
+              .executeTakeFirstOrThrow();
+          })
+        );
+
+        return reply.send(episodes);
+      } else {
+        throw new ValidationError('Content has no valid source ID');
+      }
+    }
+
+    // Get all episodes for all seasons
+    const existingEpisodes = await db
+      .selectFrom('episodes')
+      .selectAll()
+      .where('content_id', '=', content.id)
+      .orderBy('season', 'asc')
+      .orderBy('episode_number', 'asc')
+      .execute();
+
+    if (existingEpisodes.length > 0) {
+      return reply.send(existingEpisodes);
+    }
+
+    // Fetch episodes based on data source
+    if (content.data_source === 'jikan' && content.mal_id) {
+      // Fetch all episodes from Jikan
+      const allEpisodes: any[] = [];
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        const jikanEpisodes = await getAnimeEpisodes(content.mal_id, page);
+        const episodes = jikanEpisodes.episodes || [];
+        
+        for (const ep of episodes) {
+          const episodeNum = ep.episode || allEpisodes.length + 1;
+          const saved = await db
+            .insertInto('episodes')
+            .values({
+              id: crypto.randomUUID(),
+              content_id: content.id,
+              season: 1, // Jikan doesn't have seasons
+              episode_number: episodeNum,
+              title: ep.title || `Episode ${episodeNum}`,
+              overview: null, // Jikan API doesn't provide episode descriptions
+              duration: content.default_duration,
+              air_date: ep.aired ? new Date(ep.aired) : null,
+              still_url: ep.images?.jpg?.image_url || null,
+              created_at: new Date(),
+            })
+            .returningAll()
+            .executeTakeFirstOrThrow();
+          allEpisodes.push(saved);
+        }
+
+        hasMore = page < (jikanEpisodes.pagination?.last_visible_page || 1);
+        page++;
+      }
+
+      return reply.send(allEpisodes);
+    } else if (content.tmdb_id) {
+      // Fetch all seasons from TMDB
+      const show = await getShowDetails(content.tmdb_id);
+      const allEpisodes: any[] = [];
+
+      for (let seasonNum = 1; seasonNum <= (show.number_of_seasons || 0); seasonNum++) {
+        try {
+          const tmdbSeason = await getSeason(content.tmdb_id, seasonNum);
+          for (const ep of tmdbSeason.episodes) {
+            const saved = await db
+              .insertInto('episodes')
+              .values({
+                id: crypto.randomUUID(),
+                content_id: content.id,
+                season: ep.season_number,
+                episode_number: ep.episode_number,
+                title: ep.name,
+                overview: ep.overview,
+                duration: ep.runtime || content.default_duration,
+                air_date: ep.air_date ? new Date(ep.air_date) : null,
+                still_url: getImageUrl(ep.still_path),
+                created_at: new Date(),
+              })
+              .returningAll()
+              .executeTakeFirstOrThrow();
+            allEpisodes.push(saved);
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch season ${seasonNum} for show ${content.tmdb_id}`);
+        }
+      }
+
+      return reply.send(allEpisodes);
+    } else {
+      throw new ValidationError('Content has no valid source ID');
+    }
+  });
+
+  // Get episodes for a show by TMDB ID (legacy endpoint, kept for backward compatibility)
   fastify.get('/api/content/:tmdbId/episodes', async (request, reply) => {
     const { tmdbId } = request.params as { tmdbId: string };
     const { season } = request.query as { season?: string };
@@ -288,98 +629,8 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       throw new ValidationError('Episodes are only available for TV shows');
     }
 
-    // If specific season requested
-    if (season) {
-      const seasonNum = parseInt(season, 10);
-      if (isNaN(seasonNum)) {
-        throw new ValidationError('Invalid season number');
-      }
-
-      // Check if episodes already in database
-      const existingEpisodes = await db
-        .selectFrom('episodes')
-        .selectAll()
-        .where('content_id', '=', content.id)
-        .where('season', '=', seasonNum)
-        .execute();
-
-      if (existingEpisodes.length > 0) {
-        return reply.send(existingEpisodes);
-      }
-
-      // Fetch from TMDB
-      const tmdbSeason = await getSeason(tmdbIdNum, seasonNum);
-
-      // Save episodes to database
-      const episodes = await Promise.all(
-        tmdbSeason.episodes.map(async (ep: any) => {
-          return db
-            .insertInto('episodes')
-            .values({
-              id: crypto.randomUUID(),
-              content_id: content.id,
-              season: ep.season_number,
-              episode_number: ep.episode_number,
-              title: ep.name,
-              overview: ep.overview,
-              duration: ep.runtime || content.default_duration,
-              air_date: ep.air_date ? new Date(ep.air_date) : null,
-              still_url: getImageUrl(ep.still_path),
-              created_at: new Date(),
-            })
-            .returningAll()
-            .executeTakeFirstOrThrow();
-        })
-      );
-
-      return reply.send(episodes);
-    }
-
-    // Get all episodes for all seasons
-    const existingEpisodes = await db
-      .selectFrom('episodes')
-      .selectAll()
-      .where('content_id', '=', content.id)
-      .orderBy('season', 'asc')
-      .orderBy('episode_number', 'asc')
-      .execute();
-
-    if (existingEpisodes.length > 0) {
-      return reply.send(existingEpisodes);
-    }
-
-    // Fetch all seasons from TMDB
-    const show = await getShowDetails(tmdbIdNum);
-    const allEpisodes: any[] = [];
-
-    for (let seasonNum = 1; seasonNum <= show.number_of_seasons; seasonNum++) {
-      try {
-        const tmdbSeason = await getSeason(tmdbIdNum, seasonNum);
-        for (const ep of tmdbSeason.episodes) {
-          const saved = await db
-            .insertInto('episodes')
-            .values({
-              id: crypto.randomUUID(),
-              content_id: content.id,
-              season: ep.season_number,
-              episode_number: ep.episode_number,
-              title: ep.name,
-              overview: ep.overview,
-              duration: ep.runtime || content.default_duration,
-              air_date: ep.air_date ? new Date(ep.air_date) : null,
-              still_url: getImageUrl(ep.still_path),
-              created_at: new Date(),
-            })
-            .returningAll()
-            .executeTakeFirstOrThrow();
-          allEpisodes.push(saved);
-        }
-      } catch (error) {
-        console.warn(`Failed to fetch season ${seasonNum} for show ${tmdbIdNum}`);
-      }
-    }
-
-    return reply.send(allEpisodes);
+    // Redirect to content_id endpoint
+    return reply.redirect(`/api/content/by-id/${content.id}/episodes${season ? `?season=${season}` : ''}`);
   });
 
   // Get user's library (all content they've added)

@@ -31,9 +31,14 @@ export interface ApiError {
 // Content types
 export interface Content {
   id: string;
-  tmdb_id: number;
+  tmdb_id: number | null;
+  mal_id: number | null;
+  anilist_id: number | null;
+  data_source: 'tmdb' | 'jikan' | 'anilist' | 'kitsu';
   content_type: 'show' | 'movie';
   title: string;
+  title_english: string | null;
+  title_japanese: string | null;
   poster_url: string | null;
   backdrop_url: string | null;
   overview: string | null;
@@ -49,8 +54,11 @@ export interface Content {
 }
 
 export interface SearchResult {
-  tmdb_id: number;
+  tmdb_id: number | null;
+  mal_id: number | null;
   title: string;
+  title_english: string | null;
+  title_japanese: string | null;
   overview: string | null;
   poster_url: string | null;
   backdrop_url: string | null;
@@ -59,6 +67,7 @@ export interface SearchResult {
   release_date: string | null;
   vote_average: number;
   popularity: number;
+  data_source?: 'tmdb' | 'jikan' | 'anilist' | 'kitsu';
   is_cached: boolean;
   cached_id: string | null;
   cached_type: 'show' | 'movie' | null;

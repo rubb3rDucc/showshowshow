@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getSchedule, createScheduleItem, deleteScheduleItem } from '../../../../api/schedule';
-import { getQueue, getEpisodes } from '../../../../api/content';
+import { getQueue, getEpisodes, getEpisodesByContentId } from '../../../../api/content';
 import type { QueueItem, Episode, ScheduleItem } from '../../../../types/api';
 import type { TimeSlot, PendingScheduleItem, HoveredTime, SchedulingMode } from '../types';
 import {
@@ -42,18 +42,26 @@ export function useScheduleCalendar(expanded: boolean) {
   });
 
   // Fetch episodes when a show is selected
+  // Use content_id if available (supports Jikan), otherwise fall back to tmdb_id
   const { data: episodes, isLoading: episodesLoading } = useQuery({
-    queryKey: ['episodes', selectedQueueItem?.tmdb_id],
-    queryFn: () => getEpisodes(selectedQueueItem!.tmdb_id!),
-    enabled: !!selectedQueueItem && selectedQueueItem.content_type === 'show' && !!selectedQueueItem.tmdb_id,
+    queryKey: ['episodes', selectedQueueItem?.content_id || selectedQueueItem?.tmdb_id],
+    queryFn: () => {
+      if (selectedQueueItem?.content_id) {
+        return getEpisodesByContentId(selectedQueueItem.content_id);
+      } else if (selectedQueueItem?.tmdb_id) {
+        return getEpisodes(selectedQueueItem.tmdb_id);
+      }
+      throw new Error('No content ID available');
+    },
+    enabled: !!selectedQueueItem && selectedQueueItem.content_type === 'show' && !!(selectedQueueItem.content_id || selectedQueueItem.tmdb_id),
   });
 
   // Get unique shows from schedule to fetch episode titles
   const scheduleShows = useMemo(() => {
     if (!schedule) return [];
-    const shows = new Map<string, { content_id: string; tmdb_id: number }>();
+    const shows = new Map<string, { content_id: string; tmdb_id?: number }>();
     schedule.forEach(item => {
-      if (item.content_type === 'show' && item.tmdb_id && item.season !== null && item.episode !== null) {
+      if (item.content_type === 'show' && item.season !== null && item.episode !== null) {
         if (!shows.has(item.content_id)) {
           shows.set(item.content_id, { content_id: item.content_id, tmdb_id: item.tmdb_id });
         }
@@ -65,9 +73,9 @@ export function useScheduleCalendar(expanded: boolean) {
   // Fetch episodes for all scheduled shows in parallel using useQueries
   const scheduleEpisodesQueries = useQueries({
     queries: scheduleShows.map(show => ({
-      queryKey: ['episodes', show.tmdb_id, 'schedule'],
-      queryFn: () => getEpisodes(show.tmdb_id),
-      enabled: expanded && !!show.tmdb_id,
+      queryKey: ['episodes', show.content_id, 'schedule'],
+      queryFn: () => getEpisodesByContentId(show.content_id),
+      enabled: expanded && !!show.content_id,
     })),
   });
 

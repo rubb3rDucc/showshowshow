@@ -16,7 +16,7 @@ import {
   IconChevronDown,
   IconChevronUp,
 } from '@tabler/icons-react';
-import { getEpisodes, getContentByTmdbId } from '../../api/content';
+import { getEpisodes, getEpisodesByContentId, getContentByTmdbId } from '../../api/content';
 import type { QueueItem } from '../../types/api';
 
 interface QueueItemCardProps {
@@ -41,10 +41,18 @@ export function QueueItemCard({
   const isMovie = item.content_type === 'movie';
 
   // Fetch episodes only when expanded and it's a show
+  // Use content_id if available (supports Jikan), otherwise fall back to tmdb_id
   const { data: episodes, isLoading: episodesLoading } = useQuery({
-    queryKey: ['episodes', item.tmdb_id],
-    queryFn: () => getEpisodes(item.tmdb_id!),
-    enabled: expanded && isShow && !!item.tmdb_id,
+    queryKey: ['episodes', item.content_id || item.tmdb_id],
+    queryFn: () => {
+      if (item.content_id) {
+        return getEpisodesByContentId(item.content_id);
+      } else if (item.tmdb_id) {
+        return getEpisodes(item.tmdb_id);
+      }
+      throw new Error('No content ID available');
+    },
+    enabled: expanded && isShow && !!(item.content_id || item.tmdb_id),
   });
 
   // Fetch movie content details only when description is expanded

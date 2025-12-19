@@ -8,9 +8,14 @@ export interface Database {
   };
   content: {
     id: string;
-    tmdb_id: number;
+    tmdb_id: number | null;
+    mal_id: number | null;
+    anilist_id: number | null;
+    data_source: 'tmdb' | 'jikan' | 'anilist' | 'kitsu';
     content_type: 'show' | 'movie';
     title: string;
+    title_english: string | null;
+    title_japanese: string | null;
     poster_url: string | null;
     backdrop_url: string | null;
     overview: string | null;

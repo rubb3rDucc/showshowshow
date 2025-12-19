@@ -3,11 +3,54 @@ import { sql } from 'kysely';
 
 /**
  * Clean up invalid entries from kysely_migration table
+ * Also fixes migration table schema if needed
  */
 async function cleanMigrationTable() {
   console.log('🔄 Cleaning kysely_migration table...');
 
   try {
+    // Ensure table exists with correct schema
+    await sql`
+      CREATE TABLE IF NOT EXISTS kysely_migration (
+        name VARCHAR(255) PRIMARY KEY,
+        timestamp BIGINT NOT NULL
+      )
+    `.execute(db);
+
+    // Fix schema if it's using timestamptz instead of bigint
+    const columnInfo = await sql`
+      SELECT data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'kysely_migration' 
+      AND column_name = 'timestamp'
+    `.execute(db);
+
+    const dataType = (columnInfo.rows[0] as any)?.data_type;
+    if (dataType && dataType !== 'bigint') {
+      console.log('⚠️  Fixing migration table schema (converting to bigint)...');
+      const existing = await sql`SELECT name, timestamp FROM kysely_migration`.execute(db);
+      await sql`DROP TABLE kysely_migration`.execute(db);
+      await sql`
+        CREATE TABLE kysely_migration (
+          name VARCHAR(255) PRIMARY KEY,
+          timestamp BIGINT NOT NULL
+        )
+      `.execute(db);
+      
+      // Re-insert with converted timestamps
+      for (const row of existing.rows) {
+        const name = (row as any).name;
+        const timestamp = typeof (row as any).timestamp === 'number' 
+          ? (row as any).timestamp 
+          : Date.now();
+        await sql`
+          INSERT INTO kysely_migration (name, timestamp) 
+          VALUES (${name}, ${timestamp})
+        `.execute(db);
+      }
+      console.log('✅ Fixed migration table schema');
+    }
+
     // List all migrations
     const migrations = await sql`
       SELECT name, timestamp 
@@ -22,9 +65,25 @@ async function cleanMigrationTable() {
     });
 
     // Remove invalid entries (not matching migration file names)
-    const validMigrations = ['001_initial_schema', '002_add_timezone_to_schedule'];
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+    
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    
+    const files = await fs.readdir(__dirname);
+    const migrationFiles = files
+      .filter((file) => /^\d{3}_.*\.ts$/.test(file) && file !== 'runner.ts')
+      .map((file) => file.replace(/\.ts$/, ''));
+
+    console.log('\n📁 Migration files found:');
+    migrationFiles.forEach((file) => {
+      console.log(`  ${file}`);
+    });
+    
     const invalidMigrations = migrations.rows.filter(
-      (row: any) => !validMigrations.includes(row.name)
+      (row: any) => !migrationFiles.includes(row.name)
     );
 
     if (invalidMigrations.length > 0) {
