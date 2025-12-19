@@ -19,8 +19,9 @@ import { Search as SearchIcon, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { searchContent, getContentByTmdbId, getContentByMalId, addToQueue, getQueue } from '../api/content';
+import { getLibrary, addToLibrary, checkLibrary } from '../api/library';
 import { SearchResultCard } from '../components/search/SearchResultCard';
-import type { SearchResult, SearchResponse } from '../types/api';
+import type { SearchResult, SearchResponse, QueueItem } from '../types/api';
 
 export function Search() {
   const queryClient = useQueryClient();
@@ -32,6 +33,8 @@ export function Search() {
   const [includeAdult, setIncludeAdult] = useState(false);
   const [animeOnly, setAnimeOnly] = useState(false);
   const [titlePreference, setTitlePreference] = useState<'english' | 'japanese' | 'romanji'>('english');
+  const [addingToQueueId, setAddingToQueueId] = useState<string | null>(null);
+  const [addingToLibraryId, setAddingToLibraryId] = useState<string | null>(null);
   
   // Store pagination metadata separately to keep pagination controls stable
   // Store the last known good metadata for the current search query
@@ -113,6 +116,12 @@ export function Search() {
     queryFn: getQueue,
   });
 
+  // Get library to check if items are already in library
+  const { data: library } = useQuery({
+    queryKey: ['library'],
+    queryFn: () => getLibrary(),
+  });
+
   // Scroll to top when page changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -136,13 +145,42 @@ export function Search() {
   }, [query]);
 
   // Check if a search result is already in the queue
+  // This checks both cached_id and also tries to match by tmdb_id/mal_id if cached_id is null
   const isInQueue = (result: SearchResult): boolean => {
-    if (!queue || !result.cached_id) return false;
-    return queue.some((item) => item.content_id === result.cached_id);
+    if (!queue) return false;
+    
+    // First check by cached_id (most reliable)
+    if (result.cached_id) {
+      return queue.some((item) => item.content_id === result.cached_id);
+    }
+    
+    // If no cached_id, try to match by checking if any queue item has matching tmdb_id or mal_id
+    // This handles cases where content was just cached but search results haven't updated yet
+    return queue.some((item) => {
+      if (result.tmdb_id && item.tmdb_id === result.tmdb_id) return true;
+      // For Jikan results, we'd need to check mal_id, but queue items don't have mal_id
+      // So we rely on cached_id being set after caching
+      return false;
+    });
   };
 
-  // Add to queue mutation
-  const addToQueueMutation = useMutation({
+  // Check if a search result is in library and get its status
+  const getLibraryStatus = (result: SearchResult): { inLibrary: boolean; status: string | null } => {
+    if (!library || !result.cached_id) return { inLibrary: false, status: null };
+    const libraryItem = library.find((item) => item.content_id === result.cached_id);
+    return {
+      inLibrary: !!libraryItem,
+      status: libraryItem?.status || null,
+    };
+  };
+
+  // Add to queue mutation with optimistic updates
+  const addToQueueMutation = useMutation<
+    QueueItem,
+    Error,
+    SearchResult,
+    { previousQueue: QueueItem[] | undefined; contentId: string }
+  >({
     mutationFn: async (result: SearchResult) => {
       // First, fetch/cache the content if not cached
       let contentId = result.cached_id;
@@ -163,13 +201,112 @@ export function Search() {
       // Then add to queue
       return addToQueue(contentId);
     },
-    onSuccess: () => {
+    onMutate: async (result) => {
+      // Track which item is being added
+      const itemKey = `${result.data_source || 'tmdb'}-${result.mal_id || result.tmdb_id}-${result.content_type}`;
+      setAddingToQueueId(itemKey);
+      
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['queue'] });
+      
+      // Snapshot the previous value
+      const previousQueue = queryClient.getQueryData<QueueItem[]>(['queue']);
+      
+      // Get or cache content ID
+      let contentId = result.cached_id;
+      if (!contentId) {
+        if (result.mal_id && result.data_source === 'jikan') {
+          const content = await getContentByMalId(result.mal_id);
+          contentId = content.id;
+        } else if (result.tmdb_id) {
+          const content = await getContentByTmdbId(result.tmdb_id, result.content_type);
+          contentId = content.id;
+        }
+      }
+      
+      if (contentId) {
+        // Optimistically add to queue
+        const optimisticItem: QueueItem = {
+          id: `temp-${Date.now()}`,
+          content_id: contentId,
+          position: (previousQueue?.length || 0) + 1,
+          created_at: new Date().toISOString(),
+          title: result.title_english || result.title,
+          poster_url: result.poster_url,
+          content_type: result.content_type === 'movie' ? 'movie' : 'show',
+        };
+        
+        queryClient.setQueryData<QueueItem[]>(['queue'], (old) => 
+          old ? [...old, optimisticItem] : [optimisticItem]
+        );
+      }
+      
+      return { previousQueue, contentId: contentId || '' };
+    },
+    onSuccess: (data, _result, context) => {
+      // Update with real data from server
+      queryClient.setQueryData<QueueItem[]>(['queue'], (old) => {
+        if (!old) return [data];
+        // Replace optimistic item with real one
+        return old.map(item => 
+          item.id.startsWith('temp-') && item.content_id === data.content_id 
+            ? data 
+            : item
+        );
+      });
+      setAddingToQueueId(null);
       toast.success('Added to queue!');
-      // Invalidate queue query to update "IN QUEUE" state
+    },
+    onError: (error, _result, context) => {
+      // Rollback on error
+      if (context?.previousQueue) {
+        queryClient.setQueryData(['queue'], context.previousQueue);
+      }
+      setAddingToQueueId(null);
+      toast.error(error.message || 'Failed to add to queue');
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['queue'] });
     },
+  });
+
+  // Add to library mutation
+  const addToLibraryMutation = useMutation({
+    mutationFn: async (result: SearchResult) => {
+      // Track which item is being added
+      const itemKey = `${result.data_source || 'tmdb'}-${result.mal_id || result.tmdb_id}-${result.content_type}`;
+      setAddingToLibraryId(itemKey);
+      
+      // First, fetch/cache the content if not cached
+      let contentId = result.cached_id;
+      
+      if (!contentId) {
+        // Handle Jikan vs TMDB differently
+        if (result.mal_id && result.data_source === 'jikan') {
+          const content = await getContentByMalId(result.mal_id);
+          contentId = content.id;
+        } else if (result.tmdb_id) {
+          const content = await getContentByTmdbId(result.tmdb_id, result.content_type);
+          contentId = content.id;
+        } else {
+          throw new Error('No valid content ID found');
+        }
+      }
+      
+      // Then add to library
+      return addToLibrary({ content_id: contentId });
+    },
+    onSuccess: () => {
+      setAddingToLibraryId(null);
+      toast.success('Added to library!');
+      // Invalidate library query to update "IN LIBRARY" state
+      queryClient.invalidateQueries({ queryKey: ['library'] });
+      queryClient.invalidateQueries({ queryKey: ['library', 'stats'] });
+    },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to add to queue');
+      setAddingToLibraryId(null);
+      toast.error(error.message || 'Failed to add to library');
     },
   });
 
@@ -364,16 +501,27 @@ export function Search() {
         {/* Results Grid - Show if we have results (placeholder data is fine) */}
         {searchQuery && searchResults.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {searchResults.map((result) => (
-              <SearchResultCard
-                key={`${result.data_source || 'tmdb'}-${result.mal_id || result.tmdb_id}-${result.content_type}`}
-                item={result}
-                isInQueue={isInQueue(result)}
-                onAddToQueue={(item) => addToQueueMutation.mutate(item)}
-                isLoading={addToQueueMutation.isPending}
-                titlePreference={titlePreference}
-              />
-            ))}
+            {searchResults.map((result) => {
+              const libraryInfo = getLibraryStatus(result);
+              const itemKey = `${result.data_source || 'tmdb'}-${result.mal_id || result.tmdb_id}-${result.content_type}`;
+              const isThisItemAddingToQueue = addingToQueueId === itemKey;
+              const isThisItemAddingToLibrary = addingToLibraryId === itemKey;
+              
+              return (
+                <SearchResultCard
+                  key={itemKey}
+                  item={result}
+                  isInQueue={isInQueue(result)}
+                  onAddToQueue={(item) => addToQueueMutation.mutate(item)}
+                  isLoading={isThisItemAddingToQueue}
+                  titlePreference={titlePreference}
+                  isInLibrary={libraryInfo.inLibrary}
+                  libraryStatus={libraryInfo.status as any}
+                  onAddToLibrary={(item) => addToLibraryMutation.mutate(item)}
+                  isAddingToLibrary={isThisItemAddingToLibrary}
+                />
+              );
+            })}
           </div>
         )}
 

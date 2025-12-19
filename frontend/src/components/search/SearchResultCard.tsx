@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Badge, Button } from '@mantine/core'
-import { Plus, Check, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plus, Check, ChevronUp, ChevronDown, BookOpen } from 'lucide-react'
 import type { SearchResult } from '../../types/api'
+import type { LibraryStatus } from '../../types/library.types'
 import { normalizeRating } from '../../utils/rating'
 
 interface SearchResultCardProps {
@@ -10,6 +11,11 @@ interface SearchResultCardProps {
   onAddToQueue: (item: SearchResult) => void
   isLoading?: boolean
   titlePreference?: 'english' | 'japanese' | 'romanji'
+  // Library props
+  isInLibrary?: boolean
+  libraryStatus?: LibraryStatus | null
+  onAddToLibrary?: (item: SearchResult) => void
+  isAddingToLibrary?: boolean
 }
 
 // Pastel color schemes matching schedule page
@@ -66,12 +72,30 @@ const COLOR_SCHEMES = [
   },
 ]
 
+const STATUS_BADGE_COLORS: Record<LibraryStatus, string> = {
+  watching: 'bg-blue-500',
+  completed: 'bg-green-500',
+  dropped: 'bg-red-500',
+  plan_to_watch: 'bg-gray-500',
+}
+
+const STATUS_LABELS: Record<LibraryStatus, string> = {
+  watching: 'WATCHING',
+  completed: 'COMPLETED',
+  dropped: 'DROPPED',
+  plan_to_watch: 'PLAN TO WATCH',
+}
+
 export function SearchResultCard({
   item,
   isInQueue,
   onAddToQueue,
   isLoading = false,
   titlePreference = 'english',
+  isInLibrary = false,
+  libraryStatus = null,
+  onAddToLibrary,
+  isAddingToLibrary = false,
 }: SearchResultCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const colorIndex =
@@ -155,15 +179,16 @@ export function SearchResultCard({
               {normalizeRating(item.rating)}
             </Badge>
           )}
-          {/* {item.is_cached && (
+          {/* Library Status Badge */}
+          {isInLibrary && libraryStatus && (
             <Badge
-              className="bg-black text-white border-2 border-black font-black uppercase tracking-widest text-[10px]"
-              size="sm"
+              className={`${STATUS_BADGE_COLORS[libraryStatus]} text-white border-black font-black uppercase tracking-widest text-[10px]`}
+              size="xs"
               radius="xs"
             >
-              CACHED
+              {STATUS_LABELS[libraryStatus]}
             </Badge>
-          )} */}
+          )}
         </div>
 
         {/* Description with Expand/Collapse */}
@@ -215,23 +240,48 @@ export function SearchResultCard({
           </div>
         )}
 
-        {/* Add to Queue Button - White on Black */}
-        <Button
-          fullWidth
-          size="sm"
-          color="black"
-          className={`
-            mt-auto font-black uppercase tracking-wider text-[10px]
-            ${isInQueue ? `bg-transparent ${colors.text} border-2 ${colors.border}` : 'bg-black text-white border-2 border-black'}
-          `}
-          radius="xs"
-          leftSection={isInQueue ? <Check size={14} /> : <Plus size={14} />}
-          onClick={() => !isInQueue && onAddToQueue(item)}
-          disabled={isInQueue || isLoading}
-          loading={isLoading}
-        >
-          {isInQueue ? 'IN QUEUE' : 'ADD'}
-        </Button>
+        {/* Action Buttons */}
+        <div className="mt-auto space-y-2">
+          {/* Add to Queue Button */}
+          <Button
+            fullWidth
+            size="sm"
+            color="black"
+            className={`
+              font-black uppercase tracking-wider text-[10px]
+              ${isInQueue ? `bg-transparent ${colors.text} border-2 ${colors.border}` : 'bg-black text-white border-2 border-black'}
+            `}
+            radius="xs"
+            leftSection={isInQueue ? <Check size={14} /> : <Plus size={14} />}
+            onClick={() => !isInQueue && onAddToQueue(item)}
+            disabled={isInQueue || isLoading}
+            loading={isLoading}
+          >
+            {isInQueue ? 'IN QUEUE' : 'ADD TO QUEUE'}
+          </Button>
+
+          {/* Add to Library Button */}
+          {onAddToLibrary && (
+            <Button
+              fullWidth
+              size="sm"
+              className={`
+                font-black uppercase tracking-wider text-[10px]
+                ${isInLibrary 
+                  ? `bg-transparent ${colors.text} border-2 ${colors.border}` 
+                  : 'bg-gray-700 text-white border-2 border-gray-700 hover:bg-gray-800'
+                }
+              `}
+              radius="xs"
+              leftSection={isInLibrary ? <Check size={14} /> : <BookOpen size={14} />}
+              onClick={() => !isInLibrary && onAddToLibrary(item)}
+              disabled={isInLibrary || isAddingToLibrary}
+              loading={isAddingToLibrary}
+            >
+              {isInLibrary ? 'IN LIBRARY' : 'ADD TO LIBRARY'}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Bottom Border Accent */}
