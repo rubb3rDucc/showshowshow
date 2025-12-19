@@ -41,7 +41,7 @@ async function rateLimitedFetch(url: string): Promise<Response> {
 export async function searchJikan(query: string, page: number = 1): Promise<any> {
   const url = `${JIKAN_API_BASE_URL}/anime?q=${encodeURIComponent(query)}&page=${page}&limit=25`;
   const response = await rateLimitedFetch(url);
-  const data = await response.json();
+  const data = await response.json() as any;
   
   return {
     results: data.data || [],
@@ -55,7 +55,7 @@ export async function searchJikan(query: string, page: number = 1): Promise<any>
 export async function getAnimeDetails(malId: number): Promise<any> {
   const url = `${JIKAN_API_BASE_URL}/anime/${malId}/full`;
   const response = await rateLimitedFetch(url);
-  const data = await response.json();
+  const data = await response.json() as any;
   
   return data.data;
 }
@@ -64,7 +64,7 @@ export async function getAnimeDetails(malId: number): Promise<any> {
 export async function getAnimeEpisodes(malId: number, page: number = 1): Promise<any> {
   const url = `${JIKAN_API_BASE_URL}/anime/${malId}/episodes?page=${page}`;
   const response = await rateLimitedFetch(url);
-  const data = await response.json();
+  const data = await response.json() as any;
   
   return {
     episodes: data.data || [],

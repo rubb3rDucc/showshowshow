@@ -313,6 +313,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       
       content = {
         tmdb_id: show.id,
+        data_source: 'tmdb',
         content_type: 'show',
         title: show.name,
         overview: show.overview,
@@ -340,6 +341,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       
       content = {
         tmdb_id: movie.id,
+        data_source: 'tmdb',
         content_type: 'movie',
         title: movie.title,
         overview: movie.overview,
@@ -664,6 +666,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         .values({
           id: crypto.randomUUID(),
           tmdb_id: show.id,
+          data_source: 'tmdb',
           content_type: 'show',
           title: show.name,
           overview: show.overview,
