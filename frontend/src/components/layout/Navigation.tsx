@@ -13,6 +13,7 @@ export function Navigation() {
     { path: '/', label: 'Home' },
     { path: '/search', label: 'Search' },
     { path: '/queue', label: 'Queue' },
+    { path: '/settings', label: 'Settings' },
   ];
 
   const handleNavClick = () => {
