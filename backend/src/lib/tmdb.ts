@@ -26,8 +26,8 @@ async function fetchTMDB(endpoint: string): Promise<any> {
 }
 
 // Search for shows and movies
-export async function searchTMDB(query: string, page: number = 1): Promise<any> {
-  const endpoint = `/search/multi?query=${encodeURIComponent(query)}&page=${page}`;
+export async function searchTMDB(query: string, page: number = 1, includeAdult: boolean = false): Promise<any> {
+  const endpoint = `/search/multi?query=${encodeURIComponent(query)}&page=${page}&include_adult=${includeAdult}`;
   return fetchTMDB(endpoint);
 }
 

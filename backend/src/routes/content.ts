@@ -7,7 +7,12 @@ import type { FastifyInstance } from 'fastify';
 export const contentRoutes = async (fastify: FastifyInstance) => {
   // Search for shows and movies
   fastify.get('/api/content/search', async (request, reply) => {
-    const { q, page = '1', type } = request.query as { q?: string; page?: string; type?: 'tv' | 'movie' };
+    const { q, page = '1', type, include_adult = 'false' } = request.query as { 
+      q?: string; 
+      page?: string; 
+      type?: 'tv' | 'movie';
+      include_adult?: string;
+    };
     
     if (!q || q.trim().length === 0) {
       throw new ValidationError('Search query is required');
@@ -19,7 +24,8 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
     }
 
     const pageNum = parseInt(page, 10) || 1;
-    const searchResults = await searchTMDB(q, pageNum);
+    const includeAdult = include_adult === 'true';
+    const searchResults = await searchTMDB(q, pageNum, includeAdult);
 
     // Filter out people/actors and only keep movies and TV shows
     const contentResults = searchResults.results.filter((result: any) => {
