@@ -38,6 +38,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
         'content.title',
         'content.poster_url',
         'content.content_type',
+        'content.rating',
         'episodes.title as episode_title',
       ])
       .where('schedule.user_id', '=', userId)
@@ -109,6 +110,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
         'content.title',
         'content.poster_url',
         'content.content_type',
+        'content.rating',
         'episodes.title as episode_title',
       ])
       .where('schedule.user_id', '=', userId)

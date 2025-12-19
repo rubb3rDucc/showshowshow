@@ -4,6 +4,20 @@ export async function up(db: Kysely<any>): Promise<void> {
   // Enable UUID extension
   await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`.execute(db);
 
+  // Check if users table exists (idempotency check)
+  const usersExists = await sql`
+    SELECT EXISTS (
+      SELECT FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = 'users'
+    )
+  `.execute(db);
+
+  if ((usersExists.rows[0] as any)?.exists) {
+    console.log('⚠️  Users table already exists, skipping 001_initial_schema');
+    return;
+  }
+
   // Create users table
   await db.schema
     .createTable('users')

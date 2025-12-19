@@ -98,6 +98,7 @@ const start = async () => {
     const corsOrigin = isProduction() && frontendUrl
       ? [frontendUrl] // Production: only allow frontend domain
       : [
+          'http://localhost:4173',  // Preview Build frontend
           'http://localhost:5173',  // Local dev frontend
           'http://localhost:5174',  // Docker dev frontend
           'http://localhost:3000',  // Fallback

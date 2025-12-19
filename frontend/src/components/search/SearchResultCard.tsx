@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { Badge, Button } from '@mantine/core'
 import { Plus, Check, ChevronUp, ChevronDown } from 'lucide-react'
 import type { SearchResult } from '../../types/api'
+import { normalizeRating } from '../../utils/rating'
 
 interface SearchResultCardProps {
   item: SearchResult
   isInQueue?: boolean
   onAddToQueue: (item: SearchResult) => void
   isLoading?: boolean
+  titlePreference?: 'english' | 'japanese' | 'romanji'
 }
 
 // Pastel color schemes matching schedule page
@@ -69,11 +71,26 @@ export function SearchResultCard({
   isInQueue,
   onAddToQueue,
   isLoading = false,
+  titlePreference = 'english',
 }: SearchResultCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const colorIndex =
     parseInt(String(item.tmdb_id).replace(/\D/g, '') || '0') % COLOR_SCHEMES.length
   const colors = COLOR_SCHEMES[colorIndex]
+  
+  // Determine which title to display based on preference
+  // Fallback order: preferred -> english -> japanese -> romanji -> title
+  const displayTitle = (() => {
+    switch (titlePreference) {
+      case 'japanese':
+        return item.title_japanese || item.title_english || item.title
+      case 'romanji':
+        return item.title || item.title_english || item.title_japanese
+      case 'english':
+      default:
+        return item.title_english || item.title || item.title_japanese
+    }
+  })()
   
   return (
     <div
@@ -106,10 +123,10 @@ export function SearchResultCard({
       <div className="p-3 flex flex-col gap-2 flex-1">
         {/* Title */}
         <h3 className="text-base md:text-lg font-black uppercase leading-tight tracking-tight line-clamp-2">
-          {item.title}
+          {displayTitle}
         </h3>
 
-        {/* Type Badge and Year - White on Black */}
+        {/* Type Badge, Year, and Rating - White on Black */}
         <div className="flex gap-2 items-center flex-wrap">
           <Badge
            className=" text-white border-black font-black uppercase tracking-wider text-[10px]"
@@ -126,6 +143,16 @@ export function SearchResultCard({
               color="black"
             >
               {new Date(item.release_date).getFullYear()}
+            </Badge>
+          )}
+          {/* Rating Badge */}
+          {normalizeRating(item.rating) && (
+            <Badge
+              className="text-white border-black font-black uppercase tracking-wider text-[10px]"
+              size="xs"
+              color="black"
+            >
+              {normalizeRating(item.rating)}
             </Badge>
           )}
           {/* {item.is_cached && (

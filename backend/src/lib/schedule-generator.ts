@@ -685,7 +685,7 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
   // Get content info to identify shows
   const contentItems = await db
     .selectFrom('content')
-    .select(['id', 'tmdb_id', 'content_type', 'title', 'number_of_seasons'])
+    .select(['id', 'tmdb_id', 'mal_id', 'data_source', 'content_type', 'title', 'number_of_seasons', 'number_of_episodes', 'default_duration'])
     .where('id', 'in', showIds)
     .where('content_type', '=', 'show')
     .execute();
@@ -725,32 +725,38 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
     return;
   }
 
-  // Import TMDB functions
-  const { getShowDetails, getSeason } = await import('./tmdb.js');
-  const { getImageUrl } = await import('./tmdb.js');
+  // Import functions
+  const { getShowDetails, getSeason, getImageUrl } = await import('./tmdb.js');
+  const { getAnimeEpisodes } = await import('./jikan.js');
 
   // Only fetch missing shows - do in parallel with rate limiting
   const fetchPromises = showsToFetch.map(async (item, index) => {
-    // Stagger requests to respect TMDB rate limits (40 req/10s = 250ms between)
-    await new Promise(resolve => setTimeout(resolve, index * 250));
+    // Stagger requests to respect API rate limits
+    // TMDB: 40 req/10s = 250ms between, Jikan: 3 req/sec = 350ms between
+    const delay = item.show.data_source === 'jikan' ? 350 : 250;
+    await new Promise(resolve => setTimeout(resolve, index * delay));
     
     try {
-      const showDetails = await getShowDetails(item.show.tmdb_id);
       let fetchedCount = 0;
 
-      // Fetch seasons sequentially (but with small delay between shows)
-      for (let seasonNum = 1; seasonNum <= showDetails.number_of_seasons; seasonNum++) {
-        try {
-          const tmdbSeason = await getSeason(item.show.tmdb_id, seasonNum);
+      if (item.show.data_source === 'jikan' && item.show.mal_id) {
+        // Fetch from Jikan
+        let page = 1;
+        let hasMore = true;
+
+        while (hasMore) {
+          const jikanEpisodes = await getAnimeEpisodes(item.show.mal_id, page);
+          const episodes = jikanEpisodes.episodes || [];
           
-          for (const ep of tmdbSeason.episodes) {
-            // Check if this specific episode already exists (defensive check)
+          for (const ep of episodes) {
+            const episodeNum = ep.episode || fetchedCount + 1;
+            // Check if this specific episode already exists
             const exists = await db
               .selectFrom('episodes')
               .select('id')
               .where('content_id', '=', item.show.id)
-              .where('season', '=', ep.season_number)
-              .where('episode_number', '=', ep.episode_number)
+              .where('season', '=', 1) // Jikan doesn't have seasons
+              .where('episode_number', '=', episodeNum)
               .executeTakeFirst();
             
             if (!exists) {
@@ -759,22 +765,67 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
                 .values({
                   id: crypto.randomUUID(),
                   content_id: item.show.id,
-                  season: ep.season_number,
-                  episode_number: ep.episode_number,
-                  title: ep.name,
-                  overview: ep.overview,
-                  duration: ep.runtime || showDetails.episode_run_time?.[0] || 30,
-                  air_date: ep.air_date ? new Date(ep.air_date) : null,
-                  still_url: getImageUrl(ep.still_path),
+                  season: 1, // Jikan doesn't have seasons
+                  episode_number: episodeNum,
+                  title: ep.title || `Episode ${episodeNum}`,
+                  overview: null, // Jikan API doesn't provide episode descriptions
+                  duration: item.show.default_duration || 24,
+                  air_date: ep.aired ? new Date(ep.aired) : null,
+                  still_url: ep.images?.jpg?.image_url || null,
                   created_at: new Date(),
                 })
                 .execute();
               fetchedCount++;
             }
           }
-        } catch (error) {
-          console.warn(`[Schedule Generator] Failed to fetch season ${seasonNum} for ${item.show.title}:`, error);
+
+          hasMore = page < (jikanEpisodes.pagination?.last_visible_page || 1);
+          page++;
         }
+      } else if (item.show.tmdb_id) {
+        // Fetch from TMDB
+        const showDetails = await getShowDetails(item.show.tmdb_id);
+
+        // Fetch seasons sequentially
+        for (let seasonNum = 1; seasonNum <= (showDetails.number_of_seasons || 0); seasonNum++) {
+          try {
+            const tmdbSeason = await getSeason(item.show.tmdb_id, seasonNum);
+            
+            for (const ep of tmdbSeason.episodes) {
+              // Check if this specific episode already exists (defensive check)
+              const exists = await db
+                .selectFrom('episodes')
+                .select('id')
+                .where('content_id', '=', item.show.id)
+                .where('season', '=', ep.season_number)
+                .where('episode_number', '=', ep.episode_number)
+                .executeTakeFirst();
+              
+              if (!exists) {
+                await db
+                  .insertInto('episodes')
+                  .values({
+                    id: crypto.randomUUID(),
+                    content_id: item.show.id,
+                    season: ep.season_number,
+                    episode_number: ep.episode_number,
+                    title: ep.name,
+                    overview: ep.overview,
+                    duration: ep.runtime || showDetails.episode_run_time?.[0] || 30,
+                    air_date: ep.air_date ? new Date(ep.air_date) : null,
+                    still_url: getImageUrl(ep.still_path),
+                    created_at: new Date(),
+                  })
+                  .execute();
+                fetchedCount++;
+              }
+            }
+          } catch (error) {
+            console.warn(`[Schedule Generator] Failed to fetch season ${seasonNum} for ${item.show.title}:`, error);
+          }
+        }
+      } else {
+        console.warn(`[Schedule Generator] Show ${item.show.title} has no valid source ID (tmdb_id or mal_id)`);
       }
       
       console.log(`[Schedule Generator] ✅ Fetched ${fetchedCount} episodes for ${item.show.title}`);

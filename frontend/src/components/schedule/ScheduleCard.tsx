@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Badge } from '@mantine/core'
 import type { ScheduleCardItem, QueueCardItem } from './scheduleCardAdapters'
 import { getGifForTitle } from '../../utils/gif'
+import { normalizeRating } from '../../utils/rating'
 
 interface ScheduleCardProps {
   scheduleItem: ScheduleCardItem
@@ -183,14 +184,26 @@ export function ScheduleCard({
                   </div>
                 </div>
               )}
-              <Badge
-                className="bg-black text-white border-black font-black uppercase tracking-wider text-[10px]"
-                size="sm"
-                color='black'
-                // radius="xs"
-              >
-                {queueItem?.type === 'movie' ? 'FILM' : 'SERIES'}
-              </Badge>
+              <div className="flex gap-2 items-center flex-wrap">
+                <Badge
+                  className="bg-black text-white border-black font-black uppercase tracking-wider text-[10px]"
+                  size="sm"
+                  color='black'
+                  // radius="xs"
+                >
+                  {queueItem?.type === 'movie' ? 'FILM' : 'SERIES'}
+                </Badge>
+                {/* Rating Badge */}
+                {normalizeRating(queueItem?.rating) && (
+                  <Badge
+                    className="bg-black text-white border-black font-black uppercase tracking-wider text-[10px]"
+                    size="sm"
+                    color="black"
+                  >
+                    {normalizeRating(queueItem?.rating)}
+                  </Badge>
+                )}
+              </div>
             </div>
             <div className="flex justify-between items-end mt-2">
               <div className="text-sm font-black leading-none">
@@ -279,7 +292,7 @@ export function ScheduleCard({
               {episodeTitle && ` • ${episodeTitle}`}
             </div>
           )}
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
               <Badge
                 className="bg-black text-white border-black font-black uppercase tracking-wider text-[10px]"
                 size="sm"
@@ -288,6 +301,16 @@ export function ScheduleCard({
               >
               {queueItem?.type === 'movie' ? 'FILM' : 'SERIES'}
             </Badge>
+            {/* Rating Badge */}
+            {normalizeRating(queueItem?.rating) && (
+              <Badge
+                className="bg-black text-white border-black font-black uppercase tracking-wider text-[10px]"
+                size="sm"
+                color="black"
+              >
+                {normalizeRating(queueItem?.rating)}
+              </Badge>
+            )}
           </div>
         </div>
 

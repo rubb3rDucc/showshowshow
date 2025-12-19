@@ -2,16 +2,23 @@ import { apiCall } from './client';
 import type { SearchResponse, Content, QueueItem, Episode } from '../types/api';
 
 /**
- * Search for content (shows/movies) via TMDB
+ * Search for content (shows/movies) via TMDB or Jikan
  * @param query - Search query string
  * @param page - Page number (default: 1)
  * @param includeAdult - Whether to include adult content (default: false)
+ * @param source - Data source: 'tmdb' | 'jikan' | 'auto' (default: 'tmdb')
  */
-export async function searchContent(query: string, page: number = 1, includeAdult: boolean = false): Promise<SearchResponse> {
+export async function searchContent(
+  query: string, 
+  page: number = 1, 
+  includeAdult: boolean = false,
+  source: 'tmdb' | 'jikan' | 'auto' = 'tmdb'
+): Promise<SearchResponse> {
   const params = new URLSearchParams({
     q: query,
     page: page.toString(),
     include_adult: includeAdult.toString(),
+    source: source,
   });
   
   return apiCall<SearchResponse>(`/api/content/search?${params}`);
@@ -28,7 +35,25 @@ export async function getContentByTmdbId(tmdbId: number, type?: 'tv' | 'movie'):
 }
 
 /**
- * Get episodes for a show by TMDB ID
+ * Get content details by MAL ID (Jikan/MyAnimeList)
+ * @param malId - MyAnimeList ID
+ */
+export async function getContentByMalId(malId: number): Promise<Content> {
+  return apiCall<Content>(`/api/content/jikan/${malId}`);
+}
+
+/**
+ * Get episodes for a show by content ID (supports both TMDB and Jikan)
+ * @param contentId - Content ID (UUID)
+ * @param season - Optional season number
+ */
+export async function getEpisodesByContentId(contentId: string, season?: number): Promise<Episode[]> {
+  const params = season ? `?season=${season}` : '';
+  return apiCall<Episode[]>(`/api/content/by-id/${contentId}/episodes${params}`);
+}
+
+/**
+ * Get episodes for a show by TMDB ID (legacy, for backward compatibility)
  * @param tmdbId - TMDB ID
  * @param season - Optional season number
  */
@@ -71,6 +96,16 @@ export async function reorderQueue(itemIds: string[]): Promise<void> {
   return apiCall<void>('/api/queue/reorder', {
     method: 'PUT',
     body: JSON.stringify({ item_ids: itemIds }),
+  });
+}
+
+/**
+ * Refresh/update existing content (re-fetch from API)
+ * @param contentId - Content ID (UUID)
+ */
+export async function refreshContent(contentId: string): Promise<Content> {
+  return apiCall<Content>(`/api/content/${contentId}/refresh`, {
+    method: 'PUT',
   });
 }
 

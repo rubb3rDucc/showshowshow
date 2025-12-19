@@ -13,11 +13,12 @@ import {
   Switch,
   Group,
   Box,
+  Radio,
 } from '@mantine/core';
 import { Search as SearchIcon, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
-import { searchContent, getContentByTmdbId, addToQueue, getQueue } from '../api/content';
+import { searchContent, getContentByTmdbId, getContentByMalId, addToQueue, getQueue } from '../api/content';
 import { SearchResultCard } from '../components/search/SearchResultCard';
 import type { SearchResult, SearchResponse } from '../types/api';
 
@@ -29,6 +30,8 @@ export function Search() {
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [includeAdult, setIncludeAdult] = useState(false);
+  const [animeOnly, setAnimeOnly] = useState(false);
+  const [titlePreference, setTitlePreference] = useState<'english' | 'japanese' | 'romanji'>('english');
   
   // Store pagination metadata separately to keep pagination controls stable
   // Store the last known good metadata for the current search query
@@ -38,11 +41,14 @@ export function Search() {
     searchQuery: string;
   } | null>(null);
 
+  // Determine search source based on animeOnly toggle
+  const searchSource = animeOnly ? 'jikan' : 'tmdb';
+
   // Search query - trigger on query change with debounce
   // Use placeholderData: keepPreviousData to keep previous page data visible during transitions
   const { data, isLoading, isFetching, isPlaceholderData, error } = useQuery<SearchResponse>({
-    queryKey: ['search', searchQuery, page, includeAdult],
-    queryFn: () => searchContent(searchQuery, page, includeAdult),
+    queryKey: ['search', searchQuery, page, includeAdult, searchSource],
+    queryFn: () => searchContent(searchQuery, page, includeAdult, searchSource),
     enabled: searchQuery.length > 0,
     placeholderData: keepPreviousData,
     staleTime: 30000, // Cache results for 30 seconds to reduce API calls
@@ -142,8 +148,16 @@ export function Search() {
       let contentId = result.cached_id;
       
       if (!contentId) {
-        const content = await getContentByTmdbId(result.tmdb_id, result.content_type);
-        contentId = content.id;
+        // Handle Jikan vs TMDB differently
+        if (result.mal_id && result.data_source === 'jikan') {
+          const content = await getContentByMalId(result.mal_id);
+          contentId = content.id;
+        } else if (result.tmdb_id) {
+          const content = await getContentByTmdbId(result.tmdb_id, result.content_type);
+          contentId = content.id;
+        } else {
+          throw new Error('No valid content ID found');
+        }
       }
       
       // Then add to queue
@@ -214,7 +228,7 @@ export function Search() {
             </Button>
             
             <Collapse in={filtersOpen}>
-              <Box className="bg-white border-2 border-gray-900 p-4">
+              <Box className="bg-white border-2 border-gray-900 p-4 space-y-4">
                 <Group justify="space-between" align="center">
                   <Text size="sm" className="font-mono font-black uppercase tracking-wider">
                     Include Adult Content
@@ -228,6 +242,70 @@ export function Search() {
                     size="md"
                   />
                 </Group>
+                
+                {/* Jikan API Settings Group */}
+                <Box className="border-t-2 border-gray-300 pt-4 space-y-4">
+                  <Text size="xs" className="font-mono font-black uppercase tracking-wider text-gray-600 mb-2">
+                    JIKAN API SETTINGS
+                  </Text>
+                  <Group justify="space-between" align="center">
+                    <div>
+                      <Text size="sm" className="font-mono font-black uppercase tracking-wider">
+                        Anime Only (Jikan)
+                      </Text>
+                      {animeOnly && (
+                        <Text size="xs" c="blue" className="font-mono mt-1">
+                          🔍 Searching MyAnimeList
+                        </Text>
+                      )}
+                    </div>
+                    <Switch
+                      checked={animeOnly}
+                      onChange={(e) => {
+                        setAnimeOnly(e.currentTarget.checked);
+                        setPage(1); // Reset to first page when filter changes
+                        setLastKnownMetadata(null); // Clear metadata when switching sources
+                      }}
+                      size="md"
+                    />
+                  </Group>
+                  <Box>
+                    <Text size="sm" className="font-mono font-black uppercase tracking-wider mb-2">
+                      Title Display
+                    </Text>
+                    <Radio.Group
+                      value={titlePreference}
+                      onChange={(value) => setTitlePreference(value as 'english' | 'japanese' | 'romanji')}
+                    >
+                      <Stack gap="xs">
+                        <Radio
+                          value="english"
+                          label={
+                            <Text size="xs" className="font-mono">
+                              English
+                            </Text>
+                          }
+                        />
+                        <Radio
+                          value="japanese"
+                          label={
+                            <Text size="xs" className="font-mono">
+                              Japanese
+                            </Text>
+                          }
+                        />
+                        <Radio
+                          value="romanji"
+                          label={
+                            <Text size="xs" className="font-mono">
+                              Romanji
+                            </Text>
+                          }
+                        />
+                      </Stack>
+                    </Radio.Group>
+                  </Box>
+                </Box>
               </Box>
             </Collapse>
           </Box>
@@ -263,7 +341,9 @@ export function Search() {
         {error && (
           <div className="mb-4 p-4 bg-red-50 border-2 border-red-900">
             <Text className="font-mono font-black text-red-900">
-              ERROR: Failed to search. Please try again.
+              {animeOnly && error.message?.includes('rate limit')
+                ? 'Jikan API rate limit reached. Please wait a moment.'
+                : 'ERROR: Failed to search. Please try again.'}
             </Text>
           </div>
         )}
@@ -286,11 +366,12 @@ export function Search() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {searchResults.map((result) => (
               <SearchResultCard
-                key={`${result.tmdb_id}-${result.content_type}`}
+                key={`${result.data_source || 'tmdb'}-${result.mal_id || result.tmdb_id}-${result.content_type}`}
                 item={result}
                 isInQueue={isInQueue(result)}
                 onAddToQueue={(item) => addToQueueMutation.mutate(item)}
                 isLoading={addToQueueMutation.isPending}
+                titlePreference={titlePreference}
               />
             ))}
           </div>
