@@ -3,11 +3,15 @@ import type { SearchResponse, Content, QueueItem, Episode } from '../types/api';
 
 /**
  * Search for content (shows/movies) via TMDB
+ * @param query - Search query string
+ * @param page - Page number (default: 1)
+ * @param includeAdult - Whether to include adult content (default: false)
  */
-export async function searchContent(query: string, page: number = 1): Promise<SearchResponse> {
+export async function searchContent(query: string, page: number = 1, includeAdult: boolean = false): Promise<SearchResponse> {
   const params = new URLSearchParams({
     q: query,
     page: page.toString(),
+    include_adult: includeAdult.toString(),
   });
   
   return apiCall<SearchResponse>(`/api/content/search?${params}`);

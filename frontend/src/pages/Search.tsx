@@ -9,8 +9,12 @@ import {
   Center,
   Stack,
   Pagination,
+  Collapse,
+  Switch,
+  Group,
+  Box,
 } from '@mantine/core';
-import { Search as SearchIcon, ArrowLeft } from 'lucide-react';
+import { Search as SearchIcon, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { searchContent, getContentByTmdbId, addToQueue, getQueue } from '../api/content';
@@ -23,6 +27,8 @@ export function Search() {
   const [query, setQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [includeAdult, setIncludeAdult] = useState(false);
   
   // Store pagination metadata separately to keep pagination controls stable
   // Store the last known good metadata for the current search query
@@ -35,8 +41,8 @@ export function Search() {
   // Search query - trigger on query change with debounce
   // Use placeholderData: keepPreviousData to keep previous page data visible during transitions
   const { data, isLoading, isFetching, isPlaceholderData, error } = useQuery<SearchResponse>({
-    queryKey: ['search', searchQuery, page],
-    queryFn: () => searchContent(searchQuery, page),
+    queryKey: ['search', searchQuery, page, includeAdult],
+    queryFn: () => searchContent(searchQuery, page, includeAdult),
     enabled: searchQuery.length > 0,
     placeholderData: keepPreviousData,
     staleTime: 30000, // Cache results for 30 seconds to reduce API calls
@@ -193,6 +199,38 @@ export function Search() {
           >
             Find Shows & Movies
           </Text>
+
+          {/* Filters Section - Collapsible */}
+          <Box className="mb-4">
+            <Button
+              variant="subtle"
+              color="gray"
+              size="sm"
+              rightSection={filtersOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className="font-mono text-xs uppercase tracking-wider mb-2"
+            >
+              {filtersOpen ? 'Hide Filters' : 'Show Filters'}
+            </Button>
+            
+            <Collapse in={filtersOpen}>
+              <Box className="bg-white border-2 border-gray-900 p-4">
+                <Group justify="space-between" align="center">
+                  <Text size="sm" className="font-mono font-black uppercase tracking-wider">
+                    Include Adult Content
+                  </Text>
+                  <Switch
+                    checked={includeAdult}
+                    onChange={(e) => {
+                      setIncludeAdult(e.currentTarget.checked);
+                      setPage(1); // Reset to first page when filter changes
+                    }}
+                    size="md"
+                  />
+                </Group>
+              </Box>
+            </Collapse>
+          </Box>
 
           {/* Search Bar */}
           <div className="bg-white border-2 border-gray-900 font-mono">
