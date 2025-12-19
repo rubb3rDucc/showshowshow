@@ -1,6 +1,7 @@
 import { db } from '../db/index.js';
-import { searchTMDB, getShowDetails, getMovieDetails, getSeason, getImageUrl, getContentType, getDefaultDuration } from '../lib/tmdb.js';
+import { searchTMDB, getShowDetails, getMovieDetails, getSeason, getImageUrl, getContentType, getDefaultDuration, getShowContentRatings, getMovieReleaseDates, extractUSRating } from '../lib/tmdb.js';
 import { searchJikan, jikanSearchToSearchResult, getAnimeDetails, getAnimeEpisodes, jikanToContentFormat } from '../lib/jikan.js';
+import { normalizeRating } from '../lib/rating-utils.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import { authenticate } from '../plugins/auth.js';
 import type { FastifyInstance } from 'fastify';
@@ -96,6 +97,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         vote_average: result.vote_average || 0,
         popularity: result.popularity || 0,
           data_source: 'tmdb',
+        rating: null, // TMDB search API doesn't include ratings - only available if cached
       };
     });
 
@@ -121,7 +123,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         if (result.tmdb_id) {
           cached = await db
           .selectFrom('content')
-          .select(['id', 'content_type'])
+          .select(['id', 'content_type', 'rating'])
           .where('tmdb_id', '=', result.tmdb_id)
           .executeTakeFirst();
         }
@@ -130,13 +132,18 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         if (!cached && result.mal_id) {
           cached = await db
             .selectFrom('content')
-            .select(['id', 'content_type'])
+            .select(['id', 'content_type', 'rating'])
             .where('mal_id', '=', result.mal_id)
             .executeTakeFirst();
         }
         
+        // Use cached rating if available, otherwise use result rating
+        // Note: TMDB search results don't include ratings, only cached content or Jikan results have ratings
+        const rating = normalizeRating(cached?.rating || result.rating || null);
+        
         return {
           ...result,
+          rating: rating,
           is_cached: !!cached,
           cached_id: cached?.id || null,
           cached_type: cached?.content_type || null,
@@ -234,6 +241,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         number_of_episodes: contentData.number_of_episodes,
         number_of_seasons: contentData.number_of_seasons,
         status: contentData.status,
+        rating: contentData.rating,
         created_at: new Date(),
         updated_at: new Date(),
       })
@@ -294,6 +302,15 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
     if (type === 'tv') {
       // Force TV show lookup
       const show = await getShowDetails(tmdbIdNum);
+      // Fetch content ratings
+      let rating: string | null = null;
+      try {
+        const contentRatings = await getShowContentRatings(tmdbIdNum);
+        rating = extractUSRating(contentRatings, 'show');
+      } catch (error) {
+        console.warn(`Failed to fetch content ratings for show ${tmdbIdNum}:`, error);
+      }
+      
       content = {
         tmdb_id: show.id,
         content_type: 'show',
@@ -307,10 +324,20 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         number_of_seasons: show.number_of_seasons,
         number_of_episodes: show.number_of_episodes,
         status: show.status,
+        rating: normalizeRating(rating),
       };
     } else if (type === 'movie') {
       // Force movie lookup
       const movie = await getMovieDetails(tmdbIdNum);
+      // Fetch release dates (includes certifications)
+      let rating: string | null = null;
+      try {
+        const releaseDates = await getMovieReleaseDates(tmdbIdNum);
+        rating = extractUSRating(releaseDates, 'movie');
+      } catch (error) {
+        console.warn(`Failed to fetch release dates for movie ${tmdbIdNum}:`, error);
+      }
+      
       content = {
         tmdb_id: movie.id,
         content_type: 'movie',
@@ -323,11 +350,21 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         number_of_seasons: null,
         number_of_episodes: null,
         status: null,
+        rating: normalizeRating(rating),
       };
     } else {
       // No type specified - try movie first, then show
       try {
         const movie = await getMovieDetails(tmdbIdNum);
+        // Fetch release dates (includes certifications)
+        let rating: string | null = null;
+        try {
+          const releaseDates = await getMovieReleaseDates(tmdbIdNum);
+          rating = extractUSRating(releaseDates, 'movie');
+        } catch (error) {
+          console.warn(`Failed to fetch release dates for movie ${tmdbIdNum}:`, error);
+        }
+        
         content = {
           tmdb_id: movie.id,
           content_type: 'movie',
@@ -340,11 +377,21 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
           number_of_seasons: null,
           number_of_episodes: null,
           status: null,
+          rating: normalizeRating(rating),
         };
       } catch (error) {
         // Not a movie, try show
         try {
           const show = await getShowDetails(tmdbIdNum);
+          // Fetch content ratings
+          let rating: string | null = null;
+          try {
+            const contentRatings = await getShowContentRatings(tmdbIdNum);
+            rating = extractUSRating(contentRatings, 'show');
+          } catch (error) {
+            console.warn(`Failed to fetch content ratings for show ${tmdbIdNum}:`, error);
+          }
+          
           content = {
             tmdb_id: show.id,
             content_type: 'show',
@@ -358,6 +405,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
             number_of_seasons: show.number_of_seasons,
             number_of_episodes: show.number_of_episodes,
             status: show.status,
+            rating: normalizeRating(rating),
           };
         } catch (showError) {
           throw new NotFoundError('Content not found in TMDB');
@@ -602,6 +650,15 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
     if (!content) {
       // Fetch and save content first
       const show = await getShowDetails(tmdbIdNum);
+      // Fetch content ratings
+      let rating: string | null = null;
+      try {
+        const contentRatings = await getShowContentRatings(tmdbIdNum);
+        rating = extractUSRating(contentRatings, 'show');
+      } catch (error) {
+        console.warn(`Failed to fetch content ratings for show ${tmdbIdNum}:`, error);
+      }
+      
       content = await db
         .insertInto('content')
         .values({
@@ -618,6 +675,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
           number_of_seasons: show.number_of_seasons,
           number_of_episodes: show.number_of_episodes,
           status: show.status,
+          rating: normalizeRating(rating),
           created_at: new Date(),
           updated_at: new Date(),
         })
@@ -631,6 +689,113 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
 
     // Redirect to content_id endpoint
     return reply.redirect(`/api/content/by-id/${content.id}/episodes${season ? `?season=${season}` : ''}`);
+  });
+
+  // Refresh/update existing content (re-fetch from API and update database)
+  fastify.put('/api/content/:contentId/refresh', async (request, reply) => {
+    const { contentId } = request.params as { contentId: string };
+
+    // Get existing content
+    const existing = await db
+      .selectFrom('content')
+      .selectAll()
+      .where('id', '=', contentId)
+      .executeTakeFirst();
+
+    if (!existing) {
+      throw new NotFoundError('Content not found');
+    }
+
+    let updatedContent: any;
+
+    if (existing.data_source === 'jikan' && existing.mal_id) {
+      // Re-fetch from Jikan
+      const jikanAnime = await getAnimeDetails(existing.mal_id);
+      const contentData = jikanToContentFormat(jikanAnime);
+
+      updatedContent = await db
+        .updateTable('content')
+        .set({
+          title: contentData.title,
+          title_english: contentData.title_english,
+          title_japanese: contentData.title_japanese,
+          overview: contentData.overview,
+          poster_url: contentData.poster_url,
+          backdrop_url: contentData.backdrop_url,
+          release_date: contentData.release_date,
+          first_air_date: contentData.first_air_date,
+          default_duration: contentData.default_duration,
+          number_of_episodes: contentData.number_of_episodes,
+          number_of_seasons: contentData.number_of_seasons,
+          status: contentData.status,
+          rating: contentData.rating,
+          updated_at: new Date(),
+        })
+        .where('id', '=', contentId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    } else if (existing.tmdb_id) {
+      // Re-fetch from TMDB
+      let rating: string | null = null;
+      
+      if (existing.content_type === 'show') {
+        const show = await getShowDetails(existing.tmdb_id);
+        try {
+          const contentRatings = await getShowContentRatings(existing.tmdb_id);
+          rating = extractUSRating(contentRatings, 'show');
+        } catch (error) {
+          console.warn(`Failed to fetch content ratings for show ${existing.tmdb_id}:`, error);
+        }
+
+        updatedContent = await db
+          .updateTable('content')
+          .set({
+            title: show.name,
+            overview: show.overview,
+            poster_url: getImageUrl(show.poster_path),
+            backdrop_url: getImageUrl(show.backdrop_path, 'w780'),
+            first_air_date: show.first_air_date ? new Date(show.first_air_date) : null,
+            last_air_date: show.last_air_date ? new Date(show.last_air_date) : null,
+            default_duration: getDefaultDuration(show, 'show'),
+            number_of_seasons: show.number_of_seasons,
+            number_of_episodes: show.number_of_episodes,
+            status: show.status,
+            rating: normalizeRating(rating),
+            updated_at: new Date(),
+          })
+          .where('id', '=', contentId)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      } else {
+        const movie = await getMovieDetails(existing.tmdb_id);
+        try {
+          const releaseDates = await getMovieReleaseDates(existing.tmdb_id);
+          rating = extractUSRating(releaseDates, 'movie');
+        } catch (error) {
+          console.warn(`Failed to fetch release dates for movie ${existing.tmdb_id}:`, error);
+        }
+
+        updatedContent = await db
+          .updateTable('content')
+          .set({
+            title: movie.title,
+            overview: movie.overview,
+            poster_url: getImageUrl(movie.poster_path),
+            backdrop_url: getImageUrl(movie.backdrop_path, 'w780'),
+            release_date: movie.release_date ? new Date(movie.release_date) : null,
+            default_duration: getDefaultDuration(movie, 'movie'),
+            rating: normalizeRating(rating),
+            updated_at: new Date(),
+          })
+          .where('id', '=', contentId)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      }
+    } else {
+      throw new ValidationError('Content has no valid source ID to refresh from');
+    }
+
+    return reply.send(updatedContent);
   });
 
   // Get user's library (all content they've added)

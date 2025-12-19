@@ -26,6 +26,7 @@ export interface Database {
     number_of_seasons: number | null;
     number_of_episodes: number | null;
     status: string | null;
+    rating: string | null;
     created_at: Date;
     updated_at: Date;
   };

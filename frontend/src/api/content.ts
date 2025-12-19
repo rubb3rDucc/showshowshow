@@ -99,3 +99,13 @@ export async function reorderQueue(itemIds: string[]): Promise<void> {
   });
 }
 
+/**
+ * Refresh/update existing content (re-fetch from API)
+ * @param contentId - Content ID (UUID)
+ */
+export async function refreshContent(contentId: string): Promise<Content> {
+  return apiCall<Content>(`/api/content/${contentId}/refresh`, {
+    method: 'PUT',
+  });
+}
+

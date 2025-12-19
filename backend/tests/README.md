@@ -262,8 +262,8 @@ TRUNCATE TABLE users CASCADE;
 ```bash
 # Drop and recreate the database (local only)
 cd backend
-pnpm run migration:down
-pnpm run migration:up
+pnpm run migrate:down
+pnpm run migrate:up
 ```
 
 ## Writing Custom Tests
@@ -385,7 +385,7 @@ jobs:
       - name: Run migrations
         run: |
           cd backend
-          pnpm run migration:up
+          pnpm run migrate:up
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
       

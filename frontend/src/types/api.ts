@@ -49,6 +49,7 @@ export interface Content {
   number_of_seasons: number | null;
   number_of_episodes: number | null;
   status: string | null;
+  rating: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -68,6 +69,7 @@ export interface SearchResult {
   vote_average: number;
   popularity: number;
   data_source?: 'tmdb' | 'jikan' | 'anilist' | 'kitsu';
+  rating?: string | null;
   is_cached: boolean;
   cached_id: string | null;
   cached_type: 'show' | 'movie' | null;
@@ -127,6 +129,7 @@ export interface ScheduleItem {
   title: string;
   poster_url: string | null;
   content_type: 'show' | 'movie';
+  rating?: string | null;
   episode_title?: string | null;
 }
 

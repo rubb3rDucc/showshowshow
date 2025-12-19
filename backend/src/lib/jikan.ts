@@ -88,6 +88,7 @@ export function jikanToContentFormat(jikanAnime: any): {
   number_of_seasons: number | null;
   default_duration: number;
   status: string | null;
+  rating: string | null;
 } {
   // Jikan provides full image URLs, so we can use them directly
   const posterUrl = jikanAnime.images?.jpg?.large_image_url || 
@@ -134,6 +135,9 @@ export function jikanToContentFormat(jikanAnime: any): {
     status = jikanAnime.status.toLowerCase().replace(/\s+/g, '_');
   }
 
+  // Extract rating (Jikan provides ratings like "TV-14", "TV-MA", "R", "PG-13", etc.)
+  const rating = normalizeJikanRating(jikanAnime.rating);
+
   return {
     mal_id: jikanAnime.mal_id,
     title: jikanAnime.title || jikanAnime.title_english || jikanAnime.title_japanese || 'Unknown',
@@ -149,6 +153,7 @@ export function jikanToContentFormat(jikanAnime: any): {
     number_of_seasons: null, // Jikan doesn't have seasons concept
     default_duration: defaultDuration,
     status: status,
+    rating: rating,
   };
 }
 
@@ -168,6 +173,7 @@ export function jikanSearchToSearchResult(jikanAnime: any): {
   vote_average: number;
   popularity: number;
   data_source: 'jikan';
+  rating: string | null;
 } {
   const posterUrl = jikanAnime.images?.jpg?.large_image_url || 
                     jikanAnime.images?.jpg?.image_url || 
@@ -191,6 +197,47 @@ export function jikanSearchToSearchResult(jikanAnime: any): {
     vote_average: jikanAnime.score || 0,
     popularity: jikanAnime.popularity || 0,
     data_source: 'jikan',
+    rating: normalizeJikanRating(jikanAnime.rating),
   };
+}
+
+// Normalize Jikan rating to just the code (e.g., "TV-14", "R", "PG-13")
+// Uses the shared normalizeRating function for consistency
+function normalizeJikanRating(rating: string | null | undefined): string | null {
+  if (!rating) return null;
+  
+  // Import normalizeRating (circular import risk, so we'll inline the logic)
+  // Jikan ratings can come in formats like:
+  // - "TV-14" -> "TV-14"
+  // - "R - 17+ (violence & profanity)" -> "R"
+  // - "PG-13 – TEENS 13 OR OLDER" -> "PG-13"
+  
+  const trimmed = rating.trim();
+  
+  // Match at the start of the string
+  const startMatch = trimmed.match(/^(TV-)?(Y7?|G|PG|PG-13|14|MA|R|NC-17)(?:\s|–|-|$)/i);
+  if (startMatch) {
+    const tvPrefix = startMatch[1] || '';
+    const code = startMatch[2] || '';
+    if (tvPrefix) {
+      return `TV-${code.toUpperCase()}`;
+    } else {
+      return code.toUpperCase();
+    }
+  }
+  
+  // If no match at start, try to find the rating code anywhere
+  const anywhereMatch = trimmed.match(/(TV-)?(Y7?|G|PG|PG-13|14|MA|R|NC-17)/i);
+  if (anywhereMatch) {
+    const tvPrefix = anywhereMatch[1] || '';
+    const code = anywhereMatch[2] || '';
+    if (tvPrefix) {
+      return `TV-${code.toUpperCase()}`;
+    } else {
+      return code.toUpperCase();
+    }
+  }
+  
+  return null;
 }
 

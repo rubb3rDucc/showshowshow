@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Badge, Button } from '@mantine/core'
 import { Plus, Check, ChevronUp, ChevronDown } from 'lucide-react'
 import type { SearchResult } from '../../types/api'
+import { normalizeRating } from '../../utils/rating'
 
 interface SearchResultCardProps {
   item: SearchResult
@@ -125,7 +126,7 @@ export function SearchResultCard({
           {displayTitle}
         </h3>
 
-        {/* Type Badge and Year - White on Black */}
+        {/* Type Badge, Year, and Rating - White on Black */}
         <div className="flex gap-2 items-center flex-wrap">
           <Badge
            className=" text-white border-black font-black uppercase tracking-wider text-[10px]"
@@ -142,6 +143,16 @@ export function SearchResultCard({
               color="black"
             >
               {new Date(item.release_date).getFullYear()}
+            </Badge>
+          )}
+          {/* Rating Badge */}
+          {normalizeRating(item.rating) && (
+            <Badge
+              className="text-white border-black font-black uppercase tracking-wider text-[10px]"
+              size="xs"
+              color="black"
+            >
+              {normalizeRating(item.rating)}
             </Badge>
           )}
           {/* {item.is_cached && (

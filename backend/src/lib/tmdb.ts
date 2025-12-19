@@ -68,6 +68,55 @@ export async function getSeason(tmdbId: number, seasonNumber: number): Promise<a
   return fetchTMDB(endpoint);
 }
 
+// Get content ratings for TV shows
+export async function getShowContentRatings(tmdbId: number): Promise<any> {
+  const endpoint = `/tv/${tmdbId}/content_ratings`;
+  return fetchTMDB(endpoint);
+}
+
+// Get release dates (includes certifications) for movies
+export async function getMovieReleaseDates(tmdbId: number): Promise<any> {
+  const endpoint = `/movie/${tmdbId}/release_dates`;
+  return fetchTMDB(endpoint);
+}
+
+// Extract US rating from TMDB content ratings
+export function extractUSRating(contentRatings: any, contentType: 'show' | 'movie'): string | null {
+  if (contentType === 'show') {
+    // For TV shows, look for US rating in content_ratings.results
+    const usRatings = contentRatings?.results?.find((r: any) => r.iso_3166_1 === 'US');
+    if (usRatings?.rating) {
+      return usRatings.rating;
+    }
+    // Fallback to any rating if US not available
+    if (contentRatings?.results?.length > 0 && contentRatings.results[0].rating) {
+      return contentRatings.results[0].rating;
+    }
+  } else {
+    // For movies, look for US certification in release_dates.results
+    const usReleaseDates = contentRatings?.results?.find((r: any) => r.iso_3166_1 === 'US');
+    if (usReleaseDates?.release_dates?.length > 0) {
+      // Get the most recent certification
+      const certifications = usReleaseDates.release_dates
+        .map((rd: any) => rd.certification)
+        .filter((c: string) => c && c.length > 0);
+      if (certifications.length > 0) {
+        return certifications[certifications.length - 1]; // Most recent
+      }
+    }
+    // Fallback to any certification if US not available
+    for (const country of contentRatings?.results || []) {
+      const certifications = country.release_dates
+        ?.map((rd: any) => rd.certification)
+        .filter((c: string) => c && c.length > 0) || [];
+      if (certifications.length > 0) {
+        return certifications[certifications.length - 1];
+      }
+    }
+  }
+  return null;
+}
+
 // Get image URL (TMDB uses relative paths)
 export function getImageUrl(path: string | null, size: string = 'w500'): string | null {
   if (!path) return null;

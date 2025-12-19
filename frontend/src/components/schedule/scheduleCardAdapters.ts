@@ -12,6 +12,7 @@ export interface QueueCardItem {
   posterUrl: string | null
   type: 'movie' | 'show'
   title: string
+  rating?: string | null
 }
 
 // Helper function to round time to next 15-minute interval
@@ -57,6 +58,7 @@ export function adaptQueueItemForCard(item: QueueItem | null | undefined): Queue
     posterUrl: item.poster_url || null,
     type: item.content_type === 'movie' ? 'movie' : 'show',
     title: item.title || '',
+    rating: item.content?.rating || null,
   }
 }
 
@@ -66,6 +68,7 @@ export function adaptScheduleItemToQueueCard(item: ScheduleItem): QueueCardItem 
     posterUrl: item.poster_url || null,
     type: item.content_type === 'movie' ? 'movie' : 'show',
     title: item.title || '',
+    rating: item.rating || null,
   }
 }
 

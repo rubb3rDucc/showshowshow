@@ -101,8 +101,13 @@ Server will start on `http://localhost:3000`
 - `pnpm run dev` - Start development server with hot reload
 - `pnpm run build` - Build TypeScript to JavaScript
 - `pnpm run start` - Start production server
-- `pnpm run migration:up` - Run database migrations
-- `pnpm run migration:down` - Rollback migrations
+- `pnpm run migrate:up` - Run database migrations
+- `pnpm run migrate:down` - Rollback last migration
+- `pnpm run migrate:inspect` - Inspect migration table state
+- `pnpm run migrate:sync` - Sync migrations by detecting existing schema
+- `pnpm run migrate:mark <name>` - Mark a migration as complete
+- `pnpm run migrate:clean` - Clean invalid entries and fix schema
+- `pnpm run migrate:verify <type>` - Verify specific migrations (e.g., `jikan`)
 
 ## Quick Test
 
@@ -166,7 +171,11 @@ backend/
 │   │   └── schedule-generate.ts # Schedule generation
 │   ├── migrations/              # Database migrations
 │   │   ├── runner.ts            # Migration runner
+│   │   ├── migrate-utils.ts    # Migration utilities (inspect, sync, clean, etc.)
 │   │   ├── 001_initial_schema.ts
+│   │   ├── 002_add_timezone_to_schedule.ts
+│   │   ├── 003_add_jikan_support.ts
+│   │   ├── 004_add_content_rating.ts
 │   │   └── schema.sql           # Raw SQL reference
 │   └── index.ts                 # Server entry point
 ├── tests/                       # Test scripts
@@ -189,14 +198,32 @@ The server uses hot reload - changes to `src/` automatically restart the server.
 
 ```bash
 # Apply migrations
-pnpm run migration:up
+pnpm run migrate:up
 
-# Rollback
-pnpm run migration:down
+# Rollback last migration
+pnpm run migrate:down
 
 # View schema
 cat src/migrations/schema.sql
+
+# Migration utilities (if migrations fail or get out of sync)
+pnpm run migrate:inspect    # Check migration table state
+pnpm run migrate:sync      # Auto-detect and mark existing migrations
+pnpm run migrate:mark <name>  # Manually mark a migration as complete
+pnpm run migrate:clean     # Clean invalid entries and fix schema
+pnpm run migrate:verify jikan  # Verify Jikan migration was applied
 ```
+
+**Troubleshooting Migrations:**
+
+If you get "table already exists" errors:
+1. Run `pnpm run migrate:sync` to detect existing tables and mark migrations as complete
+2. Then run `pnpm run migrate:up` normally
+
+If migrations are out of sync:
+1. Run `pnpm run migrate:inspect` to see current state
+2. Run `pnpm run migrate:clean` to remove invalid entries
+3. Run `pnpm run migrate:sync` to re-sync with database
 
 ### Example Usage
 
@@ -254,7 +281,7 @@ Supports: Digital Ocean, Railway, Render, Fly.io, Vercel, AWS/GCP/Azure.
 Set environment variables and run:
 ```bash
 pnpm install
-pnpm run migration:up
+pnpm run migrate:up
 pnpm run build
 pnpm start
 ```
@@ -264,7 +291,12 @@ pnpm start
 **Server won't start?**
 - Check DATABASE_URL in `.env`
 - Verify PostgreSQL is running
-- Run migrations: `pnpm run migration:up`
+- Run migrations: `pnpm run migrate:up`
+
+**Migration errors?**
+- If you see "table already exists" errors, run `pnpm run migrate:sync` first
+- Check migration state with `pnpm run migrate:inspect`
+- Clean invalid entries with `pnpm run migrate:clean`
 
 **TMDB errors?**
 - Verify TMDB_API_KEY in `.env`
