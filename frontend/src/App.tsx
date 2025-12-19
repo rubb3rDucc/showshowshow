@@ -12,6 +12,7 @@ import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Search } from './pages/Search';
 import { Queue } from './pages/Queue';
+import { Library } from './pages/Library';
 import { Settings } from './pages/Settings';
 
 // Create QueryClient instance
@@ -71,6 +72,14 @@ function App() {
           <ProtectedRoute>
             <Layout>
               <Queue />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/library">
+          <ProtectedRoute>
+            <Layout>
+              <Library />
             </Layout>
           </ProtectedRoute>
         </Route>
