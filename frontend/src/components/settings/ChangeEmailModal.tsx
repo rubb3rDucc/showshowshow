@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import { changeEmail } from '../../api/user';
 import { useAuthStore } from '../../stores/authStore';
+import { ApiError } from '../../api/client';
 
 interface ChangeEmailModalProps {
   opened: boolean;
@@ -40,7 +41,7 @@ export function ChangeEmailModal({ opened, onClose, currentEmail }: ChangeEmailM
       setPassword('');
       setErrors({});
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       if (error.statusCode === 401) {
         setErrors({ password: 'Incorrect password' });
       } else if (error.statusCode === 409) {

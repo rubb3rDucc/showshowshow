@@ -15,6 +15,7 @@ import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { deleteAccount } from '../../api/user';
 import { useAuthStore } from '../../stores/authStore';
+import { ApiError } from '../../api/client';
 
 interface DeleteAccountModalProps {
   opened: boolean;
@@ -40,7 +41,7 @@ export function DeleteAccountModal({ opened, onClose, userEmail }: DeleteAccount
       // Redirect to login
       setLocation('/login');
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       if (error.statusCode === 400) {
         if (error.message?.includes('Email does not match')) {
           setErrors({ email: 'Email does not match' });

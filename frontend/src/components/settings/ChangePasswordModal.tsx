@@ -11,6 +11,7 @@ import {
 } from '@mantine/core';
 import { toast } from 'sonner';
 import { changePassword } from '../../api/user';
+import { ApiError } from '../../api/client';
 
 interface ChangePasswordModalProps {
   opened: boolean;
@@ -72,7 +73,7 @@ export function ChangePasswordModal({ opened, onClose }: ChangePasswordModalProp
       setConfirmPassword('');
       setErrors({});
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       if (error.statusCode === 401) {
         setErrors({ current_password: 'Incorrect current password' });
       } else if (error.statusCode === 400) {
