@@ -12,6 +12,7 @@ import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Search } from './pages/Search';
 import { Queue } from './pages/Queue';
+import { Settings } from './pages/Settings';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -70,6 +71,14 @@ function App() {
           <ProtectedRoute>
             <Layout>
               <Queue />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/settings">
+          <ProtectedRoute>
+            <Layout>
+              <Settings />
             </Layout>
           </ProtectedRoute>
         </Route>

@@ -15,6 +15,7 @@ import { contentRoutes } from './routes/content.js';
 import { queueRoutes } from './routes/queue.js';
 import { scheduleRoutes } from './routes/schedule.js';
 import { scheduleGenerateRoutes } from './routes/schedule-generate.js';
+import { userRoutes } from './routes/user.js';
 
 const fastify = Fastify({
   logger: {
@@ -127,6 +128,7 @@ const start = async () => {
     await fastify.register(queueRoutes);
     await fastify.register(scheduleRoutes);
     await fastify.register(scheduleGenerateRoutes);
+    await fastify.register(userRoutes);
 
     const port = Number(process.env.PORT) || 3000;
     // Bind to 0.0.0.0 in Docker or production, localhost otherwise
@@ -163,6 +165,10 @@ const start = async () => {
     console.log(`⚙️  Schedule generation:`);
     console.log(`   POST   ${host}:${port}/api/schedule/generate/queue`);
     console.log(`   POST   ${host}:${port}/api/schedule/generate/shows`);
+    console.log(`👤 User settings:`);
+    console.log(`   PATCH  ${host}:${port}/api/user/email`);
+    console.log(`   PATCH  ${host}:${port}/api/user/password`);
+    console.log(`   DELETE ${host}:${port}/api/user/account`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

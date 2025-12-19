@@ -16,7 +16,8 @@ export async function register(credentials: RegisterRequest): Promise<AuthRespon
 }
 
 export async function getCurrentUser(): Promise<User> {
-  return apiCall<User>('/api/auth/me');
+  const response = await apiCall<{ user: User }>('/api/auth/me');
+  return response.user;
 }
 
 

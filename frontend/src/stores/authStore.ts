@@ -13,6 +13,7 @@ interface AuthState {
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
   initialize: () => Promise<void>;
+  setUser: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -98,6 +99,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         });
       }
     }
+  },
+
+  setUser: (user: User) => {
+    set({ user });
   },
 }));
 
