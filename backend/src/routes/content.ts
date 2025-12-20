@@ -155,7 +155,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       results: resultsWithCacheStatus,
       page: currentPage,
       total_pages: totalPages,
-      total_results: type ? resultsWithCacheStatus.length : totalResults,
+      total_results: resultsWithCacheStatus.length, // Use actual filtered count
     });
   });
 
