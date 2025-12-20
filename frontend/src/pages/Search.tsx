@@ -22,6 +22,7 @@ import { searchContent, getContentByTmdbId, getContentByMalId, addToQueue, getQu
 import { getLibrary, addToLibrary } from '../api/library';
 import { SearchResultCard } from '../components/search/SearchResultCard';
 import type { SearchResult, SearchResponse, QueueItem } from '../types/api';
+import type { LibraryStatus } from '../types/library.types';
 
 export function Search() {
   const queryClient = useQueryClient();
@@ -165,12 +166,12 @@ export function Search() {
   };
 
   // Check if a search result is in library and get its status
-  const getLibraryStatus = (result: SearchResult): { inLibrary: boolean; status: string | null } => {
+  const getLibraryStatus = (result: SearchResult): { inLibrary: boolean; status: LibraryStatus | null } => {
     if (!library || !result.cached_id) return { inLibrary: false, status: null };
     const libraryItem = library.find((item) => item.content_id === result.cached_id);
     return {
       inLibrary: !!libraryItem,
-      status: libraryItem?.status || null,
+      status: (libraryItem?.status as LibraryStatus) || null,
     };
   };
 

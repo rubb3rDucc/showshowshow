@@ -14,7 +14,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
     const userId = request.user.userId;
     const { status, type, search } = request.query as { 
       status?: string; 
-      type?: 'show' | 'movie'; 
+      type?: 'show' | 'movie' | 'all'; 
       search?: string;
     };
 
@@ -310,6 +310,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
     const libraryItem = await db
       .insertInto('user_library')
       .values({
+        id: crypto.randomUUID(),
         user_id: userId,
         content_id,
         status,
@@ -317,6 +318,8 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         current_episode: 1,
         started_at: startedAt,
         episodes_watched: 0,
+        created_at: new Date(),
+        updated_at: new Date(),
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -587,12 +590,14 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
     await db
       .insertInto('library_episode_status')
       .values({
+        id: crypto.randomUUID(),
         user_id: userId,
         content_id: contentId,
         season,
         episode,
         status,
         watched_at: status === 'watched' ? new Date() : null,
+        created_at: new Date(),
       })
       .onConflict((oc) => oc
         .columns(['user_id', 'content_id', 'season', 'episode'])
@@ -721,12 +726,14 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       await db
         .insertInto('library_episode_status')
         .values({
+          id: crypto.randomUUID(),
           user_id: userId,
           content_id: contentId,
           season,
           episode: ep.episode_number,
           status: status === 'watched' ? 'watched' : 'unwatched',
           watched_at: watchedAt,
+          created_at: new Date(),
         })
         .onConflict((oc) => oc
           .columns(['user_id', 'content_id', 'season', 'episode'])
@@ -796,12 +803,14 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       await db
         .insertInto('library_episode_status')
         .values({
+          id: crypto.randomUUID(),
           user_id: userId,
           content_id: contentId,
           season: ep.season,
           episode: ep.episode_number,
           status: status === 'watched' ? 'watched' : 'unwatched',
           watched_at: watchedAt,
+          created_at: new Date(),
         })
         .onConflict((oc) => oc
           .columns(['user_id', 'content_id', 'season', 'episode'])
