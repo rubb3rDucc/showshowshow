@@ -31,7 +31,9 @@ export function getEnvironment(): Environment {
   if (process.env.RAILWAY_ENVIRONMENT === 'production' ||
       process.env.RENDER === 'true' ||
       process.env.VERCEL_ENV === 'production' ||
-      process.env.FLY_APP_NAME) {
+      process.env.FLY_APP_NAME ||
+      process.env.DIGITALOCEAN_APP_ID || // DigitalOcean App Platform
+      (process.env.NODE_ENV === 'production' && process.env.PORT)) { // Generic production with PORT set
     return 'production';
   }
   

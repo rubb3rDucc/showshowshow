@@ -42,3 +42,9 @@ export class ConflictError extends AppError {
   }
 }
 
+export class DatabaseConnectionError extends AppError {
+  constructor(message: string = 'Database connection error') {
+    super(message, 503, 'DATABASE_CONNECTION_ERROR'); // 503 = Service Unavailable
+  }
+}
+

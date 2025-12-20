@@ -1,4 +1,4 @@
-import { AppError } from '../lib/errors.js';
+import { AppError, DatabaseConnectionError } from '../lib/errors.js';
 import { captureException } from '../lib/posthog.js';
 import { isProduction } from '../lib/env-detection.js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -97,6 +97,59 @@ export const errorHandlerPlugin = async (fastify: FastifyInstance) => {
           error: 'Invalid token',
           code: 'UNAUTHORIZED',
         });
+    }
+
+    // Handle database connection errors specifically
+    // Hide technical details from users but log fully for debugging
+    if (error instanceof Error) {
+      const errorMessage = error.message.toLowerCase();
+      const errorCode = (error as any).code; // PostgreSQL error code
+      const isConnectionError = 
+        errorMessage.includes('max client connections') ||
+        (errorMessage.includes('connection') && errorMessage.includes('reached')) ||
+        errorMessage.includes('too many clients') ||
+        errorMessage.includes('connection pool') ||
+        errorCode === 'XX000' || // PostgreSQL error code for connection issues
+        errorCode === '53300'; // PostgreSQL error code for too many connections
+
+      if (isConnectionError) {
+        // Log full error details for debugging (you'll see this)
+        fastify.log.error({
+          type: 'DATABASE_CONNECTION_ERROR',
+          message: error.message,
+          stack: error.stack,
+          code: errorCode,
+          userId: request.user?.userId,
+          url: request.url,
+          method: request.method,
+        });
+
+        // Capture in PostHog with full details
+        captureException(error, {
+          request: {
+            method: request.method,
+            url: request.url,
+            headers: request.headers as Record<string, string>,
+            userId: request.user?.userId,
+          },
+          extra: {
+            errorType: 'DATABASE_CONNECTION_ERROR',
+            originalMessage: error.message,
+            code: errorCode,
+          },
+        });
+
+        // Return user-friendly message (users won't see technical details)
+        return reply
+          .code(503) // Service Unavailable
+          .type('application/json')
+          .send({
+            error: isProduction()
+              ? 'Service temporarily unavailable. Please try again in a moment.'
+              : error.message, // Show details in dev
+            code: 'SERVICE_UNAVAILABLE',
+          });
+      }
     }
 
     // Default error (500) - never expose details in production

@@ -19,20 +19,19 @@ export function initPostHog(): PostHog | null {
   const env = getEnvironment();
   const enableDev = process.env.POSTHOG_ENABLE_DEV === 'true';
 
-  // Skip in development unless explicitly enabled
-  if (isDevelopment() && !enableDev) {
-    console.log('ℹ️  PostHog disabled in development (set POSTHOG_ENABLE_DEV=true to enable)');
-    return null;
-  }
-
   // Skip in test environment
   if (isTest()) {
+    console.log('ℹ️  PostHog disabled in test environment');
     return null;
   }
 
   if (!apiKey) {
     console.log('ℹ️  PostHog not configured (POSTHOG_API_KEY not set)');
     return null;
+  }
+
+  if (!apiKey.startsWith('phc_')) {
+    console.warn('⚠️  PostHog API key format looks incorrect (should start with "phc_")');
   }
 
   try {
@@ -42,7 +41,24 @@ export function initPostHog(): PostHog | null {
       flushInterval: 0, // Don't batch, send immediately
     });
 
-    console.log(`✅ PostHog error tracking initialized (environment: ${env})`);
+    console.log(`✅ PostHog error tracking initialized (environment: ${env}, host: ${host})`);
+    
+    // Test the connection with a test event
+    try {
+      posthogClient.capture({
+        distinctId: env, // Use environment name as distinctId (development/production/staging)
+        event: 'posthog_initialized',
+        properties: {
+          environment: env,
+          timestamp: new Date().toISOString(),
+        },
+      });
+      posthogClient.flush();
+      console.log('✅ PostHog test event sent successfully');
+    } catch (testError) {
+      console.warn('⚠️  PostHog test event failed (this may be normal):', testError);
+    }
+    
     return posthogClient;
   } catch (error) {
     console.error('❌ Failed to initialize PostHog:', error);
@@ -73,6 +89,10 @@ export function captureException(
   }
 ): void {
   if (!posthogClient) {
+    // Log that PostHog is not available (for debugging)
+    if (process.env.NODE_ENV === 'development' || process.env.POSTHOG_ENABLE_DEV === 'true') {
+      console.log('⚠️  PostHog not initialized, skipping exception capture');
+    }
     return;
   }
 
@@ -108,9 +128,18 @@ export function captureException(
 
     // Flush immediately to ensure error is sent
     posthogClient.flush();
+    
+    // Log in development to confirm it's working
+    if (process.env.NODE_ENV === 'development' || process.env.POSTHOG_ENABLE_DEV === 'true') {
+      console.log('📊 PostHog exception captured:', {
+        event: '$exception',
+        error: error.message,
+        environment: env,
+      });
+    }
   } catch (err) {
     // Don't let PostHog errors break the app
-    console.error('Failed to capture exception in PostHog:', err);
+    console.error('❌ Failed to capture exception in PostHog:', err);
   }
 }
 

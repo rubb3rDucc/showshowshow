@@ -9,6 +9,7 @@ import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { securityPlugin } from './plugins/security.js';
 import { rateLimitPlugin, authRateLimitPlugin } from './plugins/rate-limit.js';
 import { initPostHog, shutdownPostHog } from './lib/posthog.js';
+import { initRedis } from './lib/redis.js';
 import { getEnvConfig, isProduction } from './lib/env-detection.js';
 import { authRoutes } from './routes/auth.js';
 import { contentRoutes } from './routes/content.js';
@@ -87,6 +88,9 @@ const start = async () => {
 
     // Initialize PostHog error tracking (optional, disabled in dev by default)
     initPostHog();
+
+    // Initialize Redis (graceful degradation if not configured)
+    initRedis();
 
     // Test database connection
     await testConnection();
