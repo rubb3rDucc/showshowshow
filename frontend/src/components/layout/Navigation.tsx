@@ -12,6 +12,7 @@ export function Navigation() {
   const navItems = [
     { path: '/', label: 'Home' },
     { path: '/search', label: 'Search' },
+    { path: '/library', label: 'Library' },
     { path: '/queue', label: 'Queue' },
     { path: '/settings', label: 'Settings' },
   ];
