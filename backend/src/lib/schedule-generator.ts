@@ -783,15 +783,15 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
             if (!existingSet.has(key)) {
               newEpisodes.push({
                 id: randomUUID(),
-                content_id: item.show.id,
-                season: 1, // Jikan doesn't have seasons
-                episode_number: episodeNum,
-                title: ep.title || `Episode ${episodeNum}`,
-                overview: null, // Jikan API doesn't provide episode descriptions
-                duration: item.show.default_duration || 24,
-                air_date: ep.aired ? new Date(ep.aired) : null,
-                still_url: ep.images?.jpg?.image_url || null,
-                created_at: new Date(),
+                  content_id: item.show.id,
+                  season: 1, // Jikan doesn't have seasons
+                  episode_number: episodeNum,
+                  title: ep.title || `Episode ${episodeNum}`,
+                  overview: null, // Jikan API doesn't provide episode descriptions
+                  duration: item.show.default_duration || 24,
+                  air_date: ep.aired ? new Date(ep.aired) : null,
+                  still_url: ep.images?.jpg?.image_url || null,
+                  created_at: new Date(),
               });
             }
           }
@@ -850,15 +850,15 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
               if (!existingSet.has(key)) {
                 newEpisodes.push({
                   id: randomUUID(),
-                  content_id: item.show.id,
-                  season: ep.season_number,
-                  episode_number: ep.episode_number,
-                  title: ep.name,
-                  overview: ep.overview,
-                  duration: ep.runtime || showDetails.episode_run_time?.[0] || 30,
-                  air_date: ep.air_date ? new Date(ep.air_date) : null,
-                  still_url: getImageUrl(ep.still_path),
-                  created_at: new Date(),
+                    content_id: item.show.id,
+                    season: ep.season_number,
+                    episode_number: ep.episode_number,
+                    title: ep.name,
+                    overview: ep.overview,
+                    duration: ep.runtime || showDetails.episode_run_time?.[0] || 30,
+                    air_date: ep.air_date ? new Date(ep.air_date) : null,
+                    still_url: getImageUrl(ep.still_path),
+                    created_at: new Date(),
                 });
               }
             }
