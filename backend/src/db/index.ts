@@ -8,15 +8,43 @@ dotenv.config();
 const { Pool } = pg;
 
 // Create connection pool
+// CRITICAL: Supabase free tier has 15 connection limit
+// With max: 5 per instance, we can run up to 3 instances (15 total)
+// Set DB_POOL_MAX env var to override (e.g., DB_POOL_MAX=10 for single instance)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 20,
-  idleTimeoutMillis: 30000,
+  max: parseInt(process.env.DB_POOL_MAX || '5', 10), // Reduced from 20 to 5
+  min: 1, // Keep at least 1 connection ready
+  idleTimeoutMillis: 10000, // Reduced from 30000 - release idle connections faster
   connectionTimeoutMillis: 2000,
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
   } : false,
 });
+
+// Connection pool monitoring (logs every 30 seconds in production)
+if (process.env.NODE_ENV === 'production') {
+  setInterval(() => {
+    console.log('📊 DB Pool Stats:', {
+      total: pool.totalCount,
+      idle: pool.idleCount,
+      waiting: pool.waitingCount,
+      max: pool.options.max,
+    });
+  }, 30000);
+
+  pool.on('connect', (client) => {
+    console.log(`🔌 New DB client connected. Total: ${pool.totalCount}/${pool.options.max}`);
+  });
+
+  pool.on('remove', (client) => {
+    console.log(`🔌 DB client removed. Total: ${pool.totalCount}/${pool.options.max}`);
+  });
+
+  pool.on('error', (err, client) => {
+    console.error('❌ Unexpected error on idle DB client:', err);
+  });
+}
 
 // Create Kysely instance
 export const db = new Kysely<Database>({

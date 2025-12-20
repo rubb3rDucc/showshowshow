@@ -1,4 +1,5 @@
 import { db } from '../db/index.js';
+import { randomUUID } from 'crypto';
 
 // Helper: Shuffle array (Fisher-Yates algorithm)
 function shuffleArray<T>(array: T[]): T[] {
@@ -744,47 +745,98 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
         let page = 1;
         let hasMore = true;
 
+        // OPTIMIZATION: Fetch all existing episodes in one query (fixes N+1 problem)
+        const existingEpisodes = await db
+          .selectFrom('episodes')
+          .select(['season', 'episode_number'])
+          .where('content_id', '=', item.show.id)
+          .execute();
+
+        // Create a Set for O(1) lookup
+        const existingSet = new Set(
+          existingEpisodes.map(ep => `${ep.season}-${ep.episode_number}`)
+        );
+
+        // Collect all new episodes to insert in batch
+        const newEpisodes: Array<{
+          id: string;
+          content_id: string;
+          season: number;
+          episode_number: number;
+          title: string | null;
+          overview: string | null;
+          duration: number;
+          air_date: Date | null;
+          still_url: string | null;
+          created_at: Date;
+        }> = [];
+
         while (hasMore) {
           const jikanEpisodes = await getAnimeEpisodes(item.show.mal_id, page);
           const episodes = jikanEpisodes.episodes || [];
           
           for (const ep of episodes) {
-            const episodeNum = ep.episode || fetchedCount + 1;
-            // Check if this specific episode already exists
-            const exists = await db
-              .selectFrom('episodes')
-              .select('id')
-              .where('content_id', '=', item.show.id)
-              .where('season', '=', 1) // Jikan doesn't have seasons
-              .where('episode_number', '=', episodeNum)
-              .executeTakeFirst();
+            const episodeNum = ep.episode || fetchedCount + newEpisodes.length + 1;
+            const key = `1-${episodeNum}`; // Jikan doesn't have seasons, always season 1
             
-            if (!exists) {
-              await db
-                .insertInto('episodes')
-                .values({
-                  id: crypto.randomUUID(),
-                  content_id: item.show.id,
-                  season: 1, // Jikan doesn't have seasons
-                  episode_number: episodeNum,
-                  title: ep.title || `Episode ${episodeNum}`,
-                  overview: null, // Jikan API doesn't provide episode descriptions
-                  duration: item.show.default_duration || 24,
-                  air_date: ep.aired ? new Date(ep.aired) : null,
-                  still_url: ep.images?.jpg?.image_url || null,
-                  created_at: new Date(),
-                })
-                .execute();
-              fetchedCount++;
+            // Check if episode already exists using Set lookup (O(1))
+            if (!existingSet.has(key)) {
+              newEpisodes.push({
+                id: randomUUID(),
+                content_id: item.show.id,
+                season: 1, // Jikan doesn't have seasons
+                episode_number: episodeNum,
+                title: ep.title || `Episode ${episodeNum}`,
+                overview: null, // Jikan API doesn't provide episode descriptions
+                duration: item.show.default_duration || 24,
+                air_date: ep.aired ? new Date(ep.aired) : null,
+                still_url: ep.images?.jpg?.image_url || null,
+                created_at: new Date(),
+              });
             }
           }
 
           hasMore = page < (jikanEpisodes.pagination?.last_visible_page || 1);
           page++;
         }
+
+        // Batch insert all new episodes at once (reduces from N queries to 1 query)
+        if (newEpisodes.length > 0) {
+          await db
+            .insertInto('episodes')
+            .values(newEpisodes)
+            .execute();
+          fetchedCount += newEpisodes.length;
+        }
       } else if (item.show.tmdb_id) {
         // Fetch from TMDB
         const showDetails = await getShowDetails(item.show.tmdb_id);
+
+        // OPTIMIZATION: Fetch all existing episodes in one query (fixes N+1 problem)
+        const existingEpisodes = await db
+          .selectFrom('episodes')
+          .select(['season', 'episode_number'])
+          .where('content_id', '=', item.show.id)
+          .execute();
+
+        // Create a Set for O(1) lookup
+        const existingSet = new Set(
+          existingEpisodes.map(ep => `${ep.season}-${ep.episode_number}`)
+        );
+
+        // Collect all new episodes to insert in batch
+        const newEpisodes: Array<{
+          id: string;
+          content_id: string;
+          season: number;
+          episode_number: number;
+          title: string | null;
+          overview: string | null;
+          duration: number;
+          air_date: Date | null;
+          still_url: string | null;
+          created_at: Date;
+        }> = [];
 
         // Fetch seasons sequentially
         for (let seasonNum = 1; seasonNum <= (showDetails.number_of_seasons || 0); seasonNum++) {
@@ -792,37 +844,41 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
             const tmdbSeason = await getSeason(item.show.tmdb_id, seasonNum);
             
             for (const ep of tmdbSeason.episodes) {
-              // Check if this specific episode already exists (defensive check)
-              const exists = await db
-                .selectFrom('episodes')
-                .select('id')
-                .where('content_id', '=', item.show.id)
-                .where('season', '=', ep.season_number)
-                .where('episode_number', '=', ep.episode_number)
-                .executeTakeFirst();
+              const key = `${ep.season_number}-${ep.episode_number}`;
               
-              if (!exists) {
-                await db
-                  .insertInto('episodes')
-                  .values({
-                    id: crypto.randomUUID(),
-                    content_id: item.show.id,
-                    season: ep.season_number,
-                    episode_number: ep.episode_number,
-                    title: ep.name,
-                    overview: ep.overview,
-                    duration: ep.runtime || showDetails.episode_run_time?.[0] || 30,
-                    air_date: ep.air_date ? new Date(ep.air_date) : null,
-                    still_url: getImageUrl(ep.still_path),
-                    created_at: new Date(),
-                  })
-                  .execute();
-                fetchedCount++;
+              // Check if episode already exists using Set lookup (O(1))
+              if (!existingSet.has(key)) {
+                newEpisodes.push({
+                  id: randomUUID(),
+                  content_id: item.show.id,
+                  season: ep.season_number,
+                  episode_number: ep.episode_number,
+                  title: ep.name,
+                  overview: ep.overview,
+                  duration: ep.runtime || showDetails.episode_run_time?.[0] || 30,
+                  air_date: ep.air_date ? new Date(ep.air_date) : null,
+                  still_url: getImageUrl(ep.still_path),
+                  created_at: new Date(),
+                });
               }
             }
           } catch (error) {
             console.warn(`[Schedule Generator] Failed to fetch season ${seasonNum} for ${item.show.title}:`, error);
           }
+        }
+
+        // Batch insert all new episodes at once (reduces from N queries to 1 query)
+        if (newEpisodes.length > 0) {
+          // Insert in chunks of 1000 to avoid query size limits
+          const chunkSize = 1000;
+          for (let i = 0; i < newEpisodes.length; i += chunkSize) {
+            const chunk = newEpisodes.slice(i, i + chunkSize);
+            await db
+              .insertInto('episodes')
+              .values(chunk)
+              .execute();
+          }
+          fetchedCount += newEpisodes.length;
         }
       } else {
         console.warn(`[Schedule Generator] Show ${item.show.title} has no valid source ID (tmdb_id or mal_id)`);
