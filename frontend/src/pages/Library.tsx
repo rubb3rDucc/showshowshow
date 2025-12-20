@@ -57,7 +57,7 @@ export function Library() {
       queryClient.invalidateQueries({ queryKey: ['library', 'stats'] });
       toast.success('Removed from library');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || 'Failed to remove from library');
     },
   });
@@ -79,7 +79,7 @@ export function Library() {
       queryClient.invalidateQueries({ queryKey: ['library', 'stats'] });
       toast.success('Library updated');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || 'Failed to update library');
     },
   });
@@ -91,7 +91,7 @@ export function Library() {
       queryClient.invalidateQueries({ queryKey: ['queue'] });
       toast.success('Added to queue');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || 'Failed to add to queue');
     },
   });
@@ -115,16 +115,18 @@ export function Library() {
           return a.content.title.localeCompare(b.content.title);
         case 'recently_updated':
           return b.updatedAt.getTime() - a.updatedAt.getTime();
-        case 'last_watched':
+        case 'last_watched': {
           const aTime = a.lastWatchedAt?.getTime() || 0;
           const bTime = b.lastWatchedAt?.getTime() || 0;
           return bTime - aTime;
+        }
         case 'score':
           return (b.score || 0) - (a.score || 0);
-        case 'progress':
+        case 'progress': {
           const aProgress = a.progress?.percentage || 0;
           const bProgress = b.progress?.percentage || 0;
           return bProgress - aProgress;
+        }
         case 'recently_added':
         default:
           return b.addedAt.getTime() - a.addedAt.getTime();

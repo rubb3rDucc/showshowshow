@@ -59,7 +59,7 @@ export function EpisodeTracker({
       queryClient.invalidateQueries({ queryKey: ['library', 'stats'] });
       onEpisodeUpdate(selectedSeason, episodes.length, true);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || 'Failed to update episode status');
     },
   });
@@ -78,7 +78,7 @@ export function EpisodeTracker({
       queryClient.invalidateQueries({ queryKey: ['library', 'stats'] });
       toast.success(`Season ${selectedSeason} marked as ${watched ? 'watched' : 'unwatched'}`);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || 'Failed to update season');
     },
   });
@@ -96,7 +96,7 @@ export function EpisodeTracker({
       queryClient.invalidateQueries({ queryKey: ['library', 'stats'] });
       toast.success(`All episodes marked as ${watched ? 'watched' : 'unwatched'}`);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || 'Failed to update episodes');
     },
   });

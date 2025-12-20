@@ -19,7 +19,7 @@ import { Search as SearchIcon, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { searchContent, getContentByTmdbId, getContentByMalId, addToQueue, getQueue } from '../api/content';
-import { getLibrary, addToLibrary, checkLibrary } from '../api/library';
+import { getLibrary, addToLibrary } from '../api/library';
 import { SearchResultCard } from '../components/search/SearchResultCard';
 import type { SearchResult, SearchResponse, QueueItem } from '../types/api';
 
@@ -243,7 +243,7 @@ export function Search() {
       
       return { previousQueue, contentId: contentId || '' };
     },
-    onSuccess: (data, _result, context) => {
+    onSuccess: (data) => {
       // Update with real data from server
       queryClient.setQueryData<QueueItem[]>(['queue'], (old) => {
         if (!old) return [data];
@@ -516,7 +516,7 @@ export function Search() {
                   isLoading={isThisItemAddingToQueue}
                   titlePreference={titlePreference}
                   isInLibrary={libraryInfo.inLibrary}
-                  libraryStatus={libraryInfo.status as any}
+                  libraryStatus={libraryInfo.status}
                   onAddToLibrary={(item) => addToLibraryMutation.mutate(item)}
                   isAddingToLibrary={isThisItemAddingToLibrary}
                 />
