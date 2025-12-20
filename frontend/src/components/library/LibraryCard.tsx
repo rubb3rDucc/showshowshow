@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Badge, Button, Collapse, Select, Textarea } from '@mantine/core';
-import { ChevronDown, ChevronUp, Save, Palette } from 'lucide-react';
+import { ChevronDown, ChevronUp, Save, Palette, Trash2 } from 'lucide-react';
 import type { LibraryItemUI, LibraryCardColor, LibraryStatus } from '../../types/library.types';
 import { EpisodeTracker } from './EpisodeTracker';
 
@@ -172,7 +172,7 @@ const SCORE_OPTIONS = [
     },
     (_, i) => ({
       value: String(i + 1),
-      label: `⭐ ${i + 1}/10`,
+      label: ` ${i + 1}/10`,
     }),
   ),
 ];
@@ -180,6 +180,7 @@ const SCORE_OPTIONS = [
 export function LibraryCard({
   item,
   onSave,
+  onRemove,
 }: LibraryCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -189,22 +190,22 @@ export function LibraryCard({
   const [status, setStatus] = useState(item.status);
   const [score, setScore] = useState(item.score?.toString() || '');
   const [notes, setNotes] = useState(item.notes || '');
-  const [cardColor, setCardColor] = useState<LibraryCardColor>(
-    item.cardColor || 'blue',
-  );
+  // Persist cardColor in localStorage keyed by item ID
+  const getStoredCardColor = (): LibraryCardColor => {
+    if (item.cardColor) return item.cardColor;
+    const stored = localStorage.getItem(`library-card-color-${item.id}`);
+    return (stored as LibraryCardColor) || 'blue';
+  };
 
-  // Update state when item changes
-  useEffect(() => {
-    setStatus(item.status);
-    setScore(item.score?.toString() || '');
-    setNotes(item.notes || '');
-    setCardColor(item.cardColor || 'blue');
-  }, [item]);
+  const [cardColor, setCardColor] = useState<LibraryCardColor>(getStoredCardColor());
 
   const colors = COLOR_SCHEMES[cardColor];
   const statusStyle = STATUS_STYLES[item.status];
 
   const handleSave = () => {
+    // Save cardColor to localStorage
+    localStorage.setItem(`library-card-color-${item.id}`, cardColor);
+    
     onSave({
       id: item.id,
       status,
@@ -214,6 +215,19 @@ export function LibraryCard({
     });
   };
 
+  const handleRemove = () => {
+    if (confirm('Remove this item from your library?')) {
+      // Remove cardColor from localStorage
+      localStorage.removeItem(`library-card-color-${item.id}`);
+      onRemove(item.id);
+    }
+  };
+
+  // Update localStorage when cardColor changes (even without save)
+  useEffect(() => {
+    localStorage.setItem(`library-card-color-${item.id}`, cardColor);
+  }, [cardColor, item.id]);
+
   return (
     <div className={`${expanded ? 'md:col-span-2 lg:col-span-3' : ''}`}>
       <div
@@ -222,7 +236,7 @@ export function LibraryCard({
         {/* Compact Header */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full flex items-start gap-3 p-3 hover:opacity-90 transition-opacity text-left"
+          className={`w-full flex items-start gap-3 p-3 hover:opacity-90 transition-opacity text-left ${colors.bg}`}
         >
           {/* Small Poster */}
           <div
@@ -374,6 +388,15 @@ export function LibraryCard({
                   onClick={handleSave}
                 >
                   SAVE
+                </Button>
+                <Button
+                  size="xs"
+                  className="bg-red-500 text-white border-2 border-red-500 font-black uppercase tracking-wider"
+                  radius="xs"
+                  leftSection={<Trash2 size={12} />}
+                  onClick={handleRemove}
+                >
+                  REMOVE
                 </Button>
               </div>
             </div>

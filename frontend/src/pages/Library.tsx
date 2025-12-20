@@ -253,7 +253,7 @@ export function Library() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredLibrary.map((item) => (
               <LibraryCard
-                key={item.id}
+                key={`${item.id}-${item.status}-${item.score ?? 'null'}-${item.notes ?? 'null'}`}
                 item={item}
                 onViewDetails={handleViewDetails}
                 onChangeStatus={handleViewDetails}
@@ -288,14 +288,17 @@ export function Library() {
       </Container>
 
       {/* Detail Modal */}
-      <LibraryDetailModal
-        item={selectedItem}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSave}
-        onAddToQueue={handleAddToQueue}
-        onRemove={handleRemove}
-      />
+      {selectedItem && (
+        <LibraryDetailModal
+          key={`modal-${selectedItem.id}-${selectedItem.status}-${selectedItem.score ?? 'null'}-${selectedItem.notes ?? 'null'}`}
+          item={selectedItem}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSave}
+          onAddToQueue={handleAddToQueue}
+          onRemove={handleRemove}
+        />
+      )}
     </div>
   );
 }

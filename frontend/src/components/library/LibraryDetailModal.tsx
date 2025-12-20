@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Modal, Select, Textarea, Button, Badge } from '@mantine/core';
 import { X, Save, Calendar, Trash2 } from 'lucide-react';
 import type { LibraryItemUI, LibraryStatus } from '../../types/library.types';
@@ -61,15 +61,6 @@ export function LibraryDetailModal({
   );
   const [score, setScore] = useState<string>(item?.score?.toString() || '');
   const [notes, setNotes] = useState(item?.notes || '');
-
-  // Update state when item changes
-  useEffect(() => {
-    if (item) {
-      setStatus(item.status);
-      setScore(item.score?.toString() || '');
-      setNotes(item.notes || '');
-    }
-  }, [item]);
 
   if (!item) return null;
 

@@ -15,6 +15,7 @@ import { contentRoutes } from './routes/content.js';
 import { queueRoutes } from './routes/queue.js';
 import { scheduleRoutes } from './routes/schedule.js';
 import { scheduleGenerateRoutes } from './routes/schedule-generate.js';
+import { libraryRoutes } from './routes/library.js';
 import { userRoutes } from './routes/user.js';
 
 const fastify = Fastify({
@@ -128,6 +129,7 @@ const start = async () => {
     await fastify.register(queueRoutes);
     await fastify.register(scheduleRoutes);
     await fastify.register(scheduleGenerateRoutes);
+    await fastify.register(libraryRoutes);
     await fastify.register(userRoutes);
 
     const port = Number(process.env.PORT) || 3000;
