@@ -39,10 +39,6 @@ export function initPostHog(): PostHog | null {
       host,
       flushAt: 1, // Flush immediately for errors
       flushInterval: 0, // Don't batch, send immediately
-      // Add error handler to catch PostHog errors
-      onError: (error) => {
-        console.error('❌ PostHog error:', error);
-      },
     });
 
     console.log(`✅ PostHog error tracking initialized (environment: ${env}, host: ${host})`);
