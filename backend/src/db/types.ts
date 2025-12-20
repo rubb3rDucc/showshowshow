@@ -143,4 +143,30 @@ export interface Database {
     created_at: Date;
     updated_at: Date;
   };
+  user_library: {
+    id: string;
+    user_id: string;
+    content_id: string;
+    status: 'watching' | 'completed' | 'dropped' | 'plan_to_watch';
+    current_season: number;
+    current_episode: number;
+    score: number | null;
+    notes: string | null;
+    started_at: Date | null;
+    completed_at: Date | null;
+    last_watched_at: Date | null;
+    episodes_watched: number;
+    created_at: Date;
+    updated_at: Date;
+  };
+  library_episode_status: {
+    id: string;
+    user_id: string;
+    content_id: string;
+    season: number;
+    episode: number;
+    status: 'watched' | 'unwatched' | 'skipped';
+    watched_at: Date | null;
+    created_at: Date;
+  };
 }
