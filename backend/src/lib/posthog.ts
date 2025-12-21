@@ -149,7 +149,7 @@ export function captureEvent(
     const env = getEnvironment();
     const properties: Record<string, unknown> = {
       environment: env,
-      timestamp: new Date().toISOString(),
+      // Note: PostHog automatically adds timestamp, don't include it manually
       ...options.properties,
     };
 

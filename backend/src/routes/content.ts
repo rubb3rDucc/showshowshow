@@ -9,6 +9,8 @@ import type { FastifyInstance } from 'fastify';
 export const contentRoutes = async (fastify: FastifyInstance) => {
   // Search for shows and movies
   fastify.get('/api/content/search', async (request, reply) => {
+    const searchStartTime = Date.now();
+    
     const { q, page = '1', type, include_adult = 'false', source = 'tmdb' } = request.query as { 
       q?: string; 
       page?: string; 
@@ -60,9 +62,32 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         // If Jikan fails and source is auto, fallback to TMDB
         if (source === 'auto') {
           console.warn('Jikan search failed, falling back to TMDB:', error);
+          // Track fallback
+          const userId = (request as any).user?.userId || 'anonymous';
+          const { captureEvent } = await import('../lib/posthog.js');
+          captureEvent('content_search_fallback', {
+            distinctId: userId,
+            properties: {
+              query: q.substring(0, 50),
+              source: 'jikan',
+              fallback_to: 'tmdb',
+              error_type: error instanceof Error ? error.message.substring(0, 100) : 'unknown',
+            },
+          });
           // Continue to TMDB search below
         } else {
-          // If source is jikan and it fails, throw error
+          // If source is jikan and it fails, track error
+          const userId = (request as any).user?.userId || 'anonymous';
+          const { captureEvent } = await import('../lib/posthog.js');
+          captureEvent('content_search_failed', {
+            distinctId: userId,
+            properties: {
+              query: q.substring(0, 50),
+              source: 'jikan',
+              error_type: error instanceof Error ? error.message.substring(0, 100) : 'unknown',
+            },
+          });
+          // Throw error
           throw error;
         }
       }
@@ -150,6 +175,24 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         };
       })
     );
+
+    const searchTime = Date.now() - searchStartTime;
+
+    // Track search event (only for authenticated users, or track anonymously)
+    const userId = (request as any).user?.userId || 'anonymous';
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('content_searched', {
+      distinctId: userId,
+      properties: {
+        query: q.substring(0, 50), // Truncate long queries
+        source: source || 'tmdb',
+        result_count: resultsWithCacheStatus.length,
+        total_results: totalResults,
+        page: currentPage,
+        search_time_ms: searchTime,
+        type_filter: type || null,
+      },
+    });
 
     return reply.send({
       results: resultsWithCacheStatus,
@@ -293,6 +336,18 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       }
     } else if (existing) {
       // No type specified and content exists, return it
+      // Track content details viewed
+      const userId = (request as any).user?.userId || 'anonymous';
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('content_details_viewed', {
+        distinctId: userId,
+        properties: {
+          content_id: existing.id,
+          content_type: existing.content_type,
+          source: existing.data_source || 'tmdb',
+        },
+      });
+
       return reply.send(existing);
     }
 
@@ -426,6 +481,18 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+
+    // Track content details viewed (newly fetched)
+    const userId = (request as any).user?.userId || 'anonymous';
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('content_details_viewed', {
+      distinctId: userId,
+      properties: {
+        content_id: saved.id,
+        content_type: saved.content_type,
+        source: saved.data_source || 'tmdb',
+      },
+    });
 
     return reply.send(saved);
   });

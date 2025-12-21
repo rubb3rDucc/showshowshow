@@ -38,6 +38,15 @@ export const userRoutes = async (fastify: FastifyInstance) => {
     // Verify current password
     const isValid = await verifyPassword(password, user.password_hash);
     if (!isValid) {
+      // Track error
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('email_change_failed', {
+        distinctId: userId,
+        properties: {
+          error_type: 'incorrect_password',
+        },
+      });
+
       throw new UnauthorizedError('Incorrect password');
     }
 
@@ -50,8 +59,21 @@ export const userRoutes = async (fastify: FastifyInstance) => {
       .executeTakeFirst();
 
     if (existing) {
+      // Track error
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('email_change_failed', {
+        distinctId: userId,
+        properties: {
+          error_type: 'email_already_in_use',
+          new_email_domain: new_email.split('@')[1], // Anonymized
+        },
+      });
+
       throw new ConflictError('Email already in use');
     }
+
+    // Get old email before update
+    const oldEmailDomain = user.email.split('@')[1];
 
     // Update email
     const updated = await db
@@ -63,6 +85,16 @@ export const userRoutes = async (fastify: FastifyInstance) => {
       .where('id', '=', userId)
       .returning(['id', 'email', 'created_at'])
       .executeTakeFirstOrThrow();
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('email_changed', {
+      distinctId: userId,
+      properties: {
+        old_email_domain: oldEmailDomain, // Anonymized
+        new_email_domain: new_email.split('@')[1], // Anonymized
+      },
+    });
 
     return reply.send({
       success: true,
@@ -104,6 +136,15 @@ export const userRoutes = async (fastify: FastifyInstance) => {
     // Verify current password
     const isValid = await verifyPassword(current_password, user.password_hash);
     if (!isValid) {
+      // Track error
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('password_change_failed', {
+        distinctId: userId,
+        properties: {
+          error_type: 'incorrect_current_password',
+        },
+      });
+
       throw new UnauthorizedError('Incorrect current password');
     }
 
@@ -119,6 +160,13 @@ export const userRoutes = async (fastify: FastifyInstance) => {
       })
       .where('id', '=', userId)
       .execute();
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('password_changed', {
+      distinctId: userId,
+      properties: {},
+    });
 
     return reply.send({
       success: true,
@@ -153,6 +201,42 @@ export const userRoutes = async (fastify: FastifyInstance) => {
     if (user.email.toLowerCase() !== email.toLowerCase().trim()) {
       throw new ValidationError('Email does not match');
     }
+
+    // Get user stats before deletion (for analytics)
+    const librarySize = await db
+      .selectFrom('user_library')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    const queueSize = await db
+      .selectFrom('queue')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    const scheduleItemsCount = await db
+      .selectFrom('schedule')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    // Identify user before deletion (important for analytics)
+    const { identifyUser, captureEvent } = await import('../lib/posthog.js');
+    identifyUser(userId, {
+      email_domain: user.email.split('@')[1], // Anonymized
+      account_deleted_at: new Date().toISOString(),
+    });
+
+    // Track account deletion event
+    captureEvent('account_deleted', {
+      distinctId: userId,
+      properties: {
+        library_size: Number(librarySize?.count || 0),
+        queue_size: Number(queueSize?.count || 0),
+        schedule_items_count: Number(scheduleItemsCount?.count || 0),
+      },
+    });
 
     // Delete user (cascading delete will handle all related data)
     await db.deleteFrom('users').where('id', '=', userId).execute();

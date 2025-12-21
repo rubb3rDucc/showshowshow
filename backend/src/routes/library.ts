@@ -654,6 +654,17 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
     };
 
     if (!season || !episode) {
+      // Track error
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('episode_mark_failed', {
+        distinctId: userId,
+        properties: {
+          content_id: contentId,
+          error_type: 'validation_error',
+          missing_field: !season ? 'season' : 'episode',
+        },
+      });
+
       throw new ValidationError('season and episode are required');
     }
 
@@ -741,6 +752,20 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       ? Math.round((episodesWatched / totalEpisodes) * 100) 
       : 0;
 
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('episode_marked_watched', {
+      distinctId: userId,
+      properties: {
+        content_id: contentId,
+        season,
+        episode,
+        status, // watched/unwatched/skipped
+        total_episodes_watched: episodesWatched,
+        total_episodes: totalEpisodes,
+      },
+    });
+
     return reply.send({
       success: true,
       library_item: {
@@ -788,6 +813,17 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .execute();
 
     if (episodes.length === 0) {
+      // Track error
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('season_mark_failed', {
+        distinctId: userId,
+        properties: {
+          content_id: contentId,
+          season,
+          error_type: 'no_episodes_found',
+        },
+      });
+
       throw new NotFoundError('No episodes found for this season');
     }
 
@@ -839,6 +875,27 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .where('content_id', '=', contentId)
       .execute();
 
+    // Get content details for tracking
+    const content = await db
+      .selectFrom('content')
+      .select(['number_of_episodes', 'number_of_seasons'])
+      .where('id', '=', contentId)
+      .executeTakeFirst();
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('season_marked_watched', {
+      distinctId: userId,
+      properties: {
+        content_id: contentId,
+        season,
+        episodes_count: episodes.length,
+        status, // watched/unwatched
+        total_episodes_watched: episodesWatched,
+        total_episodes: content?.number_of_episodes || 0,
+      },
+    });
+
     return reply.send({ 
       success: true, 
       episodes_marked: episodes.length 
@@ -865,6 +922,16 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .execute();
 
     if (episodes.length === 0) {
+      // Track error
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('all_episodes_mark_failed', {
+        distinctId: userId,
+        properties: {
+          content_id: contentId,
+          error_type: 'no_episodes_found',
+        },
+      });
+
       throw new NotFoundError('No episodes found for this content');
     }
 
@@ -915,6 +982,26 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .where('user_id', '=', userId)
       .where('content_id', '=', contentId)
       .execute();
+
+    // Get content details for tracking
+    const content = await db
+      .selectFrom('content')
+      .select(['number_of_episodes', 'number_of_seasons'])
+      .where('id', '=', contentId)
+      .executeTakeFirst();
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('all_episodes_marked_watched', {
+      distinctId: userId,
+      properties: {
+        content_id: contentId,
+        total_episodes: episodes.length,
+        total_seasons: content?.number_of_seasons || 0,
+        status, // watched/unwatched
+        total_episodes_watched: episodesWatched,
+      },
+    });
 
     return reply.send({ 
       success: true, 

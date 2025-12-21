@@ -47,7 +47,6 @@ export const authRoutes = async (fastify: FastifyInstance) => {
         properties: {
           error_type: 'validation_error',
           missing_field: !email ? 'email' : 'password',
-          timestamp: new Date().toISOString(),
         },
       });
 
@@ -64,7 +63,6 @@ export const authRoutes = async (fastify: FastifyInstance) => {
         properties: {
           error_type: 'validation_error',
           validation_error: 'password_too_short',
-          timestamp: new Date().toISOString(),
         },
       });
 
@@ -88,7 +86,6 @@ export const authRoutes = async (fastify: FastifyInstance) => {
         properties: {
           error_type: 'user_already_exists',
           email_domain: email.split('@')[1], // Anonymized
-          timestamp: new Date().toISOString(),
         },
       });
 
@@ -148,7 +145,6 @@ export const authRoutes = async (fastify: FastifyInstance) => {
       distinctId: user.id,
       properties: {
         email_domain: user.email.split('@')[1], // Anonymized
-        timestamp: new Date().toISOString(),
       },
     });
 
@@ -175,7 +171,6 @@ export const authRoutes = async (fastify: FastifyInstance) => {
         properties: {
           error_type: 'validation_error',
           missing_field: !email ? 'email' : 'password',
-          timestamp: new Date().toISOString(),
         },
       });
 
@@ -199,7 +194,6 @@ export const authRoutes = async (fastify: FastifyInstance) => {
         properties: {
           error_type: 'user_not_found',
           email_domain: email.split('@')[1], // Anonymized
-          timestamp: new Date().toISOString(),
         },
       });
 
@@ -218,7 +212,6 @@ export const authRoutes = async (fastify: FastifyInstance) => {
         properties: {
           error_type: 'invalid_password',
           email_domain: email.split('@')[1], // Anonymized
-          timestamp: new Date().toISOString(),
         },
       });
 
@@ -243,7 +236,6 @@ export const authRoutes = async (fastify: FastifyInstance) => {
       distinctId: user.id,
       properties: {
         method: 'email',
-        timestamp: new Date().toISOString(),
       },
     });
 
@@ -291,9 +283,7 @@ export const authRoutes = async (fastify: FastifyInstance) => {
     const { captureEvent } = await import('../lib/posthog.js');
     captureEvent('user_session_verified', {
       distinctId: user.id,
-      properties: {
-        timestamp: new Date().toISOString(),
-      },
+      properties: {},
     });
 
     return reply.send({ user });
