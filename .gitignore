@@ -16,6 +16,8 @@ backend/dist/
 .env.*.local
 frontend/.env
 backend/.env
+smallweb/.env
+smallweb/.env.local
 
 # IDE
 .vscode/

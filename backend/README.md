@@ -57,30 +57,23 @@ DATABASE_URL=postgresql://postgres:password@localhost:5432/showshowshow
 
 ### 3. Environment Variables
 
-Create a `.env` file in the backend directory:
+Copy the example file and fill in your values:
 
 ```bash
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/showshowshow
-
-# Authentication
-JWT_SECRET=your-secret-key-change-in-production
-JWT_EXPIRES_IN=7d
-
-# TMDB API (get key from https://www.themoviedb.org/settings/api)
-TMDB_API_KEY=your-tmdb-api-key
-
-# PostHog Error Tracking (optional - get key from https://posthog.com)
-POSTHOG_API_KEY=your-posthog-api-key
-POSTHOG_HOST=https://us.i.posthog.com  # Optional, defaults to US instance
-
-# Frontend URL (for CORS and CSP - set in production)
-FRONTEND_URL=https://your-frontend-domain.com  # Optional, defaults to localhost:5173 in dev
-
-# Server
-PORT=3000
-NODE_ENV=development
+cp .env.example .env
 ```
+
+Then edit `.env` with your actual values. See `.env.example` for all available options.
+
+**Required variables:**
+- `DATABASE_URL` - PostgreSQL connection string
+- `JWT_SECRET` - Secret key for JWT tokens (use `openssl rand -base64 32` to generate)
+- `TMDB_API_KEY` - Get from https://www.themoviedb.org/settings/api
+
+**Important for production:**
+- `FRONTEND_URL` - Your main app domain (for CORS)
+- `LANDING_PAGE_URL` - Your landing page domain (for waitlist CORS)
+- `JWT_SECRET` - Must be at least 32 characters in production
 
 ### 4. Run Database Migrations
 

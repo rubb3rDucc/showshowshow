@@ -103,6 +103,7 @@ export const authRoutes = async (fastify: FastifyInstance) => {
       .values({
         email: email.toLowerCase().trim(),
         password_hash: passwordHash,
+        is_admin: false, // New users are not admins by default
         id: crypto.randomUUID(), // Generate UUID
         created_at: new Date(),
         updated_at: new Date(),
