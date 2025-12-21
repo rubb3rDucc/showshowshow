@@ -6,59 +6,59 @@ const registerUrl = `${appUrl}/register?trial=true`;
 
 <header class="sticky top-0 z-50 bg-white border-b-4 border-black shadow-hard">
   <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-16">
-    <div class="flex items-center justify-between h-16 md:h-20">
+    <div class="flex items-center justify-between h-12 md:h-14">
       {/* Logo */}
-      <a href="/" class="flex items-center gap-2 group">
-        <div class="bg-black text-pastel-mint px-3 py-1 font-black text-sm md:text-base border-2 border-black transform group-hover:rotate-1 transition-transform">
+      <a href="/" class="flex items-center gap-1.5 group">
+        <div class="bg-black text-pastel-mint px-2 py-0.5 font-black text-xs md:text-sm border-2 border-black transform group-hover:rotate-1 transition-transform">
           SSS
         </div>
-        <span class="font-black text-lg md:text-xl uppercase tracking-tight hidden sm:block">
+        <span class="font-black text-sm md:text-base uppercase tracking-tight hidden sm:block">
           ShowShowShow
         </span>
       </a>
 
       {/* Desktop Navigation */}
-      <div class="hidden md:flex items-center gap-6">
+      <div class="hidden md:flex items-center gap-4">
         <a
-          href="#how-it-works"
-          class="font-bold text-sm uppercase hover:bg-pastel-mint hover:text-black px-2 py-1 transition-colors"
+          href="#core-features"
+          class="font-bold text-xs uppercase hover:bg-pastel-mint hover:text-black px-2 py-1 transition-colors"
         >
-          How It Works
+          Core Features
         </a>
         <a
           href="#pricing"
-          class="font-bold text-sm uppercase hover:bg-pastel-pink hover:text-black px-2 py-1 transition-colors"
+          class="font-bold text-xs uppercase hover:bg-pastel-pink hover:text-black px-2 py-1 transition-colors"
         >
           Pricing
         </a>
         <a
           href="#faq"
-          class="font-bold text-sm uppercase hover:bg-pastel-blue hover:text-black px-2 py-1 transition-colors"
+          class="font-bold text-xs uppercase hover:bg-pastel-blue hover:text-black px-2 py-1 transition-colors"
         >
           FAQ
         </a>
-        <div class="h-6 w-1 bg-black"></div>
+        <div class="h-4 w-1 bg-black"></div>
         <a
           href={loginUrl}
-          class="font-bold text-sm uppercase border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-colors"
+          class="font-bold text-xs uppercase border-2 border-black px-3 py-1.5 hover:bg-black hover:text-white transition-colors"
         >
           Login
         </a>
         <a
-          href={registerUrl}
-          class="font-bold text-sm uppercase bg-black text-white px-4 py-2 hover:bg-pastel-mint hover:text-black transition-colors border-2 border-black"
+          href="#waitlist"
+          class="font-bold text-xs uppercase bg-black text-white px-3 py-1.5 hover:bg-pastel-mint hover:text-black transition-colors border-2 border-black"
         >
-          Start Trial
+          Join Waitlist
         </a>
       </div>
 
       {/* Mobile Menu Button */}
       <button
         id="mobile-menu-btn"
-        class="md:hidden bg-black text-white p-2 border-2 border-black hover:bg-pastel-mint hover:text-black transition-colors"
+        class="md:hidden bg-black text-white p-1.5 border-2 border-black hover:bg-pastel-mint hover:text-black transition-colors"
         aria-label="Toggle menu"
       >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
@@ -69,37 +69,37 @@ const registerUrl = `${appUrl}/register?trial=true`;
       id="mobile-menu"
       class="hidden md:hidden pb-4 border-t-4 border-black mt-2"
     >
-      <div class="flex flex-col gap-2 pt-4">
+      <div class="flex flex-col gap-2 pt-3">
         <a
-          href="#how-it-works"
-          class="font-bold text-sm uppercase hover:bg-pastel-mint hover:text-black px-2 py-2 transition-colors border-l-4 border-transparent hover:border-black"
+          href="#core-features"
+          class="font-bold text-xs uppercase hover:bg-pastel-mint hover:text-black px-2 py-1.5 transition-colors border-l-4 border-transparent hover:border-black"
         >
-          How It Works
+          Core Features
         </a>
         <a
           href="#pricing"
-          class="font-bold text-sm uppercase hover:bg-pastel-pink hover:text-black px-2 py-2 transition-colors border-l-4 border-transparent hover:border-black"
+          class="font-bold text-xs uppercase hover:bg-pastel-pink hover:text-black px-2 py-1.5 transition-colors border-l-4 border-transparent hover:border-black"
         >
           Pricing
         </a>
         <a
           href="#faq"
-          class="font-bold text-sm uppercase hover:bg-pastel-blue hover:text-black px-2 py-2 transition-colors border-l-4 border-transparent hover:border-black"
+          class="font-bold text-xs uppercase hover:bg-pastel-blue hover:text-black px-2 py-1.5 transition-colors border-l-4 border-transparent hover:border-black"
         >
           FAQ
         </a>
         <div class="h-px bg-black my-2"></div>
         <a
           href={loginUrl}
-          class="font-bold text-sm uppercase border-2 border-black px-4 py-2 text-center hover:bg-black hover:text-white transition-colors"
+          class="font-bold text-xs uppercase border-2 border-black px-3 py-1.5 text-center hover:bg-black hover:text-white transition-colors"
         >
           Login
         </a>
         <a
-          href={registerUrl}
-          class="font-bold text-sm uppercase bg-black text-white px-4 py-2 text-center hover:bg-pastel-mint hover:text-black transition-colors border-2 border-black"
+          href="#waitlist"
+          class="font-bold text-xs uppercase bg-black text-white px-3 py-1.5 text-center hover:bg-pastel-mint hover:text-black transition-colors border-2 border-black"
         >
-          Start Trial
+          Join Waitlist
         </a>
       </div>
     </div>
@@ -133,7 +133,8 @@ const registerUrl = `${appUrl}/register?trial=true`;
         e.preventDefault();
         const target = document.querySelector(href);
         if (target) {
-          const headerOffset = 80;
+          // Header is now h-12 md:h-14 (48px/56px) + border (4px) = ~60px
+          const headerOffset = 60;
           const elementPosition = target.getBoundingClientRect().top;
           const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 

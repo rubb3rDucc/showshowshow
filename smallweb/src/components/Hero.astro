@@ -3,7 +3,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.com';
 const registerUrl = `${appUrl}/register?trial=true`;
 ---
 
-<section class="relative min-h-screen flex flex-col justify-center items-center pt-20 pb-16 overflow-hidden bg-brutal-gray border-b-8 border-black">
+<section class="relative min-h-screen flex flex-col justify-center items-center pt-12 pb-10 overflow-hidden bg-brutal-gray border-b-8 border-black">
   {/* Background Elements */}
   <div class="absolute inset-0 z-0">
     {/* Diagonal Split */}
@@ -26,40 +26,40 @@ const registerUrl = `${appUrl}/register?trial=true`;
 
   <div class="relative z-10 max-w-7xl mx-auto w-full px-4">
     {/* Header Content */}
-    <div class="flex flex-col items-center text-center mb-16">
-      <div class="inline-block bg-black text-pastel-mint px-4 py-2 font-bold text-sm md:text-lg border-4 border-black shadow-hard mb-8 rotate-2">
+    <div class="flex flex-col items-center text-center mb-10">
+      <div class="inline-block bg-black text-pastel-mint px-3 py-1.5 font-bold text-xs md:text-sm border-4 border-black shadow-hard mb-6 rotate-2">
         <span class="animate-pulse mr-2">█</span>
         BETA_ACCESS_GRANTED
       </div>
 
-      <h1 class="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tight mb-6 leading-tight uppercase relative">
-        <span class="block bg-white border-4 border-black px-4 py-2 shadow-hard transform -rotate-1 mb-4">
+      <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight mb-4 leading-tight uppercase relative">
+        <span class="block bg-white border-4 border-black px-3 py-2 shadow-hard transform -rotate-1 mb-3">
           YOU CHOOSE WHAT.
         </span>
-        <span class="block bg-pastel-yellow border-4 border-black px-4 py-2 shadow-hard transform rotate-1">
+        <span class="block bg-pastel-yellow border-4 border-black px-3 py-2 shadow-hard transform rotate-1">
           YOU CHOOSE HOW.
         </span>
       </h1>
 
-      <p class="text-base sm:text-lg md:text-2xl font-bold bg-white border-4 border-black p-4 shadow-hard max-w-2xl mx-auto mb-10 transform -rotate-1">
+      <p class="text-sm sm:text-base md:text-lg font-bold bg-white border-4 border-black p-3 shadow-hard max-w-2xl mx-auto mb-8 transform -rotate-1">
         <span class="bg-pastel-pink px-1">NO ALGORITHMS.</span>{' '}
         <span class="bg-pastel-blue px-1">NO SOCIAL NOISE.</span>
         <br />
         JUST RAW, UNFILTERED CONTROL.
       </p>
 
-      <div class="flex flex-col sm:flex-row gap-6 justify-center items-center">
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
         <a
-          href={registerUrl}
-          class="bg-white text-black font-mono font-bold text-lg md:text-xl border-4 border-black hover:bg-pastel-yellow transition-all shadow-hard hover:shadow-none hover:translate-x-2 hover:translate-y-2 uppercase h-14 md:h-16 px-6 md:px-8 w-full sm:w-auto flex items-center justify-center"
+          href="#waitlist"
+          class="bg-white text-black font-mono font-bold text-sm md:text-base border-4 border-black hover:bg-pastel-yellow transition-all shadow-hard hover:shadow-none hover:translate-x-2 hover:translate-y-2 uppercase h-12 md:h-14 px-5 md:px-6 w-full sm:w-auto flex items-center justify-center"
         >
-          Start Free Trial
+          Join Waitlist
         </a>
         <button
-          id="how-it-works-btn"
-          class="bg-white text-black font-mono font-bold text-lg md:text-xl border-4 border-black hover:bg-pastel-yellow transition-all shadow-hard hover:shadow-none hover:translate-x-2 hover:translate-y-2 uppercase h-14 md:h-16 px-6 md:px-8 w-full sm:w-auto"
+          id="core-features-btn"
+          class="bg-white text-black font-mono font-bold text-sm md:text-base border-4 border-black hover:bg-pastel-yellow transition-all shadow-hard hover:shadow-none hover:translate-x-2 hover:translate-y-2 uppercase h-12 md:h-14 px-5 md:px-6 w-full sm:w-auto"
         >
-          How It Works
+          Core Features
         </button>
       </div>
     </div>
@@ -67,23 +67,23 @@ const registerUrl = `${appUrl}/register?trial=true`;
     {/* Visual Demo - Brutalist Split */}
     <div class="relative max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-0 border-4 border-black shadow-hard bg-white">
       {/* Left: Manual Control */}
-      <div class="bg-pastel-mint p-6 border-b-4 md:border-b-0 md:border-r-4 border-black relative overflow-hidden group">
-        <div class="absolute top-0 right-0 bg-black text-white px-2 py-1 text-xs font-bold font-mono">
+      <div class="bg-pastel-mint p-4 border-b-4 md:border-b-0 md:border-r-4 border-black relative overflow-hidden group">
+        <div class="absolute top-0 right-0 bg-black text-white px-2 py-1 text-[10px] font-bold font-mono">
           MANUAL_OVERRIDE
         </div>
-        <div class="flex items-center gap-2 mb-6 border-b-4 border-black pb-4">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-center gap-2 mb-4 border-b-4 border-black pb-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span class="font-black text-lg md:text-xl">
+          <span class="font-black text-sm md:text-base">
             QUEUE_CONTROLLER
           </span>
         </div>
 
-        <div class="space-y-4">
-          <div class="bg-white border-4 border-black p-4 shadow-hard-sm hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-grab active:cursor-grabbing">
+        <div class="space-y-3">
+          <div class="bg-white border-4 border-black p-3 shadow-hard-sm hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-grab active:cursor-grabbing">
             <div class="flex justify-between items-center">
-              <span class="font-bold text-sm md:text-base">
+              <span class="font-bold text-xs md:text-sm">
                 EPISODE_01
               </span>
               <div class="flex gap-1">
@@ -92,20 +92,20 @@ const registerUrl = `${appUrl}/register?trial=true`;
               </div>
             </div>
           </div>
-          <div class="bg-white border-4 border-black p-4 shadow-hard-sm hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-grab active:cursor-grabbing">
+          <div class="bg-white border-4 border-black p-3 shadow-hard-sm hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-grab active:cursor-grabbing">
             <div class="flex justify-between items-center">
-              <span class="font-bold text-sm md:text-base">
+              <span class="font-bold text-xs md:text-sm">
                 EPISODE_02
               </span>
               <div class="flex gap-1">
-                <div class="w-3 h-3 bg-black"></div>
-                <div class="w-3 h-3 bg-black"></div>
+                <div class="w-2.5 h-2.5 bg-black"></div>
+                <div class="w-2.5 h-2.5 bg-black"></div>
               </div>
             </div>
           </div>
-          <div class="bg-white border-4 border-black p-4 shadow-hard-sm hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-grab active:cursor-grabbing">
+          <div class="bg-white border-4 border-black p-3 shadow-hard-sm hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-grab active:cursor-grabbing">
             <div class="flex justify-between items-center">
-              <span class="font-bold text-sm md:text-base">
+              <span class="font-bold text-xs md:text-sm">
                 EPISODE_03
               </span>
               <div class="flex gap-1">
@@ -118,39 +118,39 @@ const registerUrl = `${appUrl}/register?trial=true`;
       </div>
 
       {/* Right: Automated Schedule */}
-      <div class="bg-pastel-pink p-6 relative overflow-hidden">
-        <div class="absolute top-0 left-0 bg-black text-white px-2 py-1 text-xs font-bold font-mono">
+      <div class="bg-pastel-pink p-4 relative overflow-hidden">
+        <div class="absolute top-0 left-0 bg-black text-white px-2 py-1 text-[10px] font-bold font-mono">
           AUTO_PILOT
         </div>
-        <div class="flex items-center gap-2 mb-6 border-b-4 border-black pb-4">
-          <div class="w-6 h-6 bg-black animate-pulse"></div>
-          <span class="font-black text-lg md:text-xl">
+        <div class="flex items-center gap-2 mb-4 border-b-4 border-black pb-3">
+          <div class="w-5 h-5 bg-black animate-pulse"></div>
+          <span class="font-black text-sm md:text-base">
             SCHEDULE_DAEMON
           </span>
         </div>
 
         <div class="space-y-0">
           <div class="flex border-4 border-black bg-white mb-[-4px] relative z-10">
-            <div class="bg-black text-white p-2 font-bold w-16 md:w-20 flex items-center justify-center text-xs md:text-sm">
+            <div class="bg-black text-white p-1.5 font-bold w-14 md:w-16 flex items-center justify-center text-[10px] md:text-xs">
               20:00
             </div>
-            <div class="p-2 font-bold flex-1 bg-pastel-yellow text-xs md:text-sm">
+            <div id="schedule-item-1" class="p-1.5 font-bold flex-1 bg-pastel-yellow text-[10px] md:text-xs transition-colors">
               THE_OFFICE
             </div>
           </div>
-          <div class="flex border-4 border-black bg-white mb-[-4px] relative z-20 ml-4">
-            <div class="bg-black text-white p-2 font-bold w-16 md:w-20 flex items-center justify-center text-xs md:text-sm">
+          <div class="flex border-4 border-black bg-white mb-[-4px] relative z-20 ml-3">
+            <div class="bg-black text-white p-1.5 font-bold w-14 md:w-16 flex items-center justify-center text-[10px] md:text-xs">
               20:30
             </div>
-            <div class="p-2 font-bold flex-1 bg-pastel-blue text-xs md:text-sm">
+            <div id="schedule-item-2" class="p-1.5 font-bold flex-1 bg-pastel-blue text-[10px] md:text-xs transition-colors">
               PARKS_REC
             </div>
           </div>
-          <div class="flex border-4 border-black bg-white relative z-30 ml-8">
-            <div class="bg-black text-white p-2 font-bold w-16 md:w-20 flex items-center justify-center text-xs md:text-sm">
+          <div class="flex border-4 border-black bg-white relative z-30 ml-6">
+            <div class="bg-black text-white p-1.5 font-bold w-14 md:w-16 flex items-center justify-center text-[10px] md:text-xs">
               21:00
             </div>
-            <div class="p-2 font-bold flex-1 bg-pastel-mint text-xs md:text-sm">
+            <div id="schedule-item-3" class="p-1.5 font-bold flex-1 bg-pastel-mint text-[10px] md:text-xs transition-colors">
               BREAKING_BAD S1E2
             </div>
           </div>
@@ -173,14 +173,74 @@ const registerUrl = `${appUrl}/register?trial=true`;
     }
   }
 
-  // Add click handler for "How It Works" button
+  // Schedule rotation data - shows and movies
+  const scheduleItems = [
+    // TV Shows
+    { name: 'THE_OFFICE', color: 'bg-pastel-yellow' },
+    { name: 'PARKS_REC', color: 'bg-pastel-blue' },
+    { name: 'BREAKING_BAD S1E2', color: 'bg-pastel-mint' },
+    { name: 'GAME_OF_THRONES', color: 'bg-pastel-yellow' },
+    { name: 'STRANGER_THINGS', color: 'bg-pastel-purple' },
+    { name: 'THE_CROWN', color: 'bg-pastel-blue' },
+    { name: 'SUCCESSION S3E5', color: 'bg-pastel-mint' },
+    { name: 'THE_BEAR', color: 'bg-pastel-orange' },
+    { name: 'SEVERANCE', color: 'bg-pastel-purple' },
+    // Movies
+    { name: 'THE_MATRIX', color: 'bg-pastel-yellow' },
+    { name: 'INCEPTION', color: 'bg-pastel-purple' },
+    { name: 'BLADE_RUNNER_2049', color: 'bg-pastel-blue' },
+    { name: 'DUNE', color: 'bg-pastel-mint' },
+    { name: 'EVERYTHING_EVERYWHERE', color: 'bg-pastel-orange' },
+    { name: 'PARASITE', color: 'bg-pastel-yellow' },
+    { name: 'MAD_MAX_FURY', color: 'bg-pastel-orange' },
+    // Anime
+    { name: 'ATTACK_ON_TITAN', color: 'bg-pastel-purple' },
+    { name: 'COWBOY_BEBOP', color: 'bg-pastel-yellow' },
+    { name: 'SPIRITED_AWAY', color: 'bg-pastel-blue' },
+  ];
+
+  // Rotate schedule items
+  function rotateSchedule() {
+    // Shuffle the array to get random combinations
+    const shuffled = [...scheduleItems].sort(() => Math.random() - 0.5);
+    
+    const item1 = document.getElementById('schedule-item-1');
+    const item2 = document.getElementById('schedule-item-2');
+    const item3 = document.getElementById('schedule-item-3');
+    
+    if (item1 && item2 && item3) {
+      // Remove all pastel color classes (excluding pink since background is pink)
+      const pastelColors = ['bg-pastel-yellow', 'bg-pastel-blue', 'bg-pastel-mint', 'bg-pastel-purple', 'bg-pastel-orange'];
+      pastelColors.forEach(color => {
+        item1.classList.remove(color);
+        item2.classList.remove(color);
+        item3.classList.remove(color);
+      });
+      
+      // Set new content and colors
+      item1.textContent = shuffled[0].name;
+      item1.classList.add(shuffled[0].color);
+      
+      item2.textContent = shuffled[1].name;
+      item2.classList.add(shuffled[1].color);
+      
+      item3.textContent = shuffled[2].name;
+      item3.classList.add(shuffled[2].color);
+    }
+  }
+
+  // Add click handler for "Core Features" button
   document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('how-it-works-btn');
+    const btn = document.getElementById('core-features-btn');
     if (btn) {
       btn.addEventListener('click', () => {
-        scrollToSection('how-it-works');
+        scrollToSection('core-features');
       });
     }
+    
+    // Start rotating schedule items every 3 seconds
+    rotateSchedule(); // Initial rotation
+    setInterval(rotateSchedule, 3000);
   });
 </script>
 

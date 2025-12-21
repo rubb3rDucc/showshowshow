@@ -1,21 +1,30 @@
 ---
+import RotatingImage from './RotatingImage.astro';
+
+// Configure your screenshot images here
+const screenshotImages = [
+  '/images/schedule1.png',
+  '/images/schedule2.png',
+  '/images/schedule3.png',
+  // Add more image paths as needed
+].filter(Boolean); // Remove any undefined/null values
 ---
 
-<section class="py-32 bg-pastel-yellow border-b-8 border-black relative">
+<section id="core-features" class="py-12 bg-pastel-yellow border-b-8 border-black relative" style="scroll-margin-top: 60px;">
   {/* Barcode Divider */}
   <div class="absolute top-0 left-0 w-full h-8 bg-barcode"></div>
 
   <div class="max-w-7xl mx-auto px-4">
-    <div class="text-center mb-16">
-      <h2 class="text-3xl sm:text-4xl md:text-6xl font-black uppercase bg-white border-4 border-black inline-block px-4 md:px-8 py-2 md:py-4 shadow-hard transform rotate-1 mb-4">
+    <div class="text-center mb-10">
+      <h2 class="text-2xl sm:text-3xl md:text-4xl font-black uppercase bg-white border-4 border-black inline-block px-3 md:px-6 py-2 md:py-3 shadow-hard transform rotate-1 mb-3">
         CORE_FEATURES
       </h2>
-      <p class="text-sm md:text-base font-bold font-mono mt-6 bg-black text-pastel-mint inline-block px-4 py-2 border-4 border-black">
+      <p class="text-xs md:text-sm font-bold font-mono mt-4 bg-black text-pastel-mint inline-block px-3 py-1.5 border-4 border-black">
         // Three pillars of control
       </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 items-start">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
       {/* Feature 1 */}
       <div class="group relative mt-0 md:mt-12">
         <div class="absolute inset-0 bg-black translate-x-4 translate-y-4"></div>
@@ -25,10 +34,10 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
           </div>
-          <h3 class="text-2xl md:text-3xl font-black mb-4 mt-8 uppercase bg-white border-4 border-black inline-block px-2 transform -rotate-2">
+          <h3 class="text-lg md:text-xl font-black mb-3 mt-6 uppercase bg-white border-4 border-black inline-block px-2 transform -rotate-2">
             Your Queue, Your Choice
           </h3>
-          <p class="font-bold text-sm md:text-base mb-4 leading-relaxed">
+          <p class="font-bold text-xs md:text-sm mb-3 leading-relaxed">
             Curate your own lineup. Mix movies, TV shows, anime, and web
             series. Prioritize what matters to you, not what's trending
             globally.
@@ -53,11 +62,11 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
             </svg>
           </div>
-          <h3 class="text-2xl md:text-3xl font-black mb-4 mt-8 uppercase bg-white border-4 border-black inline-block px-2 transform rotate-1 text-center w-full">
+          <h3 class="text-lg md:text-xl font-black mb-3 mt-6 uppercase bg-white border-4 border-black inline-block px-2 transform rotate-1 text-center w-full">
             Schedule Your Way
           </h3>
-          <p class="font-bold text-sm md:text-base mb-4 leading-relaxed">
-            Click to schedule manually, or let our smart scheduler
+          <p class="font-bold text-xs md:text-sm mb-3 leading-relaxed">
+            Click to schedule manually, or let the smart scheduler
             fill your available time slots automatically. Flexibility meets
             structure.
           </p>
@@ -80,10 +89,10 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
-          <h3 class="text-2xl md:text-3xl font-black mb-4 mt-8 uppercase bg-white border-4 border-black inline-block px-2 transform -rotate-1">
+          <h3 class="text-lg md:text-xl font-black mb-3 mt-6 uppercase bg-white border-4 border-black inline-block px-2 transform -rotate-1">
             Private & Personal
           </h3>
-          <p class="font-bold text-sm md:text-base mb-4 leading-relaxed">
+          <p class="font-bold text-xs md:text-sm mb-3 leading-relaxed">
             No social feeds. No "friends are watching" notifications. Just
             you and your content, free from judgment and noise.
           </p>
@@ -99,19 +108,28 @@
     </div>
 
     {/* App Screenshot Placeholder */}
-    <div class="mt-20 relative">
+    <div class="mt-12 relative">
       <div class="absolute -top-4 -left-4 bg-black text-white px-3 py-1 text-xs font-bold font-mono z-10">
         SCREENSHOT_001
       </div>
       <div class="border-4 border-black bg-white p-8 shadow-hard">
-        <div class="aspect-video bg-brutal-gray border-4 border-dashed border-black flex items-center justify-center">
-          <img
-  src="../../public/images/schedule1.png"
-  alt="Scheduling Interface (Manual & Auto)"
-  class="w-full border-4 border-black shadow-hard"
-/>
-          
-          
+        <div class="aspect-video bg-brutal-gray border-4 border-black overflow-hidden">
+          {screenshotImages.length > 0 ? (
+            <RotatingImage
+              images={screenshotImages}
+              alt="Scheduling Interface (Manual & Auto)"
+              interval={4000}
+              class="border-4 border-black shadow-hard"
+            />
+          ) : (
+            <div class="w-full h-full border-4 border-dashed border-black flex items-center justify-center">
+              <div class="text-center">
+                <div class="text-5xl mb-4">📱</div>
+                <p class="font-bold text-sm">Add images to /public/images/</p>
+                <p class="font-mono text-xs mt-2">schedule1.png, schedule2.png, etc.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

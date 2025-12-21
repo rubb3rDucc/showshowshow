@@ -80,9 +80,32 @@ smallweb/
 ## Features
 
 - Single-page marketing site
-- Dark theme matching app design
+- Brutalist design aesthetic
 - Responsive design
 - SEO optimized
 - Umami analytics integration
-- Succinct copywriting
-- Privacy-focused messaging
+- Image rotation system
+- Waitlist signup
+- Legal pages (Privacy, Terms, Contact)
+
+## Images
+
+Screenshot images should be placed in `/public/images/`:
+
+- **Features section**: `schedule1.png`, `schedule2.png`, `schedule3.png`
+- **HowItWorks section**: `scheduling-interface.png`, `scheduling-interface-2.png`, etc.
+- **Pricing section**: `billing-dashboard.png`, `billing-dashboard-2.png`, etc.
+- **UseCases section**: `user-profile.png`, `user-profile-2.png`, etc.
+- **Comparison section**: `comparison-view.png`, `comparison-view-2.png`, etc.
+
+Images will automatically rotate every 4 seconds. Update the image arrays in each component's frontmatter.
+
+## Missing Assets
+
+Before deployment, add:
+- `/public/favicon.ico` (or `.svg`)
+- `/public/og-image.png` (1200x630px for social sharing)
+
+## TODO
+
+See `COMPLETION_CHECKLIST.md` for full list of remaining tasks.

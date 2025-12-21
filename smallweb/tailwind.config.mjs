@@ -4,7 +4,7 @@ export default {
   safelist: [
     // Pastel colors - all variants
     {
-      pattern: /(bg|text|border)-(pastel-mint|pastel-pink|pastel-blue|pastel-yellow|pastel-purple|brutal-gray|brutal-black|brutal-white)/,
+      pattern: /(bg|text|border)-(pastel-mint|pastel-pink|pastel-blue|pastel-yellow|pastel-purple|pastel-orange|brutal-gray|brutal-black|brutal-white)/,
       variants: ['hover'],
     },
     // If you add new pastel colors, add them to the pattern above:

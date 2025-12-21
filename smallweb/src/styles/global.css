@@ -20,6 +20,7 @@
     color: #000000;
     font-family: 'Space Mono', monospace;
     overflow-x: hidden;
+    font-size: 14px; /* Reduced base font size */
   }
 
   /* Force hard edges everywhere */
@@ -73,11 +74,11 @@
   }
   
   .section-padding {
-    @apply py-16 sm:py-20 lg:py-24;
+    @apply py-8 sm:py-12 lg:py-16;
   }
   
   .btn-primary {
-    @apply bg-[var(--color-mint)] text-black px-8 py-4 font-bold text-lg hover:bg-[var(--color-pink)] transition-colors;
+    @apply bg-[var(--color-mint)] text-black px-6 py-3 font-bold text-sm md:text-base hover:bg-[var(--color-pink)] transition-colors;
     box-shadow: 
       -4px 0 0 0 black,
       4px 0 0 0 black,
@@ -87,26 +88,26 @@
   }
   
   .btn-secondary {
-    @apply bg-transparent border-4 border-black text-black px-8 py-4 font-bold text-lg hover:bg-black hover:text-white transition-colors;
+    @apply bg-transparent border-4 border-black text-black px-6 py-3 font-bold text-sm md:text-base hover:bg-black hover:text-white transition-colors;
   }
   
   .heading-1 {
-    @apply text-4xl sm:text-5xl lg:text-6xl font-bold mb-6;
+    @apply text-2xl sm:text-3xl lg:text-4xl font-bold mb-4;
     font-family: 'JetBrains Mono', monospace;
   }
   
   .heading-2 {
-    @apply text-3xl sm:text-4xl lg:text-5xl font-bold mb-4;
+    @apply text-xl sm:text-2xl lg:text-3xl font-bold mb-3;
     font-family: 'JetBrains Mono', monospace;
   }
   
   .heading-3 {
-    @apply text-2xl sm:text-3xl font-bold mb-3;
+    @apply text-lg sm:text-xl font-bold mb-2;
     font-family: 'JetBrains Mono', monospace;
   }
   
   .text-body {
-    @apply text-lg sm:text-xl leading-relaxed;
+    @apply text-sm sm:text-base leading-relaxed;
   }
 
   .shadow-hard {
