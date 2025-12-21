@@ -12,15 +12,19 @@ pnpm install
 npm install
 ```
 
-2. Create `.env` file:
+2. Copy the example environment file and fill in your values:
 ```bash
-# App URL
-PUBLIC_APP_URL=https://app.showshowshow.com
-
-# Umami Analytics (optional)
-PUBLIC_UMAMI_URL=https://umami.example.com
-PUBLIC_UMAMI_ID=your-website-id
+cp .env.example .env
 ```
+
+Then edit `.env` with your actual values. See `.env.example` for all available options.
+
+**Required for waitlist:**
+- `PUBLIC_API_URL` - Your backend API URL (e.g., `https://api.showshowshow.com`)
+
+**Optional:**
+- `PUBLIC_APP_URL` - Main app URL for links
+- `PUBLIC_UMAMI_URL` & `PUBLIC_UMAMI_ID` - Analytics (optional)
 
 ## Development
 
@@ -52,17 +56,20 @@ npm run preview
 
 ## Deployment
 
-### Vercel
+See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for detailed deployment instructions.
 
-1. Connect your repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy
+**Quick start (Vercel - Recommended):**
 
-### Netlify
+1. Push code to GitHub
+2. Go to [vercel.com](https://vercel.com) and import your repository
+3. Set root directory to `smallweb`
+4. Add environment variables:
+   - `PUBLIC_API_URL` (required)
+   - `PUBLIC_APP_URL` (optional)
+   - `PUBLIC_UMAMI_URL` & `PUBLIC_UMAMI_ID` (optional)
+5. Deploy!
 
-1. Connect your repository to Netlify
-2. Set environment variables in Netlify dashboard
-3. Deploy
+Vercel auto-detects Astro and requires zero configuration. See `DEPLOYMENT.md` for Netlify, Cloudflare Pages, and other options.
 
 ## Project Structure
 
@@ -80,9 +87,32 @@ smallweb/
 ## Features
 
 - Single-page marketing site
-- Dark theme matching app design
+- Brutalist design aesthetic
 - Responsive design
 - SEO optimized
 - Umami analytics integration
-- Succinct copywriting
-- Privacy-focused messaging
+- Image rotation system
+- Waitlist signup
+- Legal pages (Privacy, Terms, Contact)
+
+## Images
+
+Screenshot images should be placed in `/public/images/`:
+
+- **Features section**: `schedule1.png`, `schedule2.png`, `schedule3.png`
+- **HowItWorks section**: `scheduling-interface.png`, `scheduling-interface-2.png`, etc.
+- **Pricing section**: `billing-dashboard.png`, `billing-dashboard-2.png`, etc.
+- **UseCases section**: `user-profile.png`, `user-profile-2.png`, etc.
+- **Comparison section**: `comparison-view.png`, `comparison-view-2.png`, etc.
+
+Images will automatically rotate every 4 seconds. Update the image arrays in each component's frontmatter.
+
+## Missing Assets
+
+Before deployment, add:
+- `/public/favicon.ico` (or `.svg`)
+- `/public/og-image.png` (1200x630px for social sharing)
+
+## TODO
+
+See `COMPLETION_CHECKLIST.md` for full list of remaining tasks.

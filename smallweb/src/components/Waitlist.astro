@@ -1,0 +1,125 @@
+---
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+---
+
+<section id="waitlist" class="py-12 bg-pastel-mint border-b-8 border-black" style="scroll-margin-top: 60px;" data-api-url={apiUrl}>
+  <div class="max-w-2xl mx-auto px-4">
+    <div class="text-center mb-8">
+      <h2 class="text-2xl sm:text-3xl md:text-4xl font-black uppercase bg-black text-white inline-block px-3 md:px-6 py-2 md:py-3 shadow-hard transform rotate-1 mb-3">
+        GET RELEASE UPDATES
+      </h2>
+      <p class="text-xs md:text-sm font-bold font-mono mt-4 bg-white border-4 border-black inline-block px-3 py-1.5">
+        // Be first to know when beta launches
+      </p>
+    </div>
+
+    <div class="bg-white border-4 border-black shadow-hard p-6 md:p-8">
+      <p class="font-mono text-xs md:text-sm font-bold mb-6 text-center">
+        Sign up to get notified when ShowShowShow launches. You'll be among the first to access the beta.
+      </p>
+
+      <form class="space-y-4" id="waitlist-form">
+        <div>
+          <label for="email" class="block font-mono font-bold text-xs md:text-sm mb-2 uppercase">
+            Email_Address
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            class="w-full border-4 border-black p-3 font-mono text-sm bg-white focus:outline-none focus:bg-pastel-yellow transition-colors"
+            placeholder="your@email.com"
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="w-full bg-black text-white border-4 border-black font-black uppercase text-sm md:text-base h-12 md:h-14 hover:bg-pastel-mint hover:text-black transition-all shadow-hard hover:shadow-none hover:translate-x-1 hover:translate-y-1"
+        >
+          Join Waitlist
+        </button>
+      </form>
+
+      <div class="mt-6 pt-6 border-t-4 border-black border-dashed">
+        <p class="font-mono text-xs font-bold text-center">
+          <span class="bg-pastel-yellow px-2 py-1">PRICING_ON_RELEASE:</span>
+          <br />
+          $4.99/month • Cancel anytime • No hidden fees
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('waitlist-form');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const emailInput = document.getElementById('email') as HTMLInputElement;
+        const email = emailInput.value;
+        const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const formContainer = form.parentElement;
+        
+        // Disable button
+        submitButton.disabled = true;
+        const originalText = submitButton.textContent;
+        submitButton.textContent = 'Joining...';
+        
+        try {
+          const section = document.getElementById('waitlist');
+          const apiUrl = section?.getAttribute('data-api-url') || 'http://localhost:3000';
+          const response = await fetch(`${apiUrl}/api/waitlist`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              email: email,
+              source: 'landing_page'
+            }),
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok) {
+            // Success - replace form with success message
+            if (formContainer) {
+              formContainer.innerHTML = `
+                <div class="bg-pastel-mint border-4 border-black p-6 text-center">
+                  <div class="mb-4">
+                    <div class="text-4xl mb-3">✅</div>
+                    <p class="font-mono font-bold text-sm md:text-base mb-2">
+                      ${data.message}
+                    </p>
+                    <p class="font-mono text-xs">
+                      We'll email you when ShowShowShow launches!
+                    </p>
+                  </div>
+                </div>
+                <div class="mt-6 pt-6 border-t-4 border-black border-dashed">
+                  <p class="font-mono text-xs font-bold text-center">
+                    <span class="bg-pastel-yellow px-2 py-1">PRICING_ON_RELEASE:</span>
+                    <br />
+                    $4.99/month • Cancel anytime • No hidden fees
+                  </p>
+                </div>
+              `;
+            }
+          } else {
+            throw new Error(data.error || data.message || 'Something went wrong');
+          }
+        } catch (error) {
+          // Show error message
+          const errorMsg = error instanceof Error ? error.message : 'Network error. Please try again.';
+          alert(`Error: ${errorMsg}`);
+          submitButton.disabled = false;
+          submitButton.textContent = originalText;
+        }
+      });
+    }
+  });
+</script>
+

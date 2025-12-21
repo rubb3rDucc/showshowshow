@@ -1,19 +1,29 @@
 ---
+import RotatingImage from './RotatingImage.astro';
+
 const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.com';
 const registerUrl = `${appUrl}/register?trial=true`;
+
+// Configure your screenshot images here
+const screenshotImages = [
+  '/images/billing-dashboard.png',
+  '/images/billing-dashboard-2.png',
+  '/images/billing-dashboard-3.png',
+  // Add more image paths as needed
+].filter(Boolean);
 ---
 
-<section class="py-32 bg-white border-b-8 border-black relative overflow-hidden">
+<section id="pricing" class="py-12 bg-white border-b-8 border-black relative overflow-hidden" style="scroll-margin-top: 60px;">
   {/* Background Shapes */}
   <div class="absolute top-0 left-0 w-1/2 h-full bg-pastel-pink opacity-30" style="clip-path: polygon(0 0, 100% 0, 60% 100%, 0% 100%);"></div>
   <div class="absolute bottom-0 right-0 w-1/2 h-full bg-pastel-mint opacity-30" style="clip-path: polygon(40% 0, 100% 0, 100% 100%, 0% 100%);"></div>
 
   <div class="max-w-4xl mx-auto px-4 relative z-10">
-    <div class="text-center mb-16">
-      <h2 id="pricing" class="text-3xl sm:text-4xl md:text-6xl font-black uppercase bg-black text-white inline-block px-4 md:px-8 py-2 md:py-4 shadow-hard transform rotate-1 mb-4">
+    <div class="text-center mb-10">
+      <h2 class="text-2xl sm:text-3xl md:text-4xl font-black uppercase bg-black text-white inline-block px-3 md:px-6 py-2 md:py-3 shadow-hard transform rotate-1 mb-3">
         SIMPLE, TRANSPARENT PRICING
       </h2>
-      <p class="text-sm md:text-base font-bold font-mono mt-6 bg-pastel-yellow inline-block px-4 py-2 border-4 border-black">
+      <p class="text-xs md:text-sm font-bold font-mono mt-4 bg-pastel-yellow inline-block px-3 py-1.5 border-4 border-black">
         // One plan. All features. Total control.
       </p>
     </div>
@@ -21,30 +31,30 @@ const registerUrl = `${appUrl}/register?trial=true`;
     <div class="relative bg-white border-4 border-black shadow-hard max-w-md mx-auto transform rotate-1">
       {/* Header */}
       <div class="bg-black text-white p-4 text-center border-b-4 border-black">
-        <span class="font-mono font-bold text-xl uppercase tracking-widest">
+        <span class="font-mono font-bold text-base uppercase tracking-widest">
           PRO_ACCESS
         </span>
       </div>
 
-      <div class="p-8 md:p-12 text-center relative">
+      <div class="p-6 md:p-8 text-center relative">
         {/* Price Tag */}
-        <div class="absolute -top-6 -right-6 bg-pastel-yellow border-4 border-black p-4 shadow-hard-sm rotate-12">
-          <span class="font-black text-3xl">$4.99</span>
+        <div class="absolute -top-5 -right-5 bg-pastel-yellow border-4 border-black p-3 shadow-hard-sm rotate-12">
+          <span class="font-black text-xl">$4.99</span>
         </div>
 
-        <h3 class="text-2xl font-black uppercase mb-6">Monthly_Sub</h3>
+        <h3 class="text-lg font-black uppercase mb-4">Coming_Soon</h3>
 
         <div class="mb-8 font-mono font-bold bg-gray-100 p-4 border-2 border-black border-dashed text-sm">
-          &lt;status&gt;ACTIVE&lt;/status&gt;
+          &lt;status&gt;BETA&lt;/status&gt;
           <br />
-          &lt;trial&gt;7_DAYS&lt;/trial&gt;
+          &lt;price&gt;$4.99/MONTH&lt;/price&gt;
         </div>
 
         <a
-          href={registerUrl}
-          class="bg-pastel-blue text-black border-4 border-black font-black uppercase text-lg md:text-xl h-14 md:h-16 hover:bg-pastel-mint hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-hard transition-all mb-4 w-full flex items-center justify-center"
+          href="#waitlist"
+          class="bg-pastel-blue text-black border-4 border-black font-black uppercase text-sm md:text-base h-12 md:h-14 hover:bg-pastel-mint hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-hard transition-all mb-4 w-full flex items-center justify-center"
         >
-          Start Free Trial
+          Join Waitlist
         </a>
 
         {/* Trust Elements */}
@@ -115,24 +125,33 @@ const registerUrl = `${appUrl}/register?trial=true`;
       </div>
 
       <div class="p-4 bg-pastel-yellow border-t-4 border-black text-center font-mono text-xs font-bold uppercase">
-        Cancel anytime • No charge until trial ends
+        Cancel anytime • $4.99/month • No hidden fees
       </div>
     </div>
 
     {/* App Screenshot Placeholder */}
-    <div class="mt-20 relative max-w-3xl mx-auto">
+    <div class="mt-12 relative max-w-3xl mx-auto">
       <div class="absolute -top-4 -left-4 bg-black text-white px-3 py-1 text-xs font-bold font-mono z-10 -rotate-3">
         SCREENSHOT_005
       </div>
       <div class="border-4 border-black bg-brutal-gray p-8 shadow-hard transform rotate-2">
-        <div class="aspect-video bg-white border-4 border-dashed border-black flex items-center justify-center">
-          <div class="text-center">
-            <div class="text-6xl mb-4">💳</div>
-            <p class="font-bold text-lg">APP SCREENSHOT PLACEHOLDER</p>
-            <p class="font-mono text-sm mt-2">
-              Subscription & Billing Dashboard
-            </p>
-          </div>
+        <div class="aspect-video bg-white border-4 border-black overflow-hidden">
+          {screenshotImages.length > 0 ? (
+            <RotatingImage
+              images={screenshotImages}
+              alt="Subscription & Billing Dashboard"
+              interval={4000}
+              class="border-4 border-black shadow-hard"
+            />
+          ) : (
+            <div class="w-full h-full border-4 border-dashed border-black flex items-center justify-center">
+              <div class="text-center">
+                <div class="text-5xl mb-4">💳</div>
+                <p class="font-bold text-sm">Add images to /public/images/</p>
+                <p class="font-mono text-xs mt-2">billing-dashboard.png, etc.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

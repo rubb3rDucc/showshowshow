@@ -1,0 +1,64 @@
+---
+interface Props {
+  images: string[];
+  alt: string;
+  interval?: number; // milliseconds, default 3000
+  class?: string;
+}
+
+const { images, alt, interval = 3000, class: className = '' } = Astro.props;
+const uniqueId = `rotating-image-${Math.random().toString(36).substr(2, 9)}`;
+---
+
+<div class={`rotating-image-container ${className}`} data-rotator-id={uniqueId}>
+  <img
+    src={images[0]}
+    alt={alt}
+    class="rotating-image w-full h-full object-cover"
+    data-images={JSON.stringify(images)}
+    data-interval={interval}
+  />
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const containers = document.querySelectorAll('[data-rotator-id]');
+    
+    containers.forEach((container) => {
+      const img = container.querySelector('.rotating-image');
+      if (!img) return;
+      
+      const images = JSON.parse(img.getAttribute('data-images') || '[]');
+      const interval = parseInt(img.getAttribute('data-interval') || '3000');
+      
+      if (images.length <= 1) return; // No need to rotate if only one image
+      
+      let currentIndex = 0;
+      
+      // Preload images
+      images.forEach((src: string) => {
+        const preloadImg = new Image();
+        preloadImg.src = src;
+      });
+      
+      // Rotate images
+      setInterval(() => {
+        currentIndex = (currentIndex + 1) % images.length;
+        img.src = images[currentIndex];
+      }, interval);
+    });
+  });
+</script>
+
+<style>
+  .rotating-image-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .rotating-image {
+    transition: opacity 0.5s ease-in-out;
+  }
+</style>
+

@@ -1,0 +1,53 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import '../styles/global.css';
+
+const title = '404 - Page Not Found - ShowShowShow';
+const description = 'Page not found on ShowShowShow';
+---
+
+<Layout title={title} description={description}>
+  <div class="min-h-screen bg-brutal-gray text-black font-mono selection:bg-black selection:text-pastel-mint">
+    <Header />
+    
+    <main class="max-w-4xl mx-auto px-4 py-16 md:py-24">
+      <div class="bg-white border-4 border-black p-8 md:p-12 shadow-hard text-center">
+        <div class="mb-8">
+          <h1 class="text-4xl md:text-6xl font-black uppercase mb-4 border-b-4 border-black pb-4 inline-block">
+            404
+          </h1>
+          <p class="text-2xl md:text-3xl font-black uppercase mb-6">
+            PAGE_NOT_FOUND
+          </p>
+        </div>
+        
+        <div class="bg-pastel-yellow border-4 border-black p-6 mb-8">
+          <p class="font-mono font-bold text-sm md:text-base mb-4">
+            &gt; ERROR: Requested resource does not exist
+            <br />
+            &gt; STATUS: 404_NOT_FOUND
+            <br />
+            &gt; SOLUTION: Return to homepage
+          </p>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a
+            href="/"
+            class="bg-black text-white border-4 border-black px-6 py-3 font-black uppercase hover:bg-pastel-mint hover:text-black transition-colors inline-block"
+          >
+            ← Back to Home
+          </a>
+          <a
+            href="#waitlist"
+            class="bg-pastel-blue text-black border-4 border-black px-6 py-3 font-black uppercase hover:bg-pastel-yellow transition-colors inline-block"
+          >
+            Join Waitlist
+          </a>
+        </div>
+      </div>
+    </main>
+  </div>
+</Layout>
+

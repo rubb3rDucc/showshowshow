@@ -21,3 +21,5 @@ pnpm-debug.log*
 # IDE
 .vscode/
 .idea/
+smallweb/.env
+smallweb/.env.local

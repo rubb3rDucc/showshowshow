@@ -19,6 +19,7 @@ import { scheduleRoutes } from './routes/schedule.js';
 import { scheduleGenerateRoutes } from './routes/schedule-generate.js';
 import { libraryRoutes } from './routes/library.js';
 import { userRoutes } from './routes/user.js';
+import { waitlistRoutes } from './routes/waitlist.js';
 
 const fastify = Fastify({
   logger: {
@@ -102,14 +103,20 @@ const start = async () => {
     // Register CORS (AFTER security, BEFORE other plugins)
     // In production, restrict to frontend URL; in development, allow all
     const frontendUrl = process.env.FRONTEND_URL;
+    const landingPageUrl = process.env.LANDING_PAGE_URL; // Landing page domain (e.g., showshowshow.com)
+    
     const corsOrigin = isProduction() && frontendUrl
-      ? [frontendUrl] // Production: only allow frontend domain
+      ? [
+          frontendUrl, // Main app domain
+          ...(landingPageUrl ? [landingPageUrl] : []), // Landing page domain
+        ]
       : [
           'http://localhost:4173',  // Preview Build frontend
           'http://localhost:5173',  // Local dev frontend
           'http://localhost:5174',  // Docker dev frontend
           'http://localhost:3000',  // Fallback
           'http://localhost:3001',  // Docker backend (for direct access)
+          'http://localhost:4321',  // Astro dev server (landing page)
         ]; // Development: allow common localhost ports
 
     await fastify.register(cors, {
@@ -139,6 +146,7 @@ const start = async () => {
     await fastify.register(scheduleGenerateRoutes);
     await fastify.register(libraryRoutes);
     await fastify.register(userRoutes);
+    await fastify.register(waitlistRoutes);
 
     const port = Number(process.env.PORT) || 3000;
     // Bind to 0.0.0.0 in Docker or production, localhost otherwise
@@ -179,6 +187,9 @@ const start = async () => {
     console.log(`   PATCH  ${host}:${port}/api/user/email`);
     console.log(`   PATCH  ${host}:${port}/api/user/password`);
     console.log(`   DELETE ${host}:${port}/api/user/account`);
+    console.log(`📧 Waitlist:`);
+    console.log(`   POST   ${host}:${port}/api/waitlist`);
+    console.log(`   GET    ${host}:${port}/api/waitlist`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

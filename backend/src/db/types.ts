@@ -3,6 +3,7 @@ export interface Database {
     id: string;
     email: string;
     password_hash: string;
+    is_admin: boolean;
     created_at: Date;
     updated_at: Date;
   };
@@ -168,5 +169,16 @@ export interface Database {
     status: 'watched' | 'unwatched' | 'skipped';
     watched_at: Date | null;
     created_at: Date;
+  };
+  waitlist: {
+    id: string;
+    email: string;
+    discount_code: string | null;
+    code_sent_at: Date | null;
+    code_used: boolean;
+    code_used_at: Date | null;
+    source: string | null;
+    created_at: Date;
+    updated_at: Date;
   };
 }

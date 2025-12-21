@@ -1,16 +1,26 @@
 ---
+import RotatingImage from './RotatingImage.astro';
+
+// Configure your screenshot images here
+const screenshotImages = [
+  '/images/scheduling-interface.png',
+  '/images/scheduling-interface-2.png',
+  '/images/scheduling-interface-3.png',
+  // Add more image paths as needed
+].filter(Boolean);
 ---
 
 <section
   id="how-it-works"
-  class="py-24 bg-brutal-gray border-b-8 border-black overflow-hidden"
+  class="py-12 bg-brutal-gray border-b-8 border-black overflow-hidden"
+  style="scroll-margin-top: 60px;"
 >
   <div class="max-w-7xl mx-auto px-4">
-    <div class="mb-20 text-center">
-      <h2 class="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase bg-black text-white inline-block px-4 md:px-6 py-2 md:py-4 transform -rotate-2 shadow-hard">
+    <div class="mb-12 text-center">
+      <h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase bg-black text-white inline-block px-3 md:px-5 py-2 md:py-3 transform -rotate-2 shadow-hard">
         HOW IT WORKS
       </h2>
-      <p class="text-sm md:text-base font-bold font-mono mt-6 bg-pastel-mint inline-block px-4 py-2 border-4 border-black">
+      <p class="text-xs md:text-sm font-bold font-mono mt-4 bg-pastel-mint inline-block px-3 py-1.5 border-4 border-black">
         // Three simple steps to better viewing
       </p>
     </div>
@@ -22,22 +32,22 @@
         style="clip-path: polygon(0 40%, 10% 40%, 15% 0, 20% 40%, 40% 40%, 45% 80%, 50% 40%, 80% 40%, 85% 0, 90% 40%, 100% 40%, 100% 60%, 90% 60%, 85% 100%, 80% 60%, 50% 60%, 45% 100%, 40% 60%, 20% 60%, 15% 100%, 10% 60%, 0 60%);"
       ></div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
         {/* Step 1 */}
         <div class="relative group">
-          <div class="bg-white border-4 border-black p-8 shadow-hard transform rotate-2 transition-transform hover:rotate-0">
-            <div class="absolute -top-8 left-8 bg-pastel-mint border-4 border-black w-16 h-16 flex items-center justify-center font-black text-2xl shadow-hard-sm">
+          <div class="bg-white border-4 border-black p-6 shadow-hard transform rotate-2 transition-transform hover:rotate-0">
+            <div class="absolute -top-6 left-6 bg-pastel-mint border-4 border-black w-12 h-12 flex items-center justify-center font-black text-lg shadow-hard-sm">
               01
             </div>
-            <div class="mt-8 border-b-4 border-black pb-4 mb-4">
-              <svg class="w-12 h-12 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+            <div class="mt-6 border-b-4 border-black pb-3 mb-3">
+              <svg class="w-10 h-10 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </div>
-            <h3 class="text-2xl font-black uppercase mb-2">
+            <h3 class="text-lg font-black uppercase mb-2">
               Build Your Queue
             </h3>
-            <p class="font-mono text-sm font-bold">
+            <p class="font-mono text-xs font-bold">
               &gt; Add shows and movies from any source
               <br />
               &gt; Organize by priority, not platform
@@ -49,20 +59,20 @@
 
         {/* Step 2 */}
         <div class="relative group mt-12 md:mt-0">
-          <div class="bg-white border-4 border-black p-8 shadow-hard transform -rotate-1 transition-transform hover:rotate-0">
-            <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-pastel-yellow border-4 border-black w-16 h-16 flex items-center justify-center font-black text-2xl shadow-hard-sm">
+          <div class="bg-white border-4 border-black p-6 shadow-hard transform -rotate-1 transition-transform hover:rotate-0">
+            <div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-pastel-yellow border-4 border-black w-12 h-12 flex items-center justify-center font-black text-lg shadow-hard-sm">
               02
             </div>
-            <div class="mt-8 border-b-4 border-black pb-4 mb-4 flex justify-center">
-              <svg class="w-12 h-12 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+            <div class="mt-6 border-b-4 border-black pb-3 mb-3 flex justify-center">
+              <svg class="w-10 h-10 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
-            <h3 class="text-2xl font-black uppercase mb-2 text-center">
+            <h3 class="text-lg font-black uppercase mb-2 text-center">
               Schedule Your Way
             </h3>
-            <p class="font-mono text-sm font-bold text-center">
+            <p class="font-mono text-xs font-bold text-center">
               &gt; Click to schedule manually
               <br />
               &gt; Or auto-fill available time slots
@@ -74,20 +84,20 @@
 
         {/* Step 3 */}
         <div class="relative group mt-12 md:mt-0">
-          <div class="bg-white border-4 border-black p-8 shadow-hard transform rotate-3 transition-transform hover:rotate-0">
-            <div class="absolute -top-8 right-8 bg-pastel-blue border-4 border-black w-16 h-16 flex items-center justify-center font-black text-2xl shadow-hard-sm">
+          <div class="bg-white border-4 border-black p-6 shadow-hard transform rotate-3 transition-transform hover:rotate-0">
+            <div class="absolute -top-6 right-6 bg-pastel-blue border-4 border-black w-12 h-12 flex items-center justify-center font-black text-lg shadow-hard-sm">
               03
             </div>
-            <div class="mt-8 border-b-4 border-black pb-4 mb-4 flex justify-end">
-              <svg class="w-12 h-12 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+            <div class="mt-6 border-b-4 border-black pb-3 mb-3 flex justify-end">
+              <svg class="w-10 h-10 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 class="text-2xl font-black uppercase mb-2 text-right">
+            <h3 class="text-lg font-black uppercase mb-2 text-right">
               Watch & Complete
             </h3>
-            <p class="font-mono text-sm font-bold text-right">
+            <p class="font-mono text-xs font-bold text-right">
               &gt; Follow your personal guide
               <br />
               &gt; Track progress automatically
@@ -100,27 +110,29 @@
     </div>
 
     {/* App Screenshot */}
-    <div class="mt-20 relative max-w-5xl mx-auto">
+    <div class="mt-12 relative max-w-5xl mx-auto">
       <div class="absolute -top-4 -right-4 bg-black text-white px-3 py-1 text-xs font-bold font-mono z-10 rotate-2">
         SCREENSHOT_004
       </div>
       <div class="border-4 border-black bg-white p-8 shadow-hard transform -rotate-1">
-        {/* Replace this with your actual screenshot */}
-        <img
-          src="/images/scheduling-interface.png"
-          alt="Scheduling Interface (Manual & Auto)"
-          class="w-full border-4 border-black shadow-hard"
-        />
-        {/* Fallback placeholder if image doesn't exist */}
-        {/* <div class="aspect-video bg-brutal-gray border-4 border-dashed border-black flex items-center justify-center">
-          <div class="text-center">
-            <div class="text-6xl mb-4">⚙️</div>
-            <p class="font-bold text-lg">APP SCREENSHOT PLACEHOLDER</p>
-            <p class="font-mono text-sm mt-2">
-              Scheduling Interface (Manual & Auto)
-            </p>
-          </div>
-        </div> */}
+        <div class="aspect-video bg-brutal-gray border-4 border-black overflow-hidden">
+          {screenshotImages.length > 0 ? (
+            <RotatingImage
+              images={screenshotImages}
+              alt="Scheduling Interface (Manual & Auto)"
+              interval={4000}
+              class="border-4 border-black shadow-hard"
+            />
+          ) : (
+            <div class="w-full h-full border-4 border-dashed border-black flex items-center justify-center">
+              <div class="text-center">
+                <div class="text-5xl mb-4">⚙️</div>
+                <p class="font-bold text-sm">Add images to /public/images/</p>
+                <p class="font-mono text-xs mt-2">scheduling-interface.png, etc.</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   </div>
