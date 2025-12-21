@@ -1,0 +1,140 @@
+---
+const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.com';
+const registerUrl = `${appUrl}/register?trial=true`;
+---
+
+<section class="py-32 bg-white border-b-8 border-black relative overflow-hidden">
+  {/* Background Shapes */}
+  <div class="absolute top-0 left-0 w-1/2 h-full bg-pastel-pink opacity-30" style="clip-path: polygon(0 0, 100% 0, 60% 100%, 0% 100%);"></div>
+  <div class="absolute bottom-0 right-0 w-1/2 h-full bg-pastel-mint opacity-30" style="clip-path: polygon(40% 0, 100% 0, 100% 100%, 0% 100%);"></div>
+
+  <div class="max-w-4xl mx-auto px-4 relative z-10">
+    <div class="text-center mb-16">
+      <h2 id="pricing" class="text-3xl sm:text-4xl md:text-6xl font-black uppercase bg-black text-white inline-block px-4 md:px-8 py-2 md:py-4 shadow-hard transform rotate-1 mb-4">
+        SIMPLE, TRANSPARENT PRICING
+      </h2>
+      <p class="text-sm md:text-base font-bold font-mono mt-6 bg-pastel-yellow inline-block px-4 py-2 border-4 border-black">
+        // One plan. All features. Total control.
+      </p>
+    </div>
+
+    <div class="relative bg-white border-4 border-black shadow-hard max-w-md mx-auto transform rotate-1">
+      {/* Header */}
+      <div class="bg-black text-white p-4 text-center border-b-4 border-black">
+        <span class="font-mono font-bold text-xl uppercase tracking-widest">
+          PRO_ACCESS
+        </span>
+      </div>
+
+      <div class="p-8 md:p-12 text-center relative">
+        {/* Price Tag */}
+        <div class="absolute -top-6 -right-6 bg-pastel-yellow border-4 border-black p-4 shadow-hard-sm rotate-12">
+          <span class="font-black text-3xl">$4.99</span>
+        </div>
+
+        <h3 class="text-2xl font-black uppercase mb-6">Monthly_Sub</h3>
+
+        <div class="mb-8 font-mono font-bold bg-gray-100 p-4 border-2 border-black border-dashed text-sm">
+          &lt;status&gt;ACTIVE&lt;/status&gt;
+          <br />
+          &lt;trial&gt;7_DAYS&lt;/trial&gt;
+        </div>
+
+        <a
+          href={registerUrl}
+          class="bg-pastel-blue text-black border-4 border-black font-black uppercase text-lg md:text-xl h-14 md:h-16 hover:bg-pastel-mint hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-hard transition-all mb-4 w-full flex items-center justify-center"
+        >
+          Start Free Trial
+        </a>
+
+        {/* Trust Elements */}
+        <div class="flex flex-col items-center gap-2 mb-8">
+          <div class="flex items-center gap-3 text-xs font-mono font-bold">
+            <svg class="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span>Secured by Stripe</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs font-mono">
+            <div class="w-2 h-2 bg-pastel-mint border border-black"></div>
+            <span class="font-bold">SSL Encrypted</span>
+            <div class="w-2 h-2 bg-pastel-mint border border-black"></div>
+          </div>
+        </div>
+
+        <div class="space-y-3 text-left font-mono font-bold text-xs md:text-sm">
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 bg-black flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span>Unlimited Queue Items</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 bg-black flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span>Manual & Automated Scheduling</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 bg-black flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span>Works with Any Content Source</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 bg-black flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span>Privacy-First (No Social)</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 bg-black flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span>Completion Tracking & Library Stats</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 bg-black flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span>Priority Support</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-pastel-yellow border-t-4 border-black text-center font-mono text-xs font-bold uppercase">
+        Cancel anytime • No charge until trial ends
+      </div>
+    </div>
+
+    {/* App Screenshot Placeholder */}
+    <div class="mt-20 relative max-w-3xl mx-auto">
+      <div class="absolute -top-4 -left-4 bg-black text-white px-3 py-1 text-xs font-bold font-mono z-10 -rotate-3">
+        SCREENSHOT_005
+      </div>
+      <div class="border-4 border-black bg-brutal-gray p-8 shadow-hard transform rotate-2">
+        <div class="aspect-video bg-white border-4 border-dashed border-black flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-6xl mb-4">💳</div>
+            <p class="font-bold text-lg">APP SCREENSHOT PLACEHOLDER</p>
+            <p class="font-mono text-sm mt-2">
+              Subscription & Billing Dashboard
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
