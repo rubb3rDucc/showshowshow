@@ -58,11 +58,12 @@ const SLOW_QUERY_THRESHOLD_MS = parseInt(
 if (process.env.NODE_ENV === 'production') {
   // Intercept pool queries to track timing
   const originalQuery = pool.query.bind(pool);
-  pool.query = function(...args: any[]) {
+  (pool as any).query = function(...args: any[]): any {
     const startTime = Date.now();
     const queryText = typeof args[0] === 'string' ? args[0] : args[0]?.text || '';
     
-    const result = originalQuery(...args);
+    // Call original query with proper typing
+    const result: any = (originalQuery as any).apply(pool, args);
     
     // Track query duration (async, don't block)
     if (result && typeof result.then === 'function') {

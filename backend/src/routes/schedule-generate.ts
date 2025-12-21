@@ -96,6 +96,9 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       throw new ValidationError('Invalid time range');
     }
 
+    // Track generation start time
+    const generationStartTime = Date.now();
+
     // Generate schedule
     const scheduleItems = await generateScheduleFromQueue(userId, startDate, endDate, timeSlots, {
       timezoneOffset: timezone_offset, // Use provided timezone or default to UTC
@@ -105,7 +108,22 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       rotationType: rotation_type,
     });
 
+    const generationTime = Date.now() - generationStartTime;
+
     if (scheduleItems.length === 0) {
+      // Track failed generation
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('schedule_generation_failed', {
+        distinctId: userId,
+        properties: {
+          start_date,
+          end_date,
+          queue_size: contentIds.length,
+          error_type: 'no_content_available',
+          generation_time_ms: generationTime,
+        },
+      });
+
       return reply.code(200).send({
         count: 0,
         schedule: [],
@@ -116,6 +134,24 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
 
     // Save to database
     const saved = await saveSchedule(userId, scheduleItems, 'auto');
+
+    // Track successful generation
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('schedule_generated', {
+      distinctId: userId,
+      properties: {
+        start_date,
+        end_date,
+        items_scheduled: saved.length,
+        items_skipped: scheduleItems.length - saved.length, // In case some failed to save
+        queue_size: contentIds.length,
+        time_slot_duration: calculatedTimeSlotDuration,
+        mode: 'auto',
+        generation_time_ms: generationTime,
+        rotation_type: rotation_type,
+        include_reruns: include_reruns,
+      },
+    });
 
     return reply.code(201).send({
       count: saved.length,
@@ -192,6 +228,9 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       throw new ValidationError('Invalid time range');
     }
 
+    // Track generation start time
+    const generationStartTime = Date.now();
+
     // Generate schedule
     const scheduleItems = await generateSchedule({
       userId,
@@ -205,7 +244,22 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       rotationType: rotation_type,
     });
 
+    const generationTime = Date.now() - generationStartTime;
+
     if (scheduleItems.length === 0) {
+      // Track failed generation
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('schedule_generation_failed', {
+        distinctId: userId,
+        properties: {
+          start_date,
+          end_date,
+          show_count: show_ids.length,
+          error_type: 'no_episodes_available',
+          generation_time_ms: generationTime,
+        },
+      });
+
       return reply.code(200).send({
         count: 0,
         schedule: [],
@@ -215,6 +269,24 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
 
     // Save to database
     const saved = await saveSchedule(userId, scheduleItems, 'auto');
+
+    // Track successful generation
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('schedule_generated', {
+      distinctId: userId,
+      properties: {
+        start_date,
+        end_date,
+        items_scheduled: saved.length,
+        items_skipped: scheduleItems.length - saved.length,
+        show_count: show_ids.length,
+        time_slot_duration,
+        mode: 'auto',
+        generation_time_ms: generationTime,
+        rotation_type: rotation_type,
+        include_reruns: include_reruns,
+      },
+    });
 
     return reply.code(201).send({
       count: saved.length,

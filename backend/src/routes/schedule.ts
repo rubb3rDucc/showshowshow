@@ -189,6 +189,20 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
       .returningAll()
       .executeTakeFirstOrThrow();
 
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('schedule_item_created', {
+      distinctId: userId,
+      properties: {
+        content_id,
+        scheduled_time: scheduled_time,
+        duration: finalDuration,
+        source: 'manual',
+        season: season ?? null,
+        episode: episode ?? null,
+      },
+    });
+
     return reply.code(201).send(scheduleItem);
   });
 
@@ -202,10 +216,10 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
     const { id } = request.params as { id: string };
     const updates = request.body as { scheduled_time?: string; watched?: boolean };
 
-    // Verify ownership
+    // Verify ownership and get existing data
     const existing = await db
       .selectFrom('schedule')
-      .select('id')
+      .select(['id', 'scheduled_time', 'content_id'])
       .where('id', '=', id)
       .where('user_id', '=', userId)
       .executeTakeFirst();
@@ -216,11 +230,19 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
 
     // Build update object
     const updateData: any = {};
+    const fieldsChanged: string[] = [];
+    let oldTime: string | null = null;
+    let newTime: string | null = null;
+
     if (updates.scheduled_time !== undefined) {
+      oldTime = existing.scheduled_time.toISOString();
+      newTime = updates.scheduled_time;
       updateData.scheduled_time = new Date(updates.scheduled_time);
+      fieldsChanged.push('scheduled_time');
     }
     if (updates.watched !== undefined) {
       updateData.watched = updates.watched;
+      fieldsChanged.push('watched');
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -234,6 +256,19 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
       .returningAll()
       .executeTakeFirstOrThrow();
 
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('schedule_item_updated', {
+      distinctId: userId,
+      properties: {
+        schedule_id: id,
+        content_id: existing.content_id,
+        fields_changed: fieldsChanged,
+        old_time: oldTime,
+        new_time: newTime,
+      },
+    });
+
     return reply.send(updated);
   });
 
@@ -246,10 +281,10 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
     const userId = request.user.userId;
     const { id } = request.params as { id: string };
 
-    // Verify ownership
+    // Verify ownership and get item details
     const existing = await db
       .selectFrom('schedule')
-      .select('id')
+      .select(['id', 'content_id', 'scheduled_time'])
       .where('id', '=', id)
       .where('user_id', '=', userId)
       .executeTakeFirst();
@@ -259,6 +294,17 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
     }
 
     await db.deleteFrom('schedule').where('id', '=', id).execute();
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('schedule_item_deleted', {
+      distinctId: userId,
+      properties: {
+        schedule_id: id,
+        scheduled_time: existing.scheduled_time.toISOString(),
+        content_id: existing.content_id,
+      },
+    });
 
     return reply.send({ success: true });
   });
@@ -320,6 +366,17 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
       .execute();
 
     const count = deleted.length > 0 ? Number(deleted[0].numDeletedRows) : 0;
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('schedule_cleared', {
+      distinctId: userId,
+      properties: {
+        date,
+        items_cleared: count,
+        timezone_offset: timezone_offset || null,
+      },
+    });
 
     return reply.send({ 
       success: true, 
