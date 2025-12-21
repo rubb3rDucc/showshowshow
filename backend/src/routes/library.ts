@@ -300,6 +300,16 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .executeTakeFirst();
 
     if (existing) {
+      // Track duplicate attempt
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('library_item_already_exists', {
+        distinctId: userId,
+        properties: {
+          content_id,
+          error_type: 'duplicate',
+        },
+      });
+
       throw new ValidationError('Content is already in library');
     }
 
@@ -359,6 +369,18 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       ? Math.round((episodesWatched / totalEpisodes) * 100) 
       : 0;
 
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('item_added_to_library', {
+      distinctId: userId,
+      properties: {
+        content_id,
+        content_type: content.content_type,
+        status,
+        source: 'api', // Could be 'search' or 'queue' if we track that
+      },
+    });
+
     return reply.code(201).send({
       ...fullItem,
       content: {
@@ -402,7 +424,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
     // Verify library item exists and belongs to user
     const existing = await db
       .selectFrom('user_library')
-      .select(['id', 'status', 'started_at', 'completed_at'])
+      .select(['id', 'status', 'started_at', 'completed_at', 'score'])
       .where('id', '=', id)
       .where('user_id', '=', userId)
       .executeTakeFirst();
@@ -459,6 +481,16 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       updates.notes = notes;
     }
 
+    // Track which fields changed
+    const fieldsChanged: string[] = [];
+    if (status !== undefined && status !== existing.status) {
+      fieldsChanged.push('status');
+    }
+    if (current_season !== undefined) fieldsChanged.push('current_season');
+    if (current_episode !== undefined) fieldsChanged.push('current_episode');
+    if (score !== undefined) fieldsChanged.push('score');
+    if (notes !== undefined) fieldsChanged.push('notes');
+
     // Update library item
     await db
       .updateTable('user_library')
@@ -502,6 +534,18 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       ? Math.round((episodesWatched / totalEpisodes) * 100) 
       : 0;
 
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('library_item_updated', {
+      distinctId: userId,
+      properties: {
+        content_id: updatedItem.content_id,
+        fields_changed: fieldsChanged,
+        status_change: status !== undefined && status !== existing.status ? { from: existing.status, to: status } : null,
+        score_change: score !== undefined ? { from: existing.score, to: score } : null,
+      },
+    });
+
     return reply.send({
       ...updatedItem,
       content: {
@@ -529,15 +573,42 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
     const userId = request.user.userId;
     const { id } = request.params as { id: string };
 
+    // Get item details before deletion
+    const itemToDelete = await db
+      .selectFrom('user_library')
+      .innerJoin('content', 'user_library.content_id', 'content.id')
+      .select(['user_library.content_id', 'content.content_type'])
+      .where('user_library.id', '=', id)
+      .where('user_library.user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (!itemToDelete) {
+      throw new NotFoundError('Library item not found');
+    }
+
     const deleted = await db
       .deleteFrom('user_library')
       .where('id', '=', id)
       .where('user_id', '=', userId)
       .execute();
 
-    if (deleted.length === 0) {
-      throw new NotFoundError('Library item not found');
-    }
+    // Get library size after deletion
+    const librarySizeAfter = await db
+      .selectFrom('user_library')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('library_item_removed', {
+      distinctId: userId,
+      properties: {
+        content_id: itemToDelete.content_id,
+        content_type: itemToDelete.content_type,
+        library_size_after: Number(librarySizeAfter?.count || 0),
+      },
+    });
 
     return reply.send({ success: true });
   });
@@ -583,6 +654,17 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
     };
 
     if (!season || !episode) {
+      // Track error
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('episode_mark_failed', {
+        distinctId: userId,
+        properties: {
+          content_id: contentId,
+          error_type: 'validation_error',
+          missing_field: !season ? 'season' : 'episode',
+        },
+      });
+
       throw new ValidationError('season and episode are required');
     }
 
@@ -670,6 +752,20 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       ? Math.round((episodesWatched / totalEpisodes) * 100) 
       : 0;
 
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('episode_marked_watched', {
+      distinctId: userId,
+      properties: {
+        content_id: contentId,
+        season,
+        episode,
+        status, // watched/unwatched/skipped
+        total_episodes_watched: episodesWatched,
+        total_episodes: totalEpisodes,
+      },
+    });
+
     return reply.send({
       success: true,
       library_item: {
@@ -717,6 +813,17 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .execute();
 
     if (episodes.length === 0) {
+      // Track error
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('season_mark_failed', {
+        distinctId: userId,
+        properties: {
+          content_id: contentId,
+          season,
+          error_type: 'no_episodes_found',
+        },
+      });
+
       throw new NotFoundError('No episodes found for this season');
     }
 
@@ -768,6 +875,27 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .where('content_id', '=', contentId)
       .execute();
 
+    // Get content details for tracking
+    const content = await db
+      .selectFrom('content')
+      .select(['number_of_episodes', 'number_of_seasons'])
+      .where('id', '=', contentId)
+      .executeTakeFirst();
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('season_marked_watched', {
+      distinctId: userId,
+      properties: {
+        content_id: contentId,
+        season,
+        episodes_count: episodes.length,
+        status, // watched/unwatched
+        total_episodes_watched: episodesWatched,
+        total_episodes: content?.number_of_episodes || 0,
+      },
+    });
+
     return reply.send({ 
       success: true, 
       episodes_marked: episodes.length 
@@ -794,6 +922,16 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .execute();
 
     if (episodes.length === 0) {
+      // Track error
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('all_episodes_mark_failed', {
+        distinctId: userId,
+        properties: {
+          content_id: contentId,
+          error_type: 'no_episodes_found',
+        },
+      });
+
       throw new NotFoundError('No episodes found for this content');
     }
 
@@ -844,6 +982,26 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .where('user_id', '=', userId)
       .where('content_id', '=', contentId)
       .execute();
+
+    // Get content details for tracking
+    const content = await db
+      .selectFrom('content')
+      .select(['number_of_episodes', 'number_of_seasons'])
+      .where('id', '=', contentId)
+      .executeTakeFirst();
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('all_episodes_marked_watched', {
+      distinctId: userId,
+      properties: {
+        content_id: contentId,
+        total_episodes: episodes.length,
+        total_seasons: content?.number_of_seasons || 0,
+        status, // watched/unwatched
+        total_episodes_watched: episodesWatched,
+      },
+    });
 
     return reply.send({ 
       success: true, 

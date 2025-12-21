@@ -20,10 +20,22 @@ export const errorHandlerPlugin = async (fastify: FastifyInstance) => {
     // Always log full error details server-side
     fastify.log.error(error);
 
+    // Detect database connection errors (should always be captured)
+    const isDatabaseError = error instanceof Error && (
+      error.message.includes('timeout exceeded when trying to connect') ||
+      error.message.includes('connection') ||
+      error.message.includes('ECONNREFUSED') ||
+      error.stack?.includes('pg-pool') ||
+      error.stack?.includes('postgres') ||
+      error.stack?.includes('kysely')
+    );
+
     // Capture exception in PostHog (only for non-4xx errors or AppErrors)
-    const shouldCapture = !(error instanceof AppError && error.statusCode < 500) && 
-                          !(error && typeof error === 'object' && 'validation' in error) &&
-                          !(error && typeof error === 'object' && 'name' in error && error.name === 'JsonWebTokenError');
+    // Database errors should always be captured
+    const shouldCapture = isDatabaseError ||
+      (!(error instanceof AppError && error.statusCode < 500) && 
+       !(error && typeof error === 'object' && 'validation' in error) &&
+       !(error && typeof error === 'object' && 'name' in error && error.name === 'JsonWebTokenError'));
 
     if (shouldCapture && error instanceof Error) {
       captureException(error, {
@@ -36,6 +48,7 @@ export const errorHandlerPlugin = async (fastify: FastifyInstance) => {
         extra: {
           statusCode: error instanceof AppError ? error.statusCode : 500,
           errorCode: error instanceof AppError ? error.code : undefined,
+          isDatabaseError: isDatabaseError,
         },
       });
     }

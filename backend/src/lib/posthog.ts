@@ -116,6 +116,16 @@ export function captureException(
       }
     }
 
+    // Log for debugging (helps verify PostHog is working)
+    if (process.env.NODE_ENV === 'production') {
+      console.log('📤 Sending exception to PostHog:', {
+        event: '$exception',
+        type: error.name,
+        message: error.message.substring(0, 100),
+        isDatabaseError: context?.extra?.isDatabaseError || false,
+      });
+    }
+
     // Capture exception with environment tag
     posthogClient.capture({
       distinctId: context?.request?.userId || 'anonymous',
@@ -129,17 +139,115 @@ export function captureException(
     // Flush immediately to ensure error is sent
     posthogClient.flush();
     
-    // Log in development to confirm it's working
-    if (process.env.NODE_ENV === 'development' || process.env.POSTHOG_ENABLE_DEV === 'true') {
-      console.log('📊 PostHog exception captured:', {
-        event: '$exception',
-        error: error.message,
-        environment: env,
-      });
+    if (process.env.NODE_ENV === 'production') {
+      console.log('✅ Exception sent to PostHog');
     }
   } catch (err) {
     // Don't let PostHog errors break the app
     console.error('❌ Failed to capture exception in PostHog:', err);
+  }
+}
+
+/**
+ * Capture a custom event in PostHog
+ * Use this for tracking user actions and analytics events
+ */
+export function captureEvent(
+  eventName: string,
+  options: {
+    distinctId: string;
+    properties?: Record<string, unknown>;
+    groups?: Record<string, string>;
+  }
+): void {
+  const posthog = getPostHog();
+  if (!posthog) {
+    return;
+  }
+
+  try {
+    const env = getEnvironment();
+    const properties: Record<string, unknown> = {
+      environment: env,
+      // Note: PostHog automatically adds timestamp, don't include it manually
+      ...options.properties,
+    };
+
+    posthog.capture({
+      distinctId: options.distinctId,
+      event: eventName,
+      properties,
+      groups: {
+        environment: env,
+        ...options.groups,
+      },
+    });
+
+    // Flush immediately for important events in production
+    if (process.env.NODE_ENV === 'production') {
+      posthog.flush();
+    }
+  } catch (err) {
+    console.error('❌ Failed to capture event in PostHog:', err);
+  }
+}
+
+/**
+ * Identify a user in PostHog
+ * This is critical for MAU (Monthly Active Users) tracking
+ * PostHog automatically calculates MAU based on identified users who have events
+ * 
+ * Call this when:
+ * - User registers
+ * - User logs in
+ * - User performs their first action
+ */
+export function identifyUser(
+  userId: string,
+  properties?: Record<string, unknown>
+): void {
+  const posthog = getPostHog();
+  if (!posthog) {
+    return;
+  }
+
+  try {
+    posthog.identify({
+      distinctId: userId,
+      properties: {
+        ...properties,
+      },
+    });
+
+    // Flush immediately to ensure identification is sent
+    if (process.env.NODE_ENV === 'production') {
+      posthog.flush();
+    }
+  } catch (err) {
+    console.error('❌ Failed to identify user in PostHog:', err);
+  }
+}
+
+/**
+ * Set user properties (updates existing user)
+ * Use this to update user metadata over time
+ */
+export function setUserProperties(
+  userId: string,
+  properties: Record<string, unknown>
+): void {
+  const posthog = getPostHog();
+  if (!posthog) {
+    return;
+  }
+
+  try {
+    posthog.identify({
+      distinctId: userId,
+      properties,
+    });
+  } catch (err) {
+    console.error('❌ Failed to set user properties in PostHog:', err);
   }
 }
 

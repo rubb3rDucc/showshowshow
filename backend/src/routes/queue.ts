@@ -78,6 +78,16 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
       .executeTakeFirst();
 
     if (existing) {
+      // Track duplicate attempt
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('queue_item_already_exists', {
+        distinctId: userId,
+        properties: {
+          content_id,
+          error_type: 'duplicate',
+        },
+      });
+
       throw new ValidationError('Item already in queue');
     }
 
@@ -96,6 +106,27 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+
+    // Get queue size after adding
+    const queueSize = await db
+      .selectFrom('queue')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('item_added_to_queue', {
+      distinctId: userId,
+      properties: {
+        content_id,
+        content_type: content.content_type,
+        season: season ?? null,
+        episode: episode ?? null,
+        queue_position: newPosition,
+        queue_size: Number(queueSize?.count || 0),
+      },
+    });
 
     // If it's a show, trigger background episode fetch (don't block the response)
     if (content.content_type === 'show') {
@@ -125,10 +156,10 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
     const userId = request.user.userId;
     const { id } = request.params as { id: string };
 
-    // Verify ownership
+    // Verify ownership and get item details
     const queueItem = await db
       .selectFrom('queue')
-      .select('id')
+      .select(['id', 'content_id', 'position'])
       .where('id', '=', id)
       .where('user_id', '=', userId)
       .executeTakeFirst();
@@ -136,6 +167,8 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
     if (!queueItem) {
       throw new NotFoundError('Queue item not found');
     }
+
+    const positionBefore = queueItem.position;
 
     // Delete item
     await db.deleteFrom('queue').where('id', '=', id).execute();
@@ -156,6 +189,17 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
         .where('id', '=', remainingItems[i].id)
         .execute();
     }
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('item_removed_from_queue', {
+      distinctId: userId,
+      properties: {
+        content_id: queueItem.content_id,
+        queue_position_before: positionBefore,
+        queue_size_after: remainingItems.length,
+      },
+    });
 
     return reply.send({ success: true });
   });
@@ -196,6 +240,16 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
       }
     });
 
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('queue_reordered', {
+      distinctId: userId,
+      properties: {
+        item_count: item_ids.length,
+        reorder_type: 'bulk', // Could be 'drag_drop' if we track that separately
+      },
+    });
+
     return reply.send({ success: true });
   });
 
@@ -206,7 +260,25 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
     }
 
     const userId = request.user.userId;
+    
+    // Get queue size before clearing
+    const queueSizeBefore = await db
+      .selectFrom('queue')
+      .select((eb) => eb.fn.count('id').as('count'))
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
     await db.deleteFrom('queue').where('user_id', '=', userId).execute();
+
+    // Track event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('queue_cleared', {
+      distinctId: userId,
+      properties: {
+        items_cleared: Number(queueSizeBefore?.count || 0),
+        queue_size_before: Number(queueSizeBefore?.count || 0),
+      },
+    });
 
     return reply.send({ success: true });
   });
