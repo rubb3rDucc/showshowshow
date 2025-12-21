@@ -102,6 +102,23 @@ export const authRoutes = async (fastify: FastifyInstance) => {
     // Generate token
     const token = generateToken(user.id);
 
+    // Identify user in PostHog for MAU tracking
+    const { identifyUser } = await import('../lib/posthog.js');
+    identifyUser(user.id, {
+      email_domain: user.email.split('@')[1], // Anonymized email domain
+      account_created_at: user.created_at.toISOString(),
+    });
+
+    // Track registration event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('user_registered', {
+      distinctId: user.id,
+      properties: {
+        email_domain: user.email.split('@')[1], // Anonymized
+        timestamp: new Date().toISOString(),
+      },
+    });
+
     return reply.code(201).send({
       user: {
         id: user.id,
@@ -146,6 +163,23 @@ export const authRoutes = async (fastify: FastifyInstance) => {
 
     // Generate token
     const token = generateToken(user.id);
+
+    // Identify user in PostHog for MAU tracking
+    const { identifyUser, captureEvent } = await import('../lib/posthog.js');
+    identifyUser(user.id, {
+      email_domain: user.email.split('@')[1], // Anonymized email domain
+      account_created_at: user.created_at.toISOString(),
+      last_login: new Date().toISOString(),
+    });
+
+    // Track login event (this counts toward MAU)
+    captureEvent('user_logged_in', {
+      distinctId: user.id,
+      properties: {
+        method: 'email',
+        timestamp: new Date().toISOString(),
+      },
+    });
 
     return reply.send({
       user: {

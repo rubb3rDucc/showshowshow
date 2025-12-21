@@ -243,20 +243,20 @@ export function SearchResultCard({
         {/* Action Buttons */}
         <div className="mt-auto space-y-2">
           {/* Add to Queue Button */}
-          <Button
-            fullWidth
-            size="sm"
-            color="black"
-            className={`
+        <Button
+          fullWidth
+          size="sm"
+          color="black"
+          className={`
               font-black uppercase tracking-wider text-[10px]
-              ${isInQueue ? `bg-transparent ${colors.text} border-2 ${colors.border}` : 'bg-black text-white border-2 border-black'}
-            `}
-            radius="xs"
-            leftSection={isInQueue ? <Check size={14} /> : <Plus size={14} />}
-            onClick={() => !isInQueue && onAddToQueue(item)}
-            disabled={isInQueue || isLoading}
-            loading={isLoading}
-          >
+            ${isInQueue ? `bg-transparent ${colors.text} border-2 ${colors.border}` : 'bg-black text-white border-2 border-black'}
+          `}
+          radius="xs"
+          leftSection={isInQueue ? <Check size={14} /> : <Plus size={14} />}
+          onClick={() => !isInQueue && onAddToQueue(item)}
+          disabled={isInQueue || isLoading}
+          loading={isLoading}
+        >
             {isInQueue ? 'IN QUEUE' : 'ADD TO QUEUE'}
           </Button>
 
@@ -279,7 +279,7 @@ export function SearchResultCard({
               loading={isAddingToLibrary}
             >
               {isInLibrary ? 'IN LIBRARY' : 'ADD TO LIBRARY'}
-            </Button>
+        </Button>
           )}
         </div>
       </div>

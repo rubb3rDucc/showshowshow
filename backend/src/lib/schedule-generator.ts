@@ -1,5 +1,27 @@
 import { db } from '../db/index.js';
 
+// Helper: Limit concurrency of async operations
+// Processes tasks in batches to avoid overwhelming connection pool
+async function limitConcurrency<T>(
+  tasks: (() => Promise<T>)[],
+  limit: number
+): Promise<T[]> {
+  const results: T[] = [];
+  for (let i = 0; i < tasks.length; i += limit) {
+    const batch = tasks.slice(i, i + limit);
+    const batchResults = await Promise.allSettled(
+      batch.map(t => t())
+    );
+    // Collect successful results
+    for (const result of batchResults) {
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+      }
+    }
+  }
+  return results;
+}
+
 // Helper: Shuffle array (Fisher-Yates algorithm)
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
@@ -729,8 +751,8 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
   const { getShowDetails, getSeason, getImageUrl } = await import('./tmdb.js');
   const { getAnimeEpisodes } = await import('./jikan.js');
 
-  // Only fetch missing shows - do in parallel with rate limiting
-  const fetchPromises = showsToFetch.map(async (item, index) => {
+  // Create fetch tasks (functions that return promises)
+  const fetchTasks = showsToFetch.map((item, index) => async () => {
     // Stagger requests to respect API rate limits
     // TMDB: 40 req/10s = 250ms between, Jikan: 3 req/sec = 350ms between
     const delay = item.show.data_source === 'jikan' ? 350 : 250;
@@ -740,103 +762,153 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
       let fetchedCount = 0;
 
       if (item.show.data_source === 'jikan' && item.show.mal_id) {
-        // Fetch from Jikan
+        // Fetch from Jikan - collect all episodes first
         let page = 1;
         let hasMore = true;
+        const allEpisodes: any[] = [];
 
         while (hasMore) {
           const jikanEpisodes = await getAnimeEpisodes(item.show.mal_id, page);
-          const episodes = jikanEpisodes.episodes || [];
-          
-          for (const ep of episodes) {
-            const episodeNum = ep.episode || fetchedCount + 1;
-            // Check if this specific episode already exists
-            const exists = await db
-              .selectFrom('episodes')
-              .select('id')
-              .where('content_id', '=', item.show.id)
-              .where('season', '=', 1) // Jikan doesn't have seasons
-              .where('episode_number', '=', episodeNum)
-              .executeTakeFirst();
-            
-            if (!exists) {
-              await db
-                .insertInto('episodes')
-                .values({
-                  id: crypto.randomUUID(),
-                  content_id: item.show.id,
-                  season: 1, // Jikan doesn't have seasons
-                  episode_number: episodeNum,
-                  title: ep.title || `Episode ${episodeNum}`,
-                  overview: null, // Jikan API doesn't provide episode descriptions
-                  duration: item.show.default_duration || 24,
-                  air_date: ep.aired ? new Date(ep.aired) : null,
-                  still_url: ep.images?.jpg?.image_url || null,
-                  created_at: new Date(),
-                })
-                .execute();
-              fetchedCount++;
-            }
-          }
-
+          allEpisodes.push(...(jikanEpisodes.episodes || []));
           hasMore = page < (jikanEpisodes.pagination?.last_visible_page || 1);
           page++;
+        }
+
+        // Batch check existence in ONE query
+        const existingEpisodes = await db
+          .selectFrom('episodes')
+          .select(['episode_number'])
+          .where('content_id', '=', item.show.id)
+          .where('season', '=', 1)
+          .execute();
+
+        const existingSet = new Set(
+          existingEpisodes.map(e => e.episode_number)
+        );
+
+        // Filter to only new episodes
+        const newEpisodes = allEpisodes
+          .map((ep, idx) => ({
+            episodeNum: ep.episode || idx + 1,
+            data: ep,
+          }))
+          .filter(({ episodeNum }) => !existingSet.has(episodeNum));
+
+        // Batch insert all new episodes in transaction
+        if (newEpisodes.length > 0) {
+          await db.transaction().execute(async (trx) => {
+            // Insert in batches of 100 to avoid query size limits
+            for (let i = 0; i < newEpisodes.length; i += 100) {
+              const batch = newEpisodes.slice(i, i + 100);
+              await trx.insertInto('episodes')
+                .values(batch.map(({ episodeNum, data }) => ({
+                  id: crypto.randomUUID(),
+                  content_id: item.show.id,
+                  season: 1,
+                  episode_number: episodeNum,
+                  title: data.title || `Episode ${episodeNum}`,
+                  overview: null,
+                  duration: item.show.default_duration || 24,
+                  air_date: data.aired ? new Date(data.aired) : null,
+                  still_url: data.images?.jpg?.image_url || null,
+                  created_at: new Date(),
+                })))
+                .execute();
+            }
+          });
+          fetchedCount = newEpisodes.length;
         }
       } else if (item.show.tmdb_id) {
         // Fetch from TMDB
         const showDetails = await getShowDetails(item.show.tmdb_id);
 
+        // Collect all episodes from all seasons first
+        const allEpisodes: Array<{
+          season: number;
+          episode_number: number;
+          name: string;
+          overview: string | null;
+          runtime: number;
+          air_date: string | null;
+          still_path: string | null;
+        }> = [];
+
         // Fetch seasons sequentially
         for (let seasonNum = 1; seasonNum <= (showDetails.number_of_seasons || 0); seasonNum++) {
           try {
             const tmdbSeason = await getSeason(item.show.tmdb_id, seasonNum);
-            
             for (const ep of tmdbSeason.episodes) {
-              // Check if this specific episode already exists (defensive check)
-              const exists = await db
-                .selectFrom('episodes')
-                .select('id')
-                .where('content_id', '=', item.show.id)
-                .where('season', '=', ep.season_number)
-                .where('episode_number', '=', ep.episode_number)
-                .executeTakeFirst();
-              
-              if (!exists) {
-                await db
-                  .insertInto('episodes')
-                  .values({
-                    id: crypto.randomUUID(),
-                    content_id: item.show.id,
-                    season: ep.season_number,
-                    episode_number: ep.episode_number,
-                    title: ep.name,
-                    overview: ep.overview,
-                    duration: ep.runtime || showDetails.episode_run_time?.[0] || 30,
-                    air_date: ep.air_date ? new Date(ep.air_date) : null,
-                    still_url: getImageUrl(ep.still_path),
-                    created_at: new Date(),
-                  })
-                  .execute();
-                fetchedCount++;
-              }
+              allEpisodes.push({
+                season: ep.season_number,
+                episode_number: ep.episode_number,
+                name: ep.name,
+                overview: ep.overview,
+                runtime: ep.runtime || showDetails.episode_run_time?.[0] || 30,
+                air_date: ep.air_date,
+                still_path: ep.still_path,
+              });
             }
           } catch (error) {
             console.warn(`[Schedule Generator] Failed to fetch season ${seasonNum} for ${item.show.title}:`, error);
           }
+        }
+
+        // Batch check existence in ONE query
+        const existingEpisodes = await db
+          .selectFrom('episodes')
+          .select(['season', 'episode_number'])
+          .where('content_id', '=', item.show.id)
+          .execute();
+
+        const existingSet = new Set(
+          existingEpisodes.map(e => `${e.season}-${e.episode_number}`)
+        );
+
+        // Filter to only new episodes
+        const newEpisodes = allEpisodes.filter(ep => {
+          const key = `${ep.season}-${ep.episode_number}`;
+          return !existingSet.has(key);
+        });
+
+        // Batch insert all new episodes in transaction
+        if (newEpisodes.length > 0) {
+          await db.transaction().execute(async (trx) => {
+            // Insert in batches of 100 to avoid query size limits
+            for (let i = 0; i < newEpisodes.length; i += 100) {
+              const batch = newEpisodes.slice(i, i + 100);
+              await trx.insertInto('episodes')
+                .values(batch.map(ep => ({
+                  id: crypto.randomUUID(),
+                  content_id: item.show.id,
+                  season: ep.season,
+                  episode_number: ep.episode_number,
+                  title: ep.name,
+                  overview: ep.overview,
+                  duration: ep.runtime,
+                  air_date: ep.air_date ? new Date(ep.air_date) : null,
+                  still_url: getImageUrl(ep.still_path),
+                  created_at: new Date(),
+                })))
+                .execute();
+            }
+          });
+          fetchedCount = newEpisodes.length;
         }
       } else {
         console.warn(`[Schedule Generator] Show ${item.show.title} has no valid source ID (tmdb_id or mal_id)`);
       }
       
       console.log(`[Schedule Generator] ✅ Fetched ${fetchedCount} episodes for ${item.show.title}`);
+      return fetchedCount;
     } catch (error) {
       console.error(`[Schedule Generator] ❌ Failed to fetch episodes for ${item.show.title}:`, error);
-      // Continue with other shows even if one fails
+      return 0;
     }
   });
 
-  // Wait for all fetches (but don't block if some fail)
-  await Promise.allSettled(fetchPromises);
+  // Limit concurrency to 2 shows at a time to avoid overwhelming connection pool
+  // This reduces from potentially 5+ concurrent shows to just 2
+  await limitConcurrency(fetchTasks, 2);
 }
 
 // Generate schedule from queue
@@ -892,27 +964,35 @@ export async function saveSchedule(
     return [];
   }
 
-  const saved = await db
-    .insertInto('schedule')
-    .values(
-      scheduleItems.map((item) => ({
-        id: crypto.randomUUID(),
-        user_id: userId,
-        content_id: item.content_id,
-        season: item.season,
-        episode: item.episode,
-        scheduled_time: item.scheduled_time,
-        duration: item.duration,
-        source_type: sourceType,
-        source_id: sourceId,
-        watched: false,
-        synced: false,
-        timezone_offset: item.timezone_offset || '+00:00', // Default to UTC if not provided
-        created_at: new Date(),
-      }))
-    )
-    .returningAll()
-    .execute();
-
-  return saved;
+  // Use transaction to ensure connection closes quickly
+  return await db.transaction().execute(async (trx) => {
+    const saved: any[] = [];
+    // Insert in batches of 100 to avoid query size limits
+    for (let i = 0; i < scheduleItems.length; i += 100) {
+      const batch = scheduleItems.slice(i, i + 100);
+      const inserted = await trx
+        .insertInto('schedule')
+        .values(
+          batch.map((item) => ({
+            id: crypto.randomUUID(),
+            user_id: userId,
+            content_id: item.content_id,
+            season: item.season,
+            episode: item.episode,
+            scheduled_time: item.scheduled_time,
+            duration: item.duration,
+            source_type: sourceType,
+            source_id: sourceId,
+            watched: false,
+            synced: false,
+            timezone_offset: item.timezone_offset || '+00:00', // Default to UTC if not provided
+            created_at: new Date(),
+          }))
+        )
+        .returningAll()
+        .execute();
+      saved.push(...inserted);
+    }
+    return saved;
+  });
 }
