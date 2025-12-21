@@ -768,32 +768,6 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
         let hasMore = true;
         const allEpisodes: any[] = [];
 
-        // OPTIMIZATION: Fetch all existing episodes in one query (fixes N+1 problem)
-        const existingEpisodes = await db
-          .selectFrom('episodes')
-          .select(['season', 'episode_number'])
-          .where('content_id', '=', item.show.id)
-          .execute();
-
-        // Create a Set for O(1) lookup
-        const existingSet = new Set(
-          existingEpisodes.map(ep => `${ep.season}-${ep.episode_number}`)
-        );
-
-        // Collect all new episodes to insert in batch
-        const newEpisodes: Array<{
-          id: string;
-          content_id: string;
-          season: number;
-          episode_number: number;
-          title: string | null;
-          overview: string | null;
-          duration: number;
-          air_date: Date | null;
-          still_url: string | null;
-          created_at: Date;
-        }> = [];
-
         while (hasMore) {
           const jikanEpisodes = await getAnimeEpisodes(item.show.mal_id, page);
           allEpisodes.push(...(jikanEpisodes.episodes || []));
@@ -844,15 +818,6 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
             }
           });
           fetchedCount = newEpisodes.length;
-        }
-
-        // Batch insert all new episodes at once (reduces from N queries to 1 query)
-        if (newEpisodes.length > 0) {
-          await db
-            .insertInto('episodes')
-            .values(newEpisodes)
-            .execute();
-          fetchedCount += newEpisodes.length;
         }
       } else if (item.show.tmdb_id) {
         // Fetch from TMDB
