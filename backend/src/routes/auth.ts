@@ -40,12 +40,34 @@ export const authRoutes = async (fastify: FastifyInstance) => {
 
     // Validate input
     if (!email || !password) {
+      // Track registration failure
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('registration_failed', {
+        distinctId: 'anonymous',
+        properties: {
+          error_type: 'validation_error',
+          missing_field: !email ? 'email' : 'password',
+          timestamp: new Date().toISOString(),
+        },
+      });
+
       return reply.code(400).send({
         error: 'Email and password are required',
       });
     }
 
     if (password.length < 8) {
+      // Track registration failure
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('registration_failed', {
+        distinctId: 'anonymous',
+        properties: {
+          error_type: 'validation_error',
+          validation_error: 'password_too_short',
+          timestamp: new Date().toISOString(),
+        },
+      });
+
       return reply.code(400).send({
         error: 'Password must be at least 8 characters',
       });
@@ -59,6 +81,17 @@ export const authRoutes = async (fastify: FastifyInstance) => {
       .executeTakeFirst();
 
     if (existingUser) {
+      // Track registration failure
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('registration_failed', {
+        distinctId: 'anonymous',
+        properties: {
+          error_type: 'user_already_exists',
+          email_domain: email.split('@')[1], // Anonymized
+          timestamp: new Date().toISOString(),
+        },
+      });
+
       return reply.code(409).send({
         error: 'User with this email already exists',
       });
@@ -135,6 +168,17 @@ export const authRoutes = async (fastify: FastifyInstance) => {
 
     // Validate input
     if (!email || !password) {
+      // Track login failure
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('login_failed', {
+        distinctId: 'anonymous',
+        properties: {
+          error_type: 'validation_error',
+          missing_field: !email ? 'email' : 'password',
+          timestamp: new Date().toISOString(),
+        },
+      });
+
       return reply.code(400).send({
         error: 'Email and password are required',
       });
@@ -148,6 +192,17 @@ export const authRoutes = async (fastify: FastifyInstance) => {
       .executeTakeFirst();
 
     if (!user) {
+      // Track login failure
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('login_failed', {
+        distinctId: 'anonymous',
+        properties: {
+          error_type: 'user_not_found',
+          email_domain: email.split('@')[1], // Anonymized
+          timestamp: new Date().toISOString(),
+        },
+      });
+
       return reply.code(401).send({
         error: 'Invalid email or password',
       });
@@ -156,6 +211,17 @@ export const authRoutes = async (fastify: FastifyInstance) => {
     // Verify password
     const isValid = await verifyPassword(password, user.password_hash);
     if (!isValid) {
+      // Track login failure
+      const { captureEvent } = await import('../lib/posthog.js');
+      captureEvent('login_failed', {
+        distinctId: 'anonymous',
+        properties: {
+          error_type: 'invalid_password',
+          email_domain: email.split('@')[1], // Anonymized
+          timestamp: new Date().toISOString(),
+        },
+      });
+
       return reply.code(401).send({
         error: 'Invalid email or password',
       });
@@ -220,6 +286,15 @@ export const authRoutes = async (fastify: FastifyInstance) => {
         error: 'User not found',
       });
     }
+
+    // Track session verification event
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('user_session_verified', {
+      distinctId: user.id,
+      properties: {
+        timestamp: new Date().toISOString(),
+      },
+    });
 
     return reply.send({ user });
   });

@@ -8,6 +8,7 @@ import { db, testConnection, closeConnection } from './db/index.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { securityPlugin } from './plugins/security.js';
 import { rateLimitPlugin, authRateLimitPlugin } from './plugins/rate-limit.js';
+import { requestTimingPlugin } from './plugins/request-timing.js';
 import { initPostHog, shutdownPostHog } from './lib/posthog.js';
 import { getEnvConfig, isProduction } from './lib/env-detection.js';
 import { authRoutes } from './routes/auth.js';
@@ -116,6 +117,9 @@ const start = async () => {
 
     // Register plugins
     await fastify.register(errorHandlerPlugin);
+    
+    // Register request timing middleware (AFTER error handler, BEFORE routes)
+    await fastify.register(requestTimingPlugin);
 
     // Register global rate limiting (BEFORE routes so route-level configs can override)
     await fastify.register(rateLimitPlugin);

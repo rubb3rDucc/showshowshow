@@ -48,10 +48,69 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
+// Configurable threshold for slow queries (default: 1000ms)
+const SLOW_QUERY_THRESHOLD_MS = parseInt(
+  process.env.SLOW_QUERY_THRESHOLD_MS || '1000',
+  10
+);
+
+// Track slow queries using pg pool query events
+if (process.env.NODE_ENV === 'production') {
+  // Intercept pool queries to track timing
+  const originalQuery = pool.query.bind(pool);
+  pool.query = function(...args: any[]) {
+    const startTime = Date.now();
+    const queryText = typeof args[0] === 'string' ? args[0] : args[0]?.text || '';
+    
+    const result = originalQuery(...args);
+    
+    // Track query duration (async, don't block)
+    if (result && typeof result.then === 'function') {
+      result
+        .then(() => {
+          const duration = Date.now() - startTime;
+          
+          if (duration >= SLOW_QUERY_THRESHOLD_MS) {
+            // Track slow query in PostHog
+            import('../lib/posthog.js')
+              .then(({ captureEvent }) => {
+                captureEvent('slow_query', {
+                  distinctId: 'system',
+                  properties: {
+                    query_type: extractQueryType(queryText),
+                    table: extractTableName(queryText),
+                    duration_ms: duration,
+                    query_preview: queryText.substring(0, 200),
+                  },
+                });
+              })
+              .catch(() => {
+                // Silently fail if PostHog not available
+              });
+
+            // Log slow query
+            console.warn('⚠️  Slow query detected:', {
+              duration_ms: duration,
+              query_type: extractQueryType(queryText),
+              table: extractTableName(queryText),
+              preview: queryText.substring(0, 100),
+            });
+          }
+        })
+        .catch(() => {
+          // Ignore query errors for timing purposes
+        });
+    }
+    
+    return result;
+  };
+}
+
 // Create Kysely instance
 export const db = new Kysely<Database>({
   dialect: new PostgresDialect({ pool }),
   log(event) {
+    // Development: log all queries
     if (event.level === 'query' && process.env.NODE_ENV === 'development') {
       console.log('Query:', event.query.sql);
       if (event.query.parameters.length > 0) {
@@ -60,6 +119,37 @@ export const db = new Kysely<Database>({
     }
   },
 });
+
+/**
+ * Extract query type from SQL (SELECT, INSERT, UPDATE, DELETE)
+ */
+function extractQueryType(sql: string): string {
+  const trimmed = sql.trim().toUpperCase();
+  if (trimmed.startsWith('SELECT')) return 'SELECT';
+  if (trimmed.startsWith('INSERT')) return 'INSERT';
+  if (trimmed.startsWith('UPDATE')) return 'UPDATE';
+  if (trimmed.startsWith('DELETE')) return 'DELETE';
+  return 'UNKNOWN';
+}
+
+/**
+ * Extract table name from SQL query (simple extraction)
+ */
+function extractTableName(sql: string): string | null {
+  const trimmed = sql.trim().toUpperCase();
+  
+  // Try to extract table name from common patterns
+  const fromMatch = trimmed.match(/FROM\s+["`]?(\w+)["`]?/i);
+  if (fromMatch) return fromMatch[1];
+  
+  const insertMatch = trimmed.match(/INTO\s+["`]?(\w+)["`]?/i);
+  if (insertMatch) return insertMatch[1];
+  
+  const updateMatch = trimmed.match(/UPDATE\s+["`]?(\w+)["`]?/i);
+  if (updateMatch) return updateMatch[1];
+  
+  return null;
+}
 
 // Test connection
 export async function testConnection() {
