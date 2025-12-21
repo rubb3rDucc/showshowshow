@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
 import ProblemStatement from '../components/ProblemStatement.astro';
 import Features from '../components/Features.astro';
@@ -17,11 +18,11 @@ const description = 'Take control from algorithms. You choose what to watch. Sch
 
 <Layout title={title} description={description}>
   <div class="min-h-screen bg-brutal-gray text-black font-mono selection:bg-black selection:text-pastel-mint">
+    <Header />
     <main class="overflow-hidden">
       <Hero />
       <ProblemStatement />
       <Features />
-      <HowItWorks />
       <UseCases />
       <Comparison />
       <Pricing />
@@ -38,19 +39,19 @@ const description = 'Take control from algorithms. You choose what to watch. Sch
           </div>
           <div class="flex flex-col sm:flex-row gap-4 sm:gap-6 text-sm md:text-base">
             <a
-              href="#"
+              href="/privacy"
               class="hover:bg-pastel-mint hover:text-black px-2 py-1 transition-colors border-b-4 border-transparent hover:border-black"
             >
               Privacy_Policy
             </a>
             <a
-              href="#"
+              href="/terms"
               class="hover:bg-pastel-pink hover:text-black px-2 py-1 transition-colors border-b-4 border-transparent hover:border-black"
             >
               Terms_Of_Service
             </a>
             <a
-              href="#"
+              href="/contact"
               class="hover:bg-pastel-blue hover:text-black px-2 py-1 transition-colors border-b-4 border-transparent hover:border-black"
             >
               Contact_Admin

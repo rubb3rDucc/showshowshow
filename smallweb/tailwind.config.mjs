@@ -4,8 +4,11 @@ export default {
   safelist: [
     // Pastel colors - all variants
     {
-      pattern: /(bg|text|border)-(pastel-mint|pastel-pink|pastel-blue|pastel-yellow|brutal-gray|brutal-black|brutal-white)/,
+      pattern: /(bg|text|border)-(pastel-mint|pastel-pink|pastel-blue|pastel-yellow|pastel-purple|brutal-gray|brutal-black|brutal-white)/,
+      variants: ['hover'],
     },
+    // If you add new pastel colors, add them to the pattern above:
+    // pattern: /(bg|text|border)-(pastel-mint|pastel-pink|pastel-blue|pastel-yellow|pastel-purple|...)/,
   ],
   theme: {
     extend: {
@@ -15,6 +18,10 @@ export default {
           pink: '#ff6b9d',
           blue: '#89cff0',
           yellow: '#fdfd96',
+          purple: '#c5a3ff',
+          // Add more pastel colors here:
+          // orange: '#ffb347',
+          // green: '#90ee90',
         },
         brutal: {
           black: '#000000',
@@ -32,6 +39,9 @@ export default {
         'pastel-pink': '#ff6b9d',
         'pastel-blue': '#89cff0',
         'pastel-yellow': '#fdfd96',
+        'pastel-orange': '#fdd096',
+        'pastel-purple': '#c5a3ff',
+        // Add more legacy aliases here if needed:
       },
       fontFamily: {
         mono: ['"Space Mono"', '"JetBrains Mono"', 'monospace'],

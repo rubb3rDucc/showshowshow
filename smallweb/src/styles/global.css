@@ -10,6 +10,8 @@
   --color-pink: #ff6b9d;
   --color-blue: #89cff0;
   --color-yellow: #fdfd96;
+  --color-purple: #ac96fd;
+  --color-purple: #fdd096;
 }
 
 @layer base {
