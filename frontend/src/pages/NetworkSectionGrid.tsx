@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Container, Button, Loader, Center, Modal, Text } from '@mantine/core';
 import { useLocation, useParams } from 'wouter';
 import { ArrowLeft, Plus, ListPlus } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useReducer, useEffect } from 'react';
 import { toast } from 'sonner';
 import { getNetworkContent, type NetworkContent } from '../api/networks';
 import { addToLibrary } from '../api/library';
@@ -20,43 +20,54 @@ interface Content {
   vote_count: number;
 }
 
+type AccumulatedContentAction =
+  | { type: 'ADD_PAGE'; page: number; content: Content[] }
+  | { type: 'RESET' };
+
+function accumulatedContentReducer(
+  state: Map<number, Content[]>,
+  action: AccumulatedContentAction
+): Map<number, Content[]> {
+  switch (action.type) {
+    case 'ADD_PAGE': {
+      const newState = new Map(state);
+      newState.set(action.page, action.content);
+      return newState;
+    }
+    case 'RESET': {
+      return new Map();
+    }
+    default:
+      return state;
+  }
+}
+
 export function NetworkSectionGrid() {
   const [, setLocation] = useLocation();
   const params = useParams<{ networkId: string; section: string }>();
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [contentModalOpen, setContentModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [accumulatedContent, setAccumulatedContent] = useState<Content[]>([]);
   const queryClient = useQueryClient();
 
   const { networkId, section } = params;
+  
+  // Reset currentPage and accumulated pages when networkId changes
+  // Using useMemo to derive state from networkId instead of useEffect
+  const [currentPage, setCurrentPage] = useState(1);
+  const [accumulatedPages, dispatch] = useReducer(accumulatedContentReducer, new Map());
+  const [lastNetworkId, setLastNetworkId] = useState(networkId);
+  
+  // Reset state when network changes (derived state pattern)
+  if (networkId !== lastNetworkId) {
+    setLastNetworkId(networkId);
+    setCurrentPage(1);
+    dispatch({ type: 'RESET' });
+  }
 
   console.log('NetworkSectionGrid params:', { networkId, section, fullParams: params });
 
-  // Early return if required params are missing
-  if (!networkId || !section) {
-    console.error('Missing required params:', { networkId, section });
-
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
-          <Button
-            variant="subtle"
-            leftSection={<ArrowLeft size={16} />}
-            onClick={() => setLocation('/')}
-            className="mb-6"
-          >
-            Back to Browse
-          </Button>
-          <Center py={60}>
-            <Text className="text-gray-600 font-mono">Invalid network or section</Text>
-          </Center>
-        </Container>
-      </div>
-    );
-  }
-
   // Use regular query with manual pagination - workaround for React Query v5 issue
+  // Hooks must be called before any early returns
   const {
     data,
     isLoading,
@@ -71,27 +82,33 @@ export function NetworkSectionGrid() {
       console.log('Fetched result:', result);
       return result;
     },
-    enabled: !!networkId,
+    enabled: !!networkId && !!section,
     staleTime: 1000 * 60 * 5,
     retry: 1,
     placeholderData: (previousData) => previousData, // Keep previous data while fetching
   });
 
-  // Accumulate content from all fetched pages
+  // Update accumulated pages when data changes using reducer
   useEffect(() => {
     if (data?.content) {
-      setAccumulatedContent(prev => {
-        // If we're on page 1, replace all content
-        if (currentPage === 1) {
-          return data.content;
-        }
-        // Otherwise, append new content
-        const existingIds = new Set(prev.map(item => item.id));
-        const newContent = data.content.filter(item => !existingIds.has(item.id));
-        return [...prev, ...newContent];
-      });
+      // If we're on page 1, reset first
+      if (currentPage === 1) {
+        dispatch({ type: 'RESET' });
+      }
+      dispatch({ type: 'ADD_PAGE', page: currentPage, content: data.content });
     }
   }, [data, currentPage]);
+
+  // Derive accumulated content from reducer state
+  const accumulatedContent = useMemo(() => {
+    const allPages = Array.from(accumulatedPages.values());
+    const allContent = allPages.flat();
+    // Remove duplicates by id
+    const uniqueContent = Array.from(
+      new Map(allContent.map(item => [item.id, item])).values()
+    );
+    return uniqueContent;
+  }, [accumulatedPages]);
 
   const network = data?.network;
   const hasNextPage = data && data.page < data.total_pages;
@@ -164,7 +181,7 @@ export function NetworkSectionGrid() {
 
   // Filter and sort content based on section
   const filteredContent = useMemo(() => {
-    if (!accumulatedContent.length) return [];
+    if (!accumulatedContent.length || !section) return [];
 
     switch (section) {
       case 'popular': {
@@ -215,6 +232,29 @@ export function NetworkSectionGrid() {
       }
     }
   }, [accumulatedContent, section]);
+
+  // Early return if required params are missing (after all hooks)
+  if (!networkId || !section) {
+    console.error('Missing required params:', { networkId, section });
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
+          <Button
+            variant="subtle"
+            leftSection={<ArrowLeft size={16} />}
+            onClick={() => setLocation('/')}
+            className="mb-6"
+          >
+            Back to Browse
+          </Button>
+          <Center py={60}>
+            <Text className="text-gray-600 font-mono">Invalid network or section</Text>
+          </Center>
+        </Container>
+      </div>
+    );
+  }
 
   const getSectionTitle = () => {
     const titles: Record<string, string> = {

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Container, Button, Loader, Center, Text, Modal } from '@mantine/core';
 import { useLocation } from 'wouter';
@@ -8,32 +8,23 @@ import { NetworkGrid } from '../components/browse/NetworkGrid';
 import { ContentCarousel } from '../components/browse/ContentCarousel';
 import { SectionHeader } from '../components/browse/SectionHeader';
 import { NetworkSearch, type SearchFilters } from '../components/browse/NetworkSearch';
-import { getNetworkContent } from '../api/networks';
+import { getNetworkContent, type NetworkContent } from '../api/networks';
 import { addToLibrary } from '../api/library';
 import { addToQueue } from '../api/content';
 import { getContentByTmdbId } from '../api/content';
 
+type NetworkContentItem = NetworkContent['content'][number];
+
 export function Browse() {
   const [, setLocation] = useLocation();
-  const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(null);
-  const [selectedContent, setSelectedContent] = useState<any>(null);
+  // Initialize from URL params
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialNetworkId = searchParams.get('network');
+  const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(initialNetworkId);
+  const [selectedContent, setSelectedContent] = useState<NetworkContentItem | null>(null);
   const [contentModalOpen, setContentModalOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
   const queryClient = useQueryClient();
-
-  // Check for network query parameter on initial mount (for direct links/bookmarks)
-  useEffect(() => {
-    const searchParams = window.location.search;
-    const params = new URLSearchParams(searchParams);
-    const networkId = params.get('network');
-    
-    console.log('Initial mount - Network ID from URL:', networkId);
-    
-    if (networkId) {
-      console.log('Setting initial network ID to:', networkId);
-      setSelectedNetworkId(networkId);
-    }
-  }, []); // Only run on mount
 
   // Fetch network content when a network is selected
   // Fetch multiple pages to ensure we have at least 12 items per section
@@ -140,7 +131,7 @@ export function Browse() {
     window.history.pushState({}, '', '/');
   };
 
-  const handleContentClick = async (item: any) => {
+  const handleContentClick = (item: NetworkContentItem) => {
     setSelectedContent(item);
     setContentModalOpen(true);
   };
@@ -165,7 +156,7 @@ export function Browse() {
   };
 
   // Apply search and filters to content
-  const applySearchFilters = (content: any[], filters: SearchFilters) => {
+  const applySearchFilters = (content: NetworkContentItem[], filters: SearchFilters) => {
     let filtered = [...content];
 
     // Text search
@@ -224,11 +215,11 @@ export function Browse() {
 
   // Organize content into sections (Apple Music style)
   // Ensures exactly 12 items per section (or less if not available)
-  const organizeSections = (content: any[]) => {
+  const organizeSections = (content: NetworkContentItem[]) => {
     const ITEMS_PER_SECTION = 12;
     
     // Helper to ensure exactly 12 items (or less if not available)
-    const ensureCount = (items: any[], count: number = ITEMS_PER_SECTION) => {
+    const ensureCount = (items: NetworkContentItem[], count: number = ITEMS_PER_SECTION) => {
       return items.slice(0, count);
     };
     
@@ -400,7 +391,7 @@ export function Browse() {
                     icon={<TrendingUp size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/popular`)}
                   />
-                  <ContentCarousel
+                  <ContentCarousel<NetworkContentItem>
                     items={sections.popular}
                     onItemClick={handleContentClick}
                   />
@@ -415,7 +406,7 @@ export function Browse() {
                     icon={<Sparkles size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/new`)}
                   />
-                  <ContentCarousel
+                  <ContentCarousel<NetworkContentItem>
                     items={sections.recent}
                     onItemClick={handleContentClick}
                   />
@@ -430,7 +421,7 @@ export function Browse() {
                     icon={<Award size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/rated`)}
                   />
-                  <ContentCarousel
+                  <ContentCarousel<NetworkContentItem>
                     items={sections.highRated}
                     onItemClick={handleContentClick}
                   />
@@ -445,7 +436,7 @@ export function Browse() {
                     icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/80s`)}
                   />
-                  <ContentCarousel
+                  <ContentCarousel<NetworkContentItem>
                     items={sections.decades['80s']}
                     onItemClick={handleContentClick}
                   />
@@ -459,7 +450,7 @@ export function Browse() {
                     icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/90s`)}
                   />
-                  <ContentCarousel
+                  <ContentCarousel<NetworkContentItem>
                     items={sections.decades['90s']}
                     onItemClick={handleContentClick}
                   />
@@ -473,7 +464,7 @@ export function Browse() {
                     icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/2000s`)}
                   />
-                  <ContentCarousel
+                  <ContentCarousel<NetworkContentItem>
                     items={sections.decades['2000s']}
                     onItemClick={handleContentClick}
                   />
@@ -487,7 +478,7 @@ export function Browse() {
                     icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/2010s`)}
                   />
-                  <ContentCarousel
+                  <ContentCarousel<NetworkContentItem>
                     items={sections.decades['2010s']}
                     onItemClick={handleContentClick}
                   />
@@ -502,7 +493,7 @@ export function Browse() {
                     icon={<Tv size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/all`)}
                   />
-                  <ContentCarousel
+                  <ContentCarousel<NetworkContentItem>
                     items={sections.all}
                     onItemClick={handleContentClick}
                   />
