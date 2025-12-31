@@ -17,6 +17,7 @@ import { Settings } from './pages/Settings';
 import { Browse } from './pages/Browse';
 import { Stats } from './pages/Stats';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
+import { AllNetworks } from './pages/AllNetworks';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -115,6 +116,14 @@ function App() {
           <ProtectedRoute>
             <Layout>
               <NetworkSectionGrid />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/networks">
+          <ProtectedRoute>
+            <Layout>
+              <AllNetworks />
             </Layout>
           </ProtectedRoute>
         </Route>

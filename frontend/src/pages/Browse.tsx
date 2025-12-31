@@ -1,22 +1,34 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Container, Button, Loader, Center, Text, Modal } from '@mantine/core';
 import { useLocation } from 'wouter';
 import { Search as SearchIcon, ArrowLeft, TrendingUp, Sparkles, Award, Calendar, Tv, Clock, Plus, ListPlus } from 'lucide-react';
+import { toast } from 'sonner';
 import { NetworkGrid } from '../components/browse/NetworkGrid';
 import { ContentCarousel } from '../components/browse/ContentCarousel';
 import { SectionHeader } from '../components/browse/SectionHeader';
+import { NetworkSearch, type SearchFilters } from '../components/browse/NetworkSearch';
 import { getNetworkContent } from '../api/networks';
 import { addToLibrary } from '../api/library';
 import { addToQueue } from '../api/content';
 import { getContentByTmdbId } from '../api/content';
 
 export function Browse() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(null);
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [contentModalOpen, setContentModalOpen] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
   const queryClient = useQueryClient();
+
+  // Check for network query parameter on mount
+  useState(() => {
+    const params = new URLSearchParams(location.split('?')[1]);
+    const networkId = params.get('network');
+    if (networkId) {
+      setSelectedNetworkId(networkId);
+    }
+  });
 
   // Fetch network content when a network is selected
   const { data: networkContent, isLoading: isLoadingNetwork } = useQuery({
@@ -36,12 +48,16 @@ export function Browse() {
       });
     },
     onSuccess: () => {
-      console.log('Added to library');
+      toast.success('Added to Library', {
+        description: `${selectedContent?.title} has been added to your library`,
+      });
       queryClient.invalidateQueries({ queryKey: ['library'] });
       setContentModalOpen(false);
     },
     onError: (error: Error) => {
-      console.error('Failed to add to library:', error.message);
+      toast.error('Failed to add to library', {
+        description: error.message || 'Something went wrong',
+      });
     },
   });
 
@@ -52,12 +68,16 @@ export function Browse() {
       return addToQueue(content.id);
     },
     onSuccess: () => {
-      console.log('Added to lineup');
+      toast.success('Added to Lineup', {
+        description: `${selectedContent?.title} is ready to be scheduled`,
+      });
       queryClient.invalidateQueries({ queryKey: ['queue'] });
       setContentModalOpen(false);
     },
     onError: (error: Error) => {
-      console.error('Failed to add to lineup:', error.message);
+      toast.error('Failed to add to lineup', {
+        description: error.message || 'Something went wrong',
+      });
     },
   });
 
@@ -91,6 +111,64 @@ export function Browse() {
     const currentYear = new Date().getFullYear();
     const twoYearsAgo = currentYear - 2;
     return `${twoYearsAgo}-${currentYear}`;
+  };
+
+  // Apply search and filters to content
+  const applySearchFilters = (content: any[], filters: SearchFilters) => {
+    let filtered = [...content];
+
+    // Text search
+    if (filters.query) {
+      const query = filters.query.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.title?.toLowerCase().includes(query) ||
+        item.overview?.toLowerCase().includes(query)
+      );
+    }
+
+    // Decade filter
+    if (filters.decade) {
+      const decadeMap: Record<string, [number, number]> = {
+        '1980s': [1980, 1989],
+        '1990s': [1990, 1999],
+        '2000s': [2000, 2009],
+        '2010s': [2010, 2019],
+        '2020s': [2020, 2029],
+      };
+      const [startYear, endYear] = decadeMap[filters.decade] || [0, 0];
+      filtered = filtered.filter(item => {
+        if (!item.first_air_date) return false;
+        const year = new Date(item.first_air_date).getFullYear();
+        return year >= startYear && year <= endYear;
+      });
+    }
+
+    // Rating filter
+    if (filters.minRating) {
+      filtered = filtered.filter(item => item.vote_average >= filters.minRating!);
+    }
+
+    // Sort
+    switch (filters.sortBy) {
+      case 'popularity':
+        filtered.sort((a, b) => (b.vote_average * b.vote_count) - (a.vote_average * a.vote_count));
+        break;
+      case 'rating':
+        filtered.sort((a, b) => b.vote_average - a.vote_average);
+        break;
+      case 'recent':
+        filtered.sort((a, b) => {
+          const dateA = a.first_air_date ? new Date(a.first_air_date).getTime() : 0;
+          const dateB = b.first_air_date ? new Date(b.first_air_date).getTime() : 0;
+          return dateB - dateA;
+        });
+        break;
+      case 'alphabetical':
+        filtered.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+    }
+
+    return filtered;
   };
 
   // Organize content into sections (Apple Music style)
@@ -143,6 +221,20 @@ export function Browse() {
     };
   };
 
+  // Filtered content based on search
+  const filteredContent = useMemo(() => {
+    if (!networkContent?.content || !searchFilters) return null;
+    return applySearchFilters(networkContent.content, searchFilters);
+  }, [networkContent, searchFilters]);
+
+  const handleSearch = (_query: string, filters: SearchFilters) => {
+    setSearchFilters(filters);
+  };
+
+  const handleClearSearch = () => {
+    setSearchFilters(null);
+  };
+
   // Show network detail view (Apple Music style)
   if (selectedNetworkId && networkContent) {
     const sections = organizeSections(networkContent.content || []);
@@ -158,7 +250,7 @@ export function Browse() {
               onClick={handleBackToNetworks}
               className="mb-6"
             >
-              Back to Networks
+              Back to Home
             </Button>
 
             <div className="flex items-center gap-4 mb-2">
@@ -180,11 +272,53 @@ export function Browse() {
             </div>
           </div>
 
+          {/* Search Bar */}
+          <NetworkSearch onSearch={handleSearch} onClear={handleClearSearch} />
+
+          {/* Search Results */}
+          {searchFilters && filteredContent && (
+            <div className="mb-8">
+              <div className="mb-4">
+                <Text className="font-mono text-sm text-gray-600">
+                  {filteredContent.length} results
+                  {searchFilters.query && ` for "${searchFilters.query}"`}
+                </Text>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {filteredContent.map((item) => (
+                  <div 
+                    key={item.id}
+                    className="cursor-pointer group"
+                    onClick={() => handleContentClick(item)}
+                  >
+                    {item.poster_url ? (
+                      <img 
+                        src={item.poster_url}
+                        alt={item.title}
+                        className="w-full h-auto object-cover border-2 border-gray-900 group-hover:border-4 transition-all"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full aspect-[2/3] bg-gray-200 border-2 border-gray-900 flex items-center justify-center">
+                        <span className="text-xs font-black text-gray-600 text-center px-2">
+                          NO IMAGE
+                        </span>
+                      </div>
+                    )}
+                    <p className="mt-2 text-sm font-bold truncate group-hover:text-gray-600 transition-colors">
+                      {item.title}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {isLoadingNetwork ? (
             <Center py={60}>
               <Loader size="lg" />
             </Center>
-          ) : (
+          ) : !searchFilters && (
             <div className="space-y-8">
               {/* Popular Section */}
               {sections.popular.length > 0 && (
@@ -249,7 +383,7 @@ export function Browse() {
               {sections.decades['90s'].length > 0 && (
                 <section>
                   <SectionHeader 
-                    title="90s Favorites" 
+                    title="The 90s" 
                     icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/90s`)}
                   />
@@ -263,7 +397,7 @@ export function Browse() {
               {sections.decades['2000s'].length > 0 && (
                 <section>
                   <SectionHeader 
-                    title="2000s Era" 
+                    title="The 2000s" 
                     icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/2000s`)}
                   />
@@ -277,7 +411,7 @@ export function Browse() {
               {sections.decades['2010s'].length > 0 && (
                 <section>
                   <SectionHeader 
-                    title="2010s Hits" 
+                    title="The 2010s" 
                     icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/2010s`)}
                   />
@@ -366,7 +500,11 @@ export function Browse() {
         </div>
 
         {/* Network Grid */}
-        <NetworkGrid onNetworkClick={handleNetworkClick} />
+        <NetworkGrid 
+          onNetworkClick={handleNetworkClick}
+          onSeeAllNetworks={() => setLocation('/networks')}
+          limit={12}
+        />
 
         {/* Coming Soon Section */}
         <div className="mt-12 bg-white border-2 border-gray-900 p-8">

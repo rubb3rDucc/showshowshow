@@ -3,6 +3,7 @@ import { Container, Button, Loader, Center, Modal } from '@mantine/core';
 import { useLocation, useParams } from 'wouter';
 import { ArrowLeft, Plus, ListPlus } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { getNetworkContent } from '../api/networks';
 import { addToLibrary } from '../api/library';
 import { addToQueue, getContentByTmdbId } from '../api/content';
@@ -33,12 +34,16 @@ export function NetworkSectionGrid() {
       });
     },
     onSuccess: () => {
-      console.log('Added to library');
+      toast.success('Added to Library', {
+        description: `${selectedContent?.title} has been added to your library`,
+      });
       queryClient.invalidateQueries({ queryKey: ['library'] });
       setContentModalOpen(false);
     },
     onError: (error: Error) => {
-      console.error('Failed to add to library:', error.message);
+      toast.error('Failed to add to library', {
+        description: error.message || 'Something went wrong',
+      });
     },
   });
 
@@ -49,12 +54,16 @@ export function NetworkSectionGrid() {
       return addToQueue(content.id);
     },
     onSuccess: () => {
-      console.log('Added to lineup');
+      toast.success('Added to Lineup', {
+        description: `${selectedContent?.title} is ready to be scheduled`,
+      });
       queryClient.invalidateQueries({ queryKey: ['queue'] });
       setContentModalOpen(false);
     },
     onError: (error: Error) => {
-      console.error('Failed to add to lineup:', error.message);
+      toast.error('Failed to add to lineup', {
+        description: error.message || 'Something went wrong',
+      });
     },
   });
 
@@ -165,7 +174,7 @@ export function NetworkSectionGrid() {
           <Button
             variant="subtle"
             leftSection={<ArrowLeft size={16} />}
-            onClick={() => setLocation('/')}
+            onClick={() => setLocation(`/?network=${networkId}`)}
             className="mb-6"
           >
             Back to Network
@@ -239,7 +248,7 @@ export function NetworkSectionGrid() {
               <img
                 src={selectedContent.poster_url}
                 alt={selectedContent.title}
-                className="w-full h-auto mb-4 border-2 border-gray-900"
+                className="w-40 h-60 mb-4 border-2 border-gray-900"
               />
             )}
             <p className="mb-4">{selectedContent.overview}</p>
