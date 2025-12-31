@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Container, Loader, Center, Text, Button } from '@mantine/core';
 import { useLocation } from 'wouter';
+import { TrendingUp, Calendar } from 'lucide-react';
 import { LibraryStats } from '../components/library/LibraryStats';
 import { ProgressBar } from '../components/stats/ProgressBar';
 import { ActivityItem } from '../components/stats/ActivityItem';
@@ -93,6 +94,7 @@ export function Stats() {
               <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-black tracking-widest">
                 PROGRESS
               </div>
+              <TrendingUp size={20} strokeWidth={2.5} className="text-gray-700" />
               <h2 className="text-xl font-black uppercase tracking-wider">
                 Shows in Progress
               </h2>
@@ -130,8 +132,9 @@ export function Stats() {
               <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-black tracking-widest">
                 ACTIVITY
               </div>
+              <Calendar size={20} strokeWidth={2.5} className="text-gray-700" />
               <h2 className="text-xl font-black uppercase tracking-wider">
-                📅 Recent Activity
+                Recent Activity
               </h2>
             </div>
             <div className="bg-white border-2 border-gray-900 p-4">
@@ -152,7 +155,7 @@ export function Stats() {
         {/* Empty State */}
         {showsInProgress.length === 0 && recentActivity.length === 0 && (
           <div className="mt-8 bg-white border-2 border-gray-900 p-8 text-center">
-            <div className="text-4xl mb-4">📊</div>
+            <TrendingUp size={48} strokeWidth={2} className="mx-auto mb-4 text-gray-700" />
             <Text size="xl" fw={700} className="mb-2">
               Start Watching to See Stats
             </Text>

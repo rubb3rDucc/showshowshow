@@ -1,3 +1,5 @@
+import { Lightbulb } from 'lucide-react';
+
 interface InsightsCardProps {
   completionRate: number;
   totalWatchTimeHours: number;
@@ -11,8 +13,9 @@ export function InsightsCard({ completionRate, totalWatchTimeHours, totalEpisode
         <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-black tracking-widest">
           INSIGHTS
         </div>
+        <Lightbulb size={20} strokeWidth={2.5} className="text-gray-700" />
         <span className="text-lg font-black uppercase tracking-wider">
-          💡 Viewing Insights
+          Viewing Insights
         </span>
       </div>
 
