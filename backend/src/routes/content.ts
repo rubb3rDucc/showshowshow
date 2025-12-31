@@ -498,6 +498,12 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
             
             // If network doesn't exist, create it
             if (!dbNetwork) {
+              // Get the highest sort_order
+              const maxSortOrder = await db
+                .selectFrom('networks')
+                .select(db.fn.max('sort_order').as('max_sort'))
+                .executeTakeFirst();
+              
               dbNetwork = await db
                 .insertInto('networks')
                 .values({
@@ -506,6 +512,8 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
                   name: network.name,
                   logo_path: network.logo_path,
                   origin_country: network.origin_country,
+                  sort_order: (maxSortOrder?.max_sort ?? -1) + 1,
+                  is_provider: false, // Networks from show details are TV networks, not providers
                   created_at: new Date(),
                 })
                 .returningAll()

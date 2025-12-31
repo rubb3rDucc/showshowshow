@@ -1,3 +1,5 @@
+import { LazyImage } from './LazyImage';
+
 interface NetworkCardProps {
   network: {
     id: string;
@@ -15,11 +17,10 @@ export function NetworkCard({ network, onClick }: NetworkCardProps) {
     >
       {network.logo_url ? (
         <div className="flex items-center justify-center h-16">
-          <img 
+          <LazyImage 
             src={network.logo_url}
             alt={network.name}
             className="max-h-14 w-auto object-contain"
-            loading="lazy"
           />
         </div>
       ) : (

@@ -1,4 +1,5 @@
 import { Star } from 'lucide-react';
+import { LazyImage } from './LazyImage';
 
 interface ContentCardProps {
   item: {
@@ -18,11 +19,10 @@ export function ContentCard({ item, onClick }: ContentCardProps) {
       onClick={onClick}
     >
       {item.poster_url ? (
-        <img 
+        <LazyImage 
           src={item.poster_url}
           alt={item.title}
           className="w-full h-60 object-cover border-2 border-gray-900 group-hover:border-4 transition-all"
-          loading="lazy"
         />
       ) : (
         <div className="w-full h-60 bg-gray-200 border-2 border-gray-900 flex items-center justify-center">

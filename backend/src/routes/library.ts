@@ -219,20 +219,9 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       ? Math.round(((completedItems?.count || 0) / (totalItems?.count || 0)) * 100)
       : 0;
 
-    // Get most watched genres (if we have genre data)
-    const genreStats = await db
-      .selectFrom('user_library')
-      .innerJoin('content', 'user_library.content_id', 'content.id')
-      .select([
-        'content.genres',
-        sql<number>`COUNT(*)::int`.as('count'),
-      ])
-      .where('user_library.user_id', '=', userId)
-      .where('user_library.status', 'in', ['watching', 'completed'])
-      .groupBy('content.genres')
-      .orderBy('count', 'desc')
-      .limit(5)
-      .execute();
+    // Genre stats would require a separate genres table
+    // For now, return empty array as genres aren't stored in content table
+    const genreStats: Array<{ genres: string; count: number }> = [];
 
     // Calculate total episodes watched
     const episodeStats = await db

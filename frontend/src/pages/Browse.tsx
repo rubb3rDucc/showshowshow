@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Container, Button, Loader, Center, Text, Modal } from '@mantine/core';
 import { useLocation } from 'wouter';
@@ -14,26 +14,68 @@ import { addToQueue } from '../api/content';
 import { getContentByTmdbId } from '../api/content';
 
 export function Browse() {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(null);
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [contentModalOpen, setContentModalOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState<SearchFilters | null>(null);
   const queryClient = useQueryClient();
 
-  // Check for network query parameter on mount
-  useState(() => {
-    const params = new URLSearchParams(location.split('?')[1]);
+  // Check for network query parameter on initial mount (for direct links/bookmarks)
+  useEffect(() => {
+    const searchParams = window.location.search;
+    const params = new URLSearchParams(searchParams);
     const networkId = params.get('network');
+    
+    console.log('Initial mount - Network ID from URL:', networkId);
+    
     if (networkId) {
+      console.log('Setting initial network ID to:', networkId);
       setSelectedNetworkId(networkId);
     }
-  });
+  }, []); // Only run on mount
 
   // Fetch network content when a network is selected
+  // Fetch multiple pages to ensure we have at least 12 items per section
   const { data: networkContent, isLoading: isLoadingNetwork } = useQuery({
     queryKey: ['network-content', selectedNetworkId],
-    queryFn: () => getNetworkContent(selectedNetworkId!, 1),
+    queryFn: async () => {
+      if (!selectedNetworkId) return null;
+      
+      // Fetch first page to get total_pages info
+      const firstPage = await getNetworkContent(selectedNetworkId, 1);
+      
+      // Determine how many pages to fetch (max 3, or less if not available)
+      const pagesToFetch = Math.min(3, firstPage.total_pages);
+      
+      // Fetch additional pages in parallel if needed
+      const additionalPages = [];
+      for (let i = 2; i <= pagesToFetch; i++) {
+        additionalPages.push(getNetworkContent(selectedNetworkId, i));
+      }
+      
+      const fetchedAdditionalPages = await Promise.all(additionalPages);
+      const pages = [firstPage, ...fetchedAdditionalPages];
+      
+      // Combine all content from all pages
+      const allContent = pages.flatMap(page => page.content);
+      
+      // Remove duplicates by tmdb_id
+      const uniqueContent = Array.from(
+        new Map(allContent.map(item => [item.tmdb_id, item])).values()
+      );
+      
+      console.log(`Fetched ${pagesToFetch} pages with ${uniqueContent.length} unique shows for ${firstPage.network.name}`);
+      
+      // Return in the same format as a single page response
+      return {
+        network: firstPage.network,
+        content: uniqueContent,
+        page: 1,
+        total_pages: firstPage.total_pages,
+        total_results: firstPage.total_results,
+      };
+    },
     enabled: !!selectedNetworkId,
   });
 
@@ -41,7 +83,8 @@ export function Browse() {
   const addToLibraryMutation = useMutation({
     mutationFn: async (tmdbId: number) => {
       // First fetch the content details to get the content_id
-      const content = await getContentByTmdbId(tmdbId);
+      // Network content is always TV shows, so specify type='tv'
+      const content = await getContentByTmdbId(tmdbId, 'tv');
       return addToLibrary({
         content_id: content.id,
         status: 'plan_to_watch' as const,
@@ -64,7 +107,8 @@ export function Browse() {
   // Mutation for adding to queue
   const addToQueueMutation = useMutation({
     mutationFn: async (tmdbId: number) => {
-      const content = await getContentByTmdbId(tmdbId);
+      // Network content is always TV shows, so specify type='tv'
+      const content = await getContentByTmdbId(tmdbId, 'tv');
       return addToQueue(content.id);
     },
     onSuccess: () => {
@@ -82,11 +126,18 @@ export function Browse() {
   });
 
   const handleNetworkClick = (networkId: string) => {
+    console.log('handleNetworkClick called with:', networkId);
+    // Directly set the network ID and update URL
     setSelectedNetworkId(networkId);
+    // Update URL for sharing/bookmarking
+    window.history.pushState({}, '', `/?network=${networkId}`);
   };
 
   const handleBackToNetworks = () => {
+    // Clear the network selection
     setSelectedNetworkId(null);
+    // Update URL
+    window.history.pushState({}, '', '/');
   };
 
   const handleContentClick = async (item: any) => {
@@ -172,7 +223,15 @@ export function Browse() {
   };
 
   // Organize content into sections (Apple Music style)
+  // Ensures exactly 12 items per section (or less if not available)
   const organizeSections = (content: any[]) => {
+    const ITEMS_PER_SECTION = 12;
+    
+    // Helper to ensure exactly 12 items (or less if not available)
+    const ensureCount = (items: any[], count: number = ITEMS_PER_SECTION) => {
+      return items.slice(0, count);
+    };
+    
     // Sort by popularity (vote_average * vote_count)
     const sortedByPopularity = [...content].sort((a, b) => 
       (b.vote_average * b.vote_count) - (a.vote_average * a.vote_count)
@@ -207,17 +266,17 @@ export function Browse() {
     const shows2010s = getDecadeShows(2010, 2019);
     
     return {
-      popular: sortedByPopularity.slice(0, 12),
-      recent: recentShows.slice(0, 12),
-      highRated: highRated.slice(0, 12),
+      popular: ensureCount(sortedByPopularity),
+      recent: ensureCount(recentShows),
+      highRated: ensureCount(highRated),
       decades: {
-        '80s': shows80s.slice(0, 12),
-        '90s': shows90s.slice(0, 12),
-        '2000s': shows2000s.slice(0, 12),
-        '2010s': shows2010s.slice(0, 12),
+        '80s': ensureCount(shows80s),
+        '90s': ensureCount(shows90s),
+        '2000s': ensureCount(shows2000s),
+        '2010s': ensureCount(shows2010s),
       },
-      all: sortedByPopularity.slice(0, 12), // Show top 12 for "All Shows" carousel
-      fullList: content, // Keep full list for future use
+      all: ensureCount(sortedByPopularity),
+      fullList: content,
     };
   };
 
@@ -238,6 +297,19 @@ export function Browse() {
   // Show network detail view (Apple Music style)
   if (selectedNetworkId && networkContent) {
     const sections = organizeSections(networkContent.content || []);
+    
+    // Log section sizes for debugging
+    console.log('Section sizes:', {
+      total: networkContent.content?.length || 0,
+      popular: sections.popular.length,
+      recent: sections.recent.length,
+      highRated: sections.highRated.length,
+      '80s': sections.decades['80s'].length,
+      '90s': sections.decades['90s'].length,
+      '2000s': sections.decades['2000s'].length,
+      '2010s': sections.decades['2010s'].length,
+      all: sections.all.length,
+    });
 
     return (
       <div className="min-h-screen bg-gray-50">
@@ -504,6 +576,7 @@ export function Browse() {
           onNetworkClick={handleNetworkClick}
           onSeeAllNetworks={() => setLocation('/networks')}
           limit={12}
+          enableDragDrop={true}
         />
 
         {/* Coming Soon Section */}

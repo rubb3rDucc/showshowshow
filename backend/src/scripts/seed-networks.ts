@@ -13,6 +13,12 @@ async function seedNetworks() {
       console.log(`📡 Fetching ${network.name}...`);
       const details = await getNetworkDetails(network.tmdb_id);
       
+      // Get the highest sort_order
+      const maxSortOrder = await db
+        .selectFrom('networks')
+        .select(db.fn.max('sort_order').as('max_sort'))
+        .executeTakeFirst();
+      
       await db
         .insertInto('networks')
         .values({
@@ -21,6 +27,8 @@ async function seedNetworks() {
           name: details.name,
           logo_path: details.logo_path,
           origin_country: details.origin_country,
+          sort_order: (maxSortOrder?.max_sort ?? -1) + 1,
+          is_provider: false, // Featured networks are TV networks, not providers
           created_at: new Date(),
         })
         .onConflict((oc) => 

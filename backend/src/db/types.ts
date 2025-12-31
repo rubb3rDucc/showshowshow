@@ -187,6 +187,8 @@ export interface Database {
     name: string;
     logo_path: string | null;
     origin_country: string | null;
+    sort_order: number;
+    is_provider: boolean;
     created_at: Date;
   };
   content_networks: {

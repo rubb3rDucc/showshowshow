@@ -13,6 +13,22 @@
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
   }
+  
+  /* iOS-style jiggle animation for reordering */
+  /* Adjust --jiggle-speed to change animation speed (default: 0.25s) */
+  @keyframes jiggle {
+    0%, 100% {
+      transform: rotate(-1deg);
+    }
+    50% {
+      transform: rotate(1deg);
+    }
+  }
+  
+  .animate-jiggle {
+    --jiggle-speed: 0.25s; /* Change this value to adjust speed */
+    animation: jiggle var(--jiggle-speed) ease-in-out infinite;
+  }
 }
 
 :root {
