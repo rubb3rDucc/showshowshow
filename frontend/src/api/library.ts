@@ -38,6 +38,43 @@ export async function getLibraryStats(): Promise<LibraryStatsAPI> {
 }
 
 /**
+ * Get detailed library statistics
+ */
+export async function getDetailedStats(): Promise<{
+  shows_in_progress: Array<{
+    id: string;
+    content_id: string;
+    title: string;
+    poster_url: string | null;
+    episodes_watched: number;
+    total_episodes: number;
+    percentage: number;
+  }>;
+  recent_activity: Array<{
+    id: string;
+    content_id: string;
+    title: string;
+    poster_url: string | null;
+    content_type: 'show' | 'movie';
+    status: string;
+    last_watched_at: string | null;
+    completed_at: string | null;
+    updated_at: string;
+  }>;
+  insights: {
+    completion_rate: number;
+    total_watch_time_hours: number;
+    total_episodes_watched: number;
+    most_watched_genres: Array<{
+      genres: string | null;
+      count: number;
+    }>;
+  };
+}> {
+  return apiCall('/api/library/stats/detailed');
+}
+
+/**
  * Get a single library item by ID
  */
 export async function getLibraryItem(id: string): Promise<LibraryItem> {

@@ -4,13 +4,12 @@ import { Container, Button, Text, Loader, Center } from '@mantine/core';
 import { Plus } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
-import { LibraryStats } from '../components/library/LibraryStats';
 import { LibraryFilters } from '../components/library/LibraryFilters';
 import { LibraryCard } from '../components/library/LibraryCard';
 import { LibraryDetailModal } from '../components/library/LibraryDetailModal';
-import { getLibrary, getLibraryStats, removeFromLibrary, updateLibraryItem } from '../api/library';
+import { getLibrary, removeFromLibrary, updateLibraryItem } from '../api/library';
 import { addToQueue } from '../api/content';
-import { libraryItemToUI, libraryStatsToUI } from '../utils/library.utils';
+import { libraryItemToUI } from '../utils/library.utils';
 import type {
   LibraryItemUI,
   LibraryFilterStatus,
@@ -36,12 +35,6 @@ export function Library() {
       filterType !== 'all' ? filterType : undefined,
       searchQuery || undefined
     ),
-  });
-
-  // Fetch library stats
-  const { data: stats, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['library', 'stats'],
-    queryFn: getLibraryStats,
   });
 
   // Convert API items to UI format
@@ -136,27 +129,6 @@ export function Library() {
     return filtered;
   }, [libraryItemsUI, searchQuery, filterStatus, filterType, sortBy]);
 
-  // Calculate stats from filtered data (fallback if API stats not available)
-  const calculatedStats = useMemo(() => {
-    if (stats) {
-      return libraryStatsToUI(stats);
-    }
-    // Fallback to calculating from current library items
-    return {
-      totalItems: libraryItemsUI.length,
-      watching: libraryItemsUI.filter((i) => i.status === 'watching').length,
-      completed: libraryItemsUI.filter((i) => i.status === 'completed').length,
-      dropped: libraryItemsUI.filter((i) => i.status === 'dropped').length,
-      planToWatch: libraryItemsUI.filter((i) => i.status === 'plan_to_watch').length,
-      totalShows: libraryItemsUI.filter((i) => i.content.contentType === 'show').length,
-      totalMovies: libraryItemsUI.filter((i) => i.content.contentType === 'movie').length,
-      totalEpisodesWatched: libraryItemsUI.reduce(
-        (sum, item) => sum + (item.progress?.episodesWatched || 0),
-        0
-      ),
-    };
-  }, [stats, libraryItemsUI]);
-
   const handleViewDetails = (item: LibraryItemUI) => {
     setSelectedItem(item);
     setIsModalOpen(true);
@@ -188,7 +160,7 @@ export function Library() {
     setLocation('/search');
   };
 
-  if (isLoadingLibrary || isLoadingStats) {
+  if (isLoadingLibrary) {
     return (
       <Center className="min-h-screen">
         <Loader size="lg" />
@@ -200,20 +172,15 @@ export function Library() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <Container size="xl" className="py-4 md:py-8 lg:py-12 px-2 md:px-4">
         {/* Header */}
-        <div className="flex justify-between items-start mb-6 md:mb-8">
-          <div>
-            <Text
-              size="xs"
-              c="dimmed"
-              fw={500}
-              className="uppercase tracking-widest mb-1"
-            >
-              Your Collection
-            </Text>
-            <Text size="3xl" fw={300} className="text-gray-900 tracking-tight">
-              Library
-            </Text>
-          </div>
+        <div className="flex justify-between items-center mb-6 md:mb-8">
+          <Button
+            size="sm"
+            variant="subtle"
+            className="text-gray-600 hover:text-gray-900"
+            onClick={() => setLocation('/stats')}
+          >
+            → View Stats
+          </Button>
           <Button
             size="sm"
             className="bg-black text-white border-2 border-black font-black uppercase tracking-wider"
@@ -224,9 +191,6 @@ export function Library() {
             ADD MEDIA
           </Button>
         </div>
-
-        {/* Stats Dashboard */}
-        <LibraryStats stats={calculatedStats} />
 
         {/* Filters */}
         <LibraryFilters

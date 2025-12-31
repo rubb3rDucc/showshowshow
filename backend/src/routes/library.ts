@@ -129,6 +129,124 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
     });
   });
 
+  // Get detailed library statistics
+  fastify.get('/api/library/stats/detailed', { preHandler: authenticate }, async (request, reply) => {
+    if (!request.user) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+
+    const userId = request.user.userId;
+
+    // Get shows in progress
+    const showsInProgress = await db
+      .selectFrom('user_library')
+      .innerJoin('content', 'user_library.content_id', 'content.id')
+      .select([
+        'user_library.id',
+        'user_library.content_id',
+        'content.title',
+        'content.poster_url',
+        'content.number_of_episodes',
+        'user_library.episodes_watched',
+      ])
+      .where('user_library.user_id', '=', userId)
+      .where('user_library.status', '=', 'watching')
+      .where('content.content_type', '=', 'show')
+      .orderBy('user_library.last_watched_at', 'desc')
+      .limit(10)
+      .execute();
+
+    const progressItems = showsInProgress.map(item => {
+      const totalEpisodes = item.number_of_episodes || 0;
+      const episodesWatched = item.episodes_watched || 0;
+      const percentage = totalEpisodes > 0 
+        ? Math.round((episodesWatched / totalEpisodes) * 100) 
+        : 0;
+
+      return {
+        id: item.id,
+        content_id: item.content_id,
+        title: item.title,
+        poster_url: item.poster_url,
+        episodes_watched: episodesWatched,
+        total_episodes: totalEpisodes,
+        percentage,
+      };
+    });
+
+    // Get recent activity (last 10 items watched/completed)
+    const recentActivity = await db
+      .selectFrom('user_library')
+      .innerJoin('content', 'user_library.content_id', 'content.id')
+      .select([
+        'user_library.id',
+        'user_library.content_id',
+        'content.title',
+        'content.poster_url',
+        'content.content_type',
+        'user_library.status',
+        'user_library.last_watched_at',
+        'user_library.completed_at',
+        'user_library.updated_at',
+      ])
+      .where('user_library.user_id', '=', userId)
+      .where((eb) => eb.or([
+        eb('user_library.last_watched_at', 'is not', null),
+        eb('user_library.completed_at', 'is not', null),
+      ]))
+      .orderBy(
+        sql`COALESCE(user_library.last_watched_at, user_library.completed_at)`,
+        'desc'
+      )
+      .limit(10)
+      .execute();
+
+    // Calculate viewing insights
+    const totalItems = await db
+      .selectFrom('user_library')
+      .select(sql<number>`COUNT(*)::int`.as('count'))
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    const completedItems = await db
+      .selectFrom('user_library')
+      .select(sql<number>`COUNT(*)::int`.as('count'))
+      .where('user_id', '=', userId)
+      .where('status', '=', 'completed')
+      .executeTakeFirst();
+
+    const completionRate = (totalItems?.count || 0) > 0
+      ? Math.round(((completedItems?.count || 0) / (totalItems?.count || 0)) * 100)
+      : 0;
+
+    // Genre stats would require a separate genres table
+    // For now, return empty array as genres aren't stored in content table
+    const genreStats: Array<{ genres: string; count: number }> = [];
+
+    // Calculate total episodes watched
+    const episodeStats = await db
+      .selectFrom('user_library')
+      .select(sql<number>`COALESCE(SUM(episodes_watched), 0)::int`.as('total'))
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    // Estimate watch time (average 45 min per episode)
+    const totalEpisodesWatched = episodeStats?.total || 0;
+    const estimatedMinutes = totalEpisodesWatched * 45;
+    const estimatedHours = Math.round(estimatedMinutes / 60);
+
+    return reply.send({
+      shows_in_progress: progressItems,
+      recent_activity: recentActivity,
+      insights: {
+        completion_rate: completionRate,
+        total_watch_time_hours: estimatedHours,
+        total_episodes_watched: totalEpisodesWatched,
+        most_watched_genres: genreStats,
+      },
+    });
+  });
+
   // Get a single library item by ID
   fastify.get('/api/library/:id', { preHandler: authenticate }, async (request, reply) => {
     if (!request.user) {

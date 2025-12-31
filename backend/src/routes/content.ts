@@ -482,6 +482,66 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       .returningAll()
       .executeTakeFirstOrThrow();
 
+    // Store network associations for TV shows from TMDB
+    if (saved.content_type === 'show' && saved.data_source === 'tmdb' && saved.tmdb_id) {
+      try {
+        const showDetails = await getShowDetails(saved.tmdb_id);
+        
+        if (showDetails.networks && showDetails.networks.length > 0) {
+          for (const network of showDetails.networks) {
+            // Check if network exists in our database
+            let dbNetwork = await db
+              .selectFrom('networks')
+              .select('id')
+              .where('tmdb_network_id', '=', network.id)
+              .executeTakeFirst();
+            
+            // If network doesn't exist, create it
+            if (!dbNetwork) {
+              // Get the highest sort_order
+              const maxSortOrder = await db
+                .selectFrom('networks')
+                .select(db.fn.max('sort_order').as('max_sort'))
+                .executeTakeFirst();
+              
+              dbNetwork = await db
+                .insertInto('networks')
+                .values({
+                  id: crypto.randomUUID(),
+                  tmdb_network_id: network.id,
+                  name: network.name,
+                  logo_path: network.logo_path,
+                  origin_country: network.origin_country,
+                  sort_order: (maxSortOrder?.max_sort ?? -1) + 1,
+                  is_provider: false, // Networks from show details are TV networks, not providers
+                  created_at: new Date(),
+                })
+                .returningAll()
+                .executeTakeFirst();
+            }
+            
+            // Create content-network association
+            if (dbNetwork) {
+              await db
+                .insertInto('content_networks')
+                .values({
+                  id: crypto.randomUUID(),
+                  content_id: saved.id,
+                  network_id: dbNetwork.id,
+                  is_original: false,
+                  created_at: new Date(),
+                })
+                .onConflict((oc) => oc.columns(['content_id', 'network_id']).doNothing())
+                .execute();
+            }
+          }
+        }
+      } catch (error) {
+        // Don't fail the request if network association fails
+        console.warn(`Failed to store network associations for content ${saved.id}:`, error);
+      }
+    }
+
     // Track content details viewed (newly fetched)
     const userId = (request as any).user?.userId || 'anonymous';
     const { captureEvent } = await import('../lib/posthog.js');

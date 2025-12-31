@@ -57,13 +57,6 @@ export function Settings() {
   return (
     <Container size="md" className="py-8">
       <Stack gap="xl">
-        {/* Header */}
-        <div>
-          <Text size="3xl" fw={700} className="mb-2">
-            Settings
-          </Text>
-          <Text c="dimmed">Manage your account settings and preferences</Text>
-        </div>
 
         {/* Account Information */}
         <Card shadow="sm" padding="lg" radius="md" withBorder>

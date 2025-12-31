@@ -70,8 +70,10 @@ export const waitlistRoutes = async (fastify: FastifyInstance) => {
     const result = await db
       .insertInto('waitlist')
       .values({
+        id: crypto.randomUUID(),
         email: normalizedEmail,
         source: source,
+        code_used: false,
         created_at: new Date(),
         updated_at: new Date(),
       })
@@ -90,7 +92,7 @@ export const waitlistRoutes = async (fastify: FastifyInstance) => {
       });
     } catch (error) {
       // PostHog not critical, continue
-      fastify.log.debug('PostHog tracking failed (non-critical):', error);
+      fastify.log.debug({ error }, 'PostHog tracking failed (non-critical)');
     }
 
     fastify.log.info(`✅ Waitlist signup: ${normalizedEmail} (source: ${source})`);

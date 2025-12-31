@@ -143,3 +143,145 @@ export function getDefaultDuration(content: any, contentType: 'show' | 'movie'):
   return 22; // Default 22 minutes for TV shows
 }
 
+// Get network details
+// If isProvider is true, only check providers list (don't try network endpoint)
+export async function getNetworkDetails(networkId: number, isProvider: boolean = false): Promise<any> {
+  // If explicitly marked as provider, skip network endpoint
+  if (isProvider) {
+    const providersEndpoint = `/watch/providers/tv?watch_region=US`;
+    const providers = await fetchTMDB(providersEndpoint);
+    
+    if (providers.results) {
+      const provider = providers.results.find((p: any) => p.provider_id === networkId);
+      if (provider) {
+        // Format provider data to match network structure
+        return {
+          id: provider.provider_id,
+          name: provider.provider_name,
+          logo_path: provider.logo_path,
+          origin_country: 'US',
+          headquarters: '',
+          homepage: '',
+        };
+      }
+    }
+    throw new Error(`Provider ${networkId} not found`);
+  }
+  
+  // Otherwise, try as a traditional TV network first
+  try {
+    const endpoint = `/network/${networkId}`;
+    const result = await fetchTMDB(endpoint);
+    if (result && result.id) {
+      return result;
+    }
+  } catch (error) {
+    // If 404, it might be a provider ID instead
+    console.log(`Network ${networkId} not found, trying as provider...`);
+  }
+  
+  // If network endpoint fails, try getting it from the providers list
+  try {
+    const providersEndpoint = `/watch/providers/tv?watch_region=US`;
+    const providers = await fetchTMDB(providersEndpoint);
+    
+    if (providers.results) {
+      const provider = providers.results.find((p: any) => p.provider_id === networkId);
+      if (provider) {
+        // Format provider data to match network structure
+        return {
+          id: provider.provider_id,
+          name: provider.provider_name,
+          logo_path: provider.logo_path,
+          origin_country: 'US',
+          headquarters: '',
+          homepage: '',
+        };
+      }
+    }
+  } catch (error) {
+    console.error(`Failed to fetch provider ${networkId}:`, error);
+  }
+  
+  throw new Error(`Network/Provider ${networkId} not found`);
+}
+
+// Search for networks
+// Note: TMDB doesn't have a direct network search endpoint, so we search for companies
+// and filter to only those that are actually TV networks
+export async function searchNetworks(query: string, page: number = 1): Promise<any> {
+  const endpoint = `/search/company?query=${encodeURIComponent(query)}&page=${page}`;
+  return fetchTMDB(endpoint);
+}
+
+// Get list of available networks (alternative approach)
+export async function getAvailableNetworks(): Promise<any> {
+  // TMDB has a configuration endpoint that lists all available networks
+  const endpoint = `/configuration/tv`;
+  return fetchTMDB(endpoint);
+}
+
+// Discover shows by network
+// If isProvider is true, only use with_watch_providers parameter
+export async function discoverShowsByNetwork(
+  networkId: number, 
+  page: number = 1,
+  isProvider: boolean = false
+): Promise<any> {
+  // If explicitly marked as provider, ONLY use with_watch_providers
+  if (isProvider) {
+    try {
+      const endpoint = `/discover/tv?with_watch_providers=${networkId}&watch_region=US&page=${page}&sort_by=popularity.desc`;
+      return await fetchTMDB(endpoint);
+    } catch (error) {
+      console.error('Error fetching provider content:', error);
+      return {
+        page: 1,
+        results: [],
+        total_pages: 0,
+        total_results: 0,
+      };
+    }
+  }
+  
+  // Otherwise, try with_networks first (for traditional TV networks)
+  try {
+    const endpoint = `/discover/tv?with_networks=${networkId}&page=${page}&sort_by=popularity.desc`;
+    const result = await fetchTMDB(endpoint);
+    
+    // If we got results, return them
+    if (result.results && result.results.length > 0) {
+      return result;
+    }
+  } catch (error) {
+    console.error('Error fetching with networks:', error);
+  }
+  
+  // If no results, try with_watch_providers as fallback (for streaming services like Tubi, Mubi)
+  try {
+    const endpoint = `/discover/tv?with_watch_providers=${networkId}&watch_region=US&page=${page}&sort_by=popularity.desc`;
+    return await fetchTMDB(endpoint);
+  } catch (error) {
+    console.error('Error fetching with providers:', error);
+    // Return empty results if both fail
+    return {
+      page: 1,
+      results: [],
+      total_pages: 0,
+      total_results: 0,
+    };
+  }
+}
+
+// Trending TV shows
+export async function getTrendingShows(page: number = 1): Promise<any> {
+  const endpoint = `/trending/tv/week?page=${page}`;
+  return fetchTMDB(endpoint);
+}
+
+// Popular TV shows
+export async function getPopularShows(page: number = 1): Promise<any> {
+  const endpoint = `/tv/popular?page=${page}`;
+  return fetchTMDB(endpoint);
+}
+

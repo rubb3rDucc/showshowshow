@@ -14,6 +14,11 @@ import { Search } from './pages/Search';
 import { Queue } from './pages/Queue';
 import { Library } from './pages/Library';
 import { Settings } from './pages/Settings';
+import { Browse } from './pages/Browse';
+import { Stats } from './pages/Stats';
+import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
+import { AllNetworks } from './pages/AllNetworks';
+import { ManageNetworks } from './pages/ManageNetworks';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -55,7 +60,7 @@ function App() {
         <Route path="/">
           <ProtectedRoute>
             <Layout>
-              <Home />
+              <Browse />
             </Layout>
           </ProtectedRoute>
         </Route>
@@ -68,7 +73,15 @@ function App() {
           </ProtectedRoute>
         </Route>
 
-        <Route path="/queue">
+        <Route path="/home">
+          <ProtectedRoute>
+            <Layout>
+              <Home />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/lineup">
           <ProtectedRoute>
             <Layout>
               <Queue />
@@ -84,10 +97,42 @@ function App() {
           </ProtectedRoute>
         </Route>
 
+        <Route path="/stats">
+          <ProtectedRoute>
+            <Layout>
+              <Stats />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
         <Route path="/settings">
           <ProtectedRoute>
             <Layout>
               <Settings />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/browse/network/:networkId/:section">
+          <ProtectedRoute>
+            <Layout>
+              <NetworkSectionGrid />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/networks">
+          <ProtectedRoute>
+            <Layout>
+              <AllNetworks />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/networks/manage">
+          <ProtectedRoute>
+            <Layout>
+              <ManageNetworks />
             </Layout>
           </ProtectedRoute>
         </Route>

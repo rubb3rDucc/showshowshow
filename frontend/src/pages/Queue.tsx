@@ -30,7 +30,7 @@ import {
   ActionIcon,
 } from '@mantine/core';
 import { useMediaQuery, useDisclosure } from '@mantine/hooks';
-import { IconAlertCircle, IconList, IconChevronLeft, IconChevronDown } from '@tabler/icons-react';
+import { IconAlertCircle, IconList, IconChevronLeft } from '@tabler/icons-react';
 import { Link, useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { getQueue, removeFromQueue, reorderQueue } from '../api/content';
@@ -88,14 +88,14 @@ export function Queue() {
       return { previousQueue };
     },
     onSuccess: () => {
-      toast.success('Removed from queue');
+      toast.success('Removed from lineup');
     },
     onError: (error, _itemId, context) => {
       if (context?.previousQueue) {
         queryClient.setQueryData(['queue'], context.previousQueue);
         setLocalQueue(context.previousQueue);
       }
-      toast.error(error.message || 'Failed to remove from queue');
+      toast.error(error.message || 'Failed to remove from lineup');
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['queue'] });
@@ -109,7 +109,7 @@ export function Queue() {
       queryClient.invalidateQueries({ queryKey: ['queue'] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to reorder queue');
+      toast.error(error.message || 'Failed to reorder lineup');
       isDraggingRef.current = false;
       if (queue) {
         setLocalQueue(queue);
@@ -186,7 +186,7 @@ export function Queue() {
           <Center py={60}>
             <Stack align="center" gap="md">
               <Loader size="lg" />
-              <Text c="dimmed">Loading queue...</Text>
+              <Text c="dimmed">Loading lineup...</Text>
             </Stack>
           </Center>
         </div>
@@ -199,7 +199,7 @@ export function Queue() {
       <div className="p-4 md:p-8">
         <div style={{ width: '100%', padding: '0 16px' }}>
           <Alert color="red" title="Error" icon={<IconAlertCircle />}>
-            Failed to load queue. Please try again.
+            Failed to load lineup. Please try again.
           </Alert>
         </div>
       </div>
@@ -209,100 +209,50 @@ export function Queue() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white', paddingBottom: isMobile ? '80px' : 0 }}>
       <Box style={{ paddingTop: isMobile ? '6px' : '12px', paddingBottom: isMobile ? '6px' : '6px', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '100%' }}>
-        {/* Header with Back Button */}
+        {/* Header with Action Buttons */}
         <Box mb={isMobile ? '32px' : '48px'}>
           <Group justify="space-between" align="center" mb="md">
-          {/* Title Section */}
-          <Box style={{ display: isMobile ? 'none' : 'block' }}>
-            <Text
-              size="xl"
-              fw={300}
-              style={{ color: '#111827', letterSpacing: '-0.025em', marginBottom: '4px' }}
-            >
-              Queue
-            </Text>
-            <Text size="sm" c="dimmed" fw={300}>
-              {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'}
-            </Text>
-          
-          </Box>
+            <Box>
+              <Text size="sm" c="dimmed" fw={300}>
+                {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'} in lineup
+              </Text>
+            </Box>
 
-          
-          
-
-            {/* Back to Search Button */}
-            {/* <Link href="/search">
+            {/* Schedule Actions */}
+            <Group gap="sm">
               <Button
-                variant="subtle"
-                color="gray"
+                variant="filled"
+                color="dark"
                 size="sm"
-                leftSection={<IconChevronLeft size={14} />}
-                style={{ fontWeight: 300 }}
+                onClick={() => setGenerateModalOpened(true)}
               >
-                Search
+                Quick Schedule
               </Button>
-            </Link> */}
 
+              <Menu shadow="sm" width={200}>
+                <Menu.Target>
+                  <Button
+                    variant="subtle"
+                    color="gray"
+                    size="sm"
+                  >
+                    More Actions
+                  </Button>
+                </Menu.Target>
 
-            
+                <Menu.Dropdown>
+                  <Menu.Item
+                    onClick={handleClearScheduleForDate}
+                    disabled={!selectedDate || clearScheduleMutation.isPending}
+                    style={{ fontWeight: 300, fontSize: '14px' }}
+                    color="red"
+                  >
+                    Clear Schedule for Day
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            </Group>
           </Group>
-
-          
-          <Box style={{ display: isMobile ? 'block' : 'none' }}>
-            
-            <Text
-              size="xl"
-              fw={300}
-              style={{ color: '#111827', letterSpacing: '-0.025em', marginBottom: '4px' }}
-            >
-              Schedule
-            </Text>
-            <Text size="sm" c="dimmed" fw={300}>
-              {/* TODO: Get schedule count when available */}
-              0 items
-            </Text>
-            
-          </Box>
-
-            {/* Schedule Actions Dropdown */}
-            <Menu shadow="sm" width={200}>
-              <Menu.Target>
-                <Button
-                  variant="subtle"
-                  color="dark"
-                  size="sm"
-
-                  rightSection={<IconChevronDown size={14} />}
-                >
-                  RANDOM BULK SCHEDULE GENERATE
-                </Button>
-              </Menu.Target>
-
-              <Menu.Dropdown>
-                <Menu.Label style={{ fontWeight: 300, fontSize: '12px' }}>
-                  Auto-fill
-                </Menu.Label>
-                <Menu.Item
-                  onClick={() => setGenerateModalOpened(true)}
-                  style={{ fontWeight: 300, fontSize: '14px' }}
-                >
-                  Generate Schedule
-                </Menu.Item>
-
-                <Menu.Divider />
-
-                <Menu.Item
-                  onClick={handleClearScheduleForDate}
-                  disabled={!selectedDate || clearScheduleMutation.isPending}
-                  style={{ fontWeight: 300, fontSize: '14px' }}
-                  color="red"
-                >
-                  Clear Schedule for Day
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-          
-          
         </Box>
       
         <Grid gutter="xl" align="flex-start">
@@ -401,7 +351,7 @@ export function Queue() {
                 onClick={open}
                 style={{ fontWeight: 300 }}
               >
-                Queue
+                Lineup
               </Button>
             </Group>
           </Box>
@@ -411,7 +361,7 @@ export function Queue() {
             onClose={close}
             position="bottom"
             size="90%"
-            title="Queue"
+            title="Lineup"
             padding="md"
             styles={{
               header: {

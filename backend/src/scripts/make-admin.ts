@@ -83,6 +83,7 @@ async function makeAdmin() {
     const user = await db
       .insertInto('users')
       .values({
+        id: crypto.randomUUID(),
         email: normalizedEmail,
         password_hash: passwordHash,
         is_admin: true,

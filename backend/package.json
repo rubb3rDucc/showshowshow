@@ -19,6 +19,7 @@
     "refresh:all": "tsx src/scripts/refresh-all-content.ts",
     "refresh:force": "tsx src/scripts/refresh-all-content.ts --force",
     "refresh:retry": "tsx src/scripts/refresh-all-content.ts --retry",
+    "seed:networks": "tsx src/scripts/seed-networks.ts",
     "test": "vitest",
     "test:run": "vitest run",
     "test:watch": "vitest watch",
