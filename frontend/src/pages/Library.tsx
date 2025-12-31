@@ -200,20 +200,15 @@ export function Library() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <Container size="xl" className="py-4 md:py-8 lg:py-12 px-2 md:px-4">
         {/* Header */}
-        <div className="flex justify-between items-start mb-6 md:mb-8">
-          <div>
-            <Text
-              size="xs"
-              c="dimmed"
-              fw={500}
-              className="uppercase tracking-widest mb-1"
-            >
-              Your Collection
-            </Text>
-            <Text size="3xl" fw={300} className="text-gray-900 tracking-tight">
-              Library
-            </Text>
-          </div>
+        <div className="flex justify-between items-center mb-6 md:mb-8">
+          <Button
+            size="sm"
+            variant="subtle"
+            className="text-gray-600 hover:text-gray-900"
+            onClick={() => setLocation('/stats')}
+          >
+            → View Stats
+          </Button>
           <Button
             size="sm"
             className="bg-black text-white border-2 border-black font-black uppercase tracking-wider"
@@ -224,9 +219,6 @@ export function Library() {
             ADD MEDIA
           </Button>
         </div>
-
-        {/* Stats Dashboard */}
-        <LibraryStats stats={calculatedStats} />
 
         {/* Filters */}
         <LibraryFilters

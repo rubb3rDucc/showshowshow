@@ -5,6 +5,7 @@ import type { LibraryStats as LibraryStatsType } from '../../types/library.types
 
 interface LibraryStatsProps {
   stats: LibraryStatsType;
+  alwaysExpanded?: boolean;
 }
 
 const STAT_CARDS = [
@@ -58,9 +59,64 @@ const STAT_CARDS = [
   },
 ];
 
-export function LibraryStats({ stats }: LibraryStatsProps) {
+export function LibraryStats({ stats, alwaysExpanded = false }: LibraryStatsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // If alwaysExpanded is true, don't render the collapsible header
+  if (alwaysExpanded) {
+    return (
+      <div className="mb-6 md:mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          {STAT_CARDS.map((card) => (
+            <div
+              key={card.key}
+              className="bg-white border-2 border-gray-900 overflow-hidden"
+            >
+              {/* Colored Top Strip */}
+              <div className={`h-4 ${card.color}`} />
+
+              <div className="p-4 md:p-6">
+                {/* Code Badge */}
+                <div className="flex justify-between items-start mb-3">
+                  <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-black tracking-widest">
+                    {card.code}
+                  </div>
+                </div>
+
+                {/* Number - Large */}
+                <div className="text-5xl md:text-6xl font-black leading-none mb-2 tracking-tighter text-gray-900">
+                  {stats[card.key as keyof LibraryStatsType]}
+                </div>
+
+                {/* Label */}
+                <div className="text-xs md:text-sm font-black uppercase tracking-wider leading-tight text-gray-900 mb-3">
+                  {card.label}
+                </div>
+
+                {/* Bottom Barcode Pattern */}
+                <div className="flex h-2 gap-[2px]">
+                  <div className="w-1 bg-gray-900" />
+                  <div className="w-[3px] bg-gray-900" />
+                  <div className="w-1 bg-gray-900" />
+                  <div className="w-2 bg-gray-900" />
+                  <div className="w-1 bg-gray-900" />
+                  <div className="w-[3px] bg-gray-900" />
+                  <div className="w-1 bg-gray-900" />
+                  <div className="w-2 bg-gray-900" />
+                  <div className="flex-1" />
+                  <div className="w-1 bg-gray-900" />
+                  <div className="w-2 bg-gray-900" />
+                  <div className="w-1 bg-gray-900" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Collapsible version for other uses
   return (
     <div className="mb-6 md:mb-8">
       {/* Collapsible Header */}

@@ -14,6 +14,8 @@ import { Search } from './pages/Search';
 import { Queue } from './pages/Queue';
 import { Library } from './pages/Library';
 import { Settings } from './pages/Settings';
+import { Browse } from './pages/Browse';
+import { Stats } from './pages/Stats';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -55,7 +57,7 @@ function App() {
         <Route path="/">
           <ProtectedRoute>
             <Layout>
-              <Home />
+              <Browse />
             </Layout>
           </ProtectedRoute>
         </Route>
@@ -68,7 +70,15 @@ function App() {
           </ProtectedRoute>
         </Route>
 
-        <Route path="/queue">
+        <Route path="/home">
+          <ProtectedRoute>
+            <Layout>
+              <Home />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/lineup">
           <ProtectedRoute>
             <Layout>
               <Queue />
@@ -80,6 +90,14 @@ function App() {
           <ProtectedRoute>
             <Layout>
               <Library />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/stats">
+          <ProtectedRoute>
+            <Layout>
+              <Stats />
             </Layout>
           </ProtectedRoute>
         </Route>
