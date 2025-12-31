@@ -30,7 +30,7 @@ import {
   ActionIcon,
 } from '@mantine/core';
 import { useMediaQuery, useDisclosure } from '@mantine/hooks';
-import { IconAlertCircle, IconList, IconChevronLeft, IconChevronDown } from '@tabler/icons-react';
+import { IconAlertCircle, IconList, IconChevronLeft } from '@tabler/icons-react';
 import { Link, useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { getQueue, removeFromQueue, reorderQueue } from '../api/content';

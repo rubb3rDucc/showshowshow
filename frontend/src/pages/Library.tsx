@@ -4,13 +4,12 @@ import { Container, Button, Text, Loader, Center } from '@mantine/core';
 import { Plus } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
-import { LibraryStats } from '../components/library/LibraryStats';
 import { LibraryFilters } from '../components/library/LibraryFilters';
 import { LibraryCard } from '../components/library/LibraryCard';
 import { LibraryDetailModal } from '../components/library/LibraryDetailModal';
-import { getLibrary, getLibraryStats, removeFromLibrary, updateLibraryItem } from '../api/library';
+import { getLibrary, removeFromLibrary, updateLibraryItem } from '../api/library';
 import { addToQueue } from '../api/content';
-import { libraryItemToUI, libraryStatsToUI } from '../utils/library.utils';
+import { libraryItemToUI } from '../utils/library.utils';
 import type {
   LibraryItemUI,
   LibraryFilterStatus,
@@ -36,12 +35,6 @@ export function Library() {
       filterType !== 'all' ? filterType : undefined,
       searchQuery || undefined
     ),
-  });
-
-  // Fetch library stats
-  const { data: stats, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['library', 'stats'],
-    queryFn: getLibraryStats,
   });
 
   // Convert API items to UI format
@@ -136,27 +129,6 @@ export function Library() {
     return filtered;
   }, [libraryItemsUI, searchQuery, filterStatus, filterType, sortBy]);
 
-  // Calculate stats from filtered data (fallback if API stats not available)
-  const calculatedStats = useMemo(() => {
-    if (stats) {
-      return libraryStatsToUI(stats);
-    }
-    // Fallback to calculating from current library items
-    return {
-      totalItems: libraryItemsUI.length,
-      watching: libraryItemsUI.filter((i) => i.status === 'watching').length,
-      completed: libraryItemsUI.filter((i) => i.status === 'completed').length,
-      dropped: libraryItemsUI.filter((i) => i.status === 'dropped').length,
-      planToWatch: libraryItemsUI.filter((i) => i.status === 'plan_to_watch').length,
-      totalShows: libraryItemsUI.filter((i) => i.content.contentType === 'show').length,
-      totalMovies: libraryItemsUI.filter((i) => i.content.contentType === 'movie').length,
-      totalEpisodesWatched: libraryItemsUI.reduce(
-        (sum, item) => sum + (item.progress?.episodesWatched || 0),
-        0
-      ),
-    };
-  }, [stats, libraryItemsUI]);
-
   const handleViewDetails = (item: LibraryItemUI) => {
     setSelectedItem(item);
     setIsModalOpen(true);
@@ -188,7 +160,7 @@ export function Library() {
     setLocation('/search');
   };
 
-  if (isLoadingLibrary || isLoadingStats) {
+  if (isLoadingLibrary) {
     return (
       <Center className="min-h-screen">
         <Loader size="lg" />

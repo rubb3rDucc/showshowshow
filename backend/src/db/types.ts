@@ -181,4 +181,19 @@ export interface Database {
     created_at: Date;
     updated_at: Date;
   };
+  networks: {
+    id: string;
+    tmdb_network_id: number | null;
+    name: string;
+    logo_path: string | null;
+    origin_country: string | null;
+    created_at: Date;
+  };
+  content_networks: {
+    id: string;
+    content_id: string;
+    network_id: string;
+    is_original: boolean;
+    created_at: Date;
+  };
 }

@@ -143,3 +143,30 @@ export function getDefaultDuration(content: any, contentType: 'show' | 'movie'):
   return 22; // Default 22 minutes for TV shows
 }
 
+// Get network details
+export async function getNetworkDetails(networkId: number): Promise<any> {
+  const endpoint = `/network/${networkId}`;
+  return fetchTMDB(endpoint);
+}
+
+// Discover shows by network
+export async function discoverShowsByNetwork(
+  networkId: number, 
+  page: number = 1
+): Promise<any> {
+  const endpoint = `/discover/tv?with_networks=${networkId}&page=${page}&sort_by=popularity.desc`;
+  return fetchTMDB(endpoint);
+}
+
+// Trending TV shows
+export async function getTrendingShows(page: number = 1): Promise<any> {
+  const endpoint = `/trending/tv/week?page=${page}`;
+  return fetchTMDB(endpoint);
+}
+
+// Popular TV shows
+export async function getPopularShows(page: number = 1): Promise<any> {
+  const endpoint = `/tv/popular?page=${page}`;
+  return fetchTMDB(endpoint);
+}
+
