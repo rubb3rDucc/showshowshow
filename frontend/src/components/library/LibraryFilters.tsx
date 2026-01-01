@@ -30,7 +30,7 @@ export function LibraryFilters({
   return (
     <div className="space-y-4 mb-6">
       {/* Search Bar */}
-      <div className="bg-white border-2 border-gray-900 font-mono">
+      <div className="bg-white border-1 border-gray-800 font-mono">
         <TextInput
           placeholder="SEARCH LIBRARY..."
           value={searchQuery}
