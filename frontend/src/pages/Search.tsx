@@ -200,7 +200,7 @@ export function Search() {
       }
       
       // Then add to queue
-      return addToQueue(contentId);
+      return addToQueue({ content_id: contentId });
     },
     onMutate: async (result) => {
       // Track which item is being added

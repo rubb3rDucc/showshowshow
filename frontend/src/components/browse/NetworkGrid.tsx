@@ -159,7 +159,7 @@ export function NetworkGrid({ onNetworkClick, onSeeAllNetworks, limit = 12, enab
     <section className="mb-12">
       <div className="flex items-center justify-between mb-4">
         <SectionHeader
-          title="Browse by Network"
+          title="Networks"
           icon={<Tv size={20} strokeWidth={2.5} />}
           onSeeAll={onSeeAllNetworks}
         />

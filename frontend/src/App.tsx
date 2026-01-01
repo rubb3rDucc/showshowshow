@@ -19,6 +19,7 @@ import { Stats } from './pages/Stats';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
 import { AllNetworks } from './pages/AllNetworks';
 import { ManageNetworks } from './pages/ManageNetworks';
+import { PersonDetail } from './pages/PersonDetail';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -133,6 +134,14 @@ function App() {
           <ProtectedRoute>
             <Layout>
               <ManageNetworks />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/people/:tmdbId">
+          <ProtectedRoute>
+            <Layout>
+              <PersonDetail />
             </Layout>
           </ProtectedRoute>
         </Route>

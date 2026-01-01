@@ -21,6 +21,7 @@ import { libraryRoutes } from './routes/library.js';
 import { userRoutes } from './routes/user.js';
 import { waitlistRoutes } from './routes/waitlist.js';
 import { networkRoutes } from './routes/networks.js';
+import { peopleRoutes } from './routes/people.js';
 
 const fastify = Fastify({
   logger: {
@@ -149,6 +150,7 @@ const start = async () => {
     await fastify.register(userRoutes);
     await fastify.register(waitlistRoutes);
     await fastify.register(networkRoutes);
+    await fastify.register(peopleRoutes);
 
     const port = Number(process.env.PORT) || 3000;
     // Bind to 0.0.0.0 in Docker or production, localhost otherwise

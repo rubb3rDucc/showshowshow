@@ -72,10 +72,10 @@ export async function getQueue(): Promise<QueueItem[]> {
 /**
  * Add content to queue
  */
-export async function addToQueue(contentId: string): Promise<QueueItem> {
+export async function addToQueue(data: { content_id: string; season?: number | null; episode?: number | null }): Promise<QueueItem> {
   return apiCall<QueueItem>('/api/queue', {
     method: 'POST',
-    body: JSON.stringify({ content_id: contentId }),
+    body: JSON.stringify(data),
   });
 }
 

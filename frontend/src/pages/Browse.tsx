@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Container, Button, Loader, Center, Text, Modal } from '@mantine/core';
+import { Container, Button, Loader, Center, Text } from '@mantine/core';
 import { useLocation } from 'wouter';
-import { Search as SearchIcon, ArrowLeft, TrendingUp, Sparkles, Award, Calendar, Tv, Clock, Plus, ListPlus } from 'lucide-react';
+import { Search as SearchIcon, ArrowLeft, TrendingUp, Sparkles, Award, Calendar, Tv, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { NetworkGrid } from '../components/browse/NetworkGrid';
 import { ContentCarousel } from '../components/browse/ContentCarousel';
 import { SectionHeader } from '../components/browse/SectionHeader';
 import { NetworkSearch, type SearchFilters } from '../components/browse/NetworkSearch';
+import { ContentDetailModal } from '../components/browse/ContentDetailModal';
 import { getNetworkContent, type NetworkContent } from '../api/networks';
 import { addToLibrary } from '../api/library';
 import { addToQueue } from '../api/content';
@@ -75,7 +76,13 @@ export function Browse() {
     mutationFn: async (tmdbId: number) => {
       // First fetch the content details to get the content_id
       // Network content is always TV shows, so specify type='tv'
+      // This will automatically cache the content if it doesn't exist
       const content = await getContentByTmdbId(tmdbId, 'tv');
+      
+      if (!content || !content.id) {
+        throw new Error('Failed to fetch or cache content. Please try again.');
+      }
+      
       return addToLibrary({
         content_id: content.id,
         status: 'plan_to_watch' as const,
@@ -99,8 +106,14 @@ export function Browse() {
   const addToQueueMutation = useMutation({
     mutationFn: async (tmdbId: number) => {
       // Network content is always TV shows, so specify type='tv'
+      // This will automatically cache the content if it doesn't exist
       const content = await getContentByTmdbId(tmdbId, 'tv');
-      return addToQueue(content.id);
+      
+      if (!content || !content.id) {
+        throw new Error('Failed to fetch or cache content. Please try again.');
+      }
+      
+      return addToQueue({ content_id: content.id });
     },
     onSuccess: () => {
       toast.success('Added to Lineup', {
@@ -132,7 +145,12 @@ export function Browse() {
   };
 
   const handleContentClick = (item: NetworkContentItem) => {
-    setSelectedContent(item);
+    const normalizedItem = {
+      ...item,
+      content_type: 'show' as const, // Network content is always TV shows
+      backdrop_url: null,
+    };
+    setSelectedContent(normalizedItem);
     setContentModalOpen(true);
   };
 
@@ -504,46 +522,15 @@ export function Browse() {
         </Container>
 
         {/* Content detail modal */}
-        <Modal
-          opened={contentModalOpen}
+        <ContentDetailModal
+          content={selectedContent}
+          isOpen={contentModalOpen}
           onClose={() => setContentModalOpen(false)}
-          title={selectedContent?.title}
-          size="lg"
-        >
-          {selectedContent && (
-            <div>
-              {selectedContent.poster_url && (
-                <img
-                  src={selectedContent.poster_url}
-                  alt={selectedContent.title}
-                  className="w-40 h-60 mb-4 border-2 border-gray-900"
-                />
-              )}
-              <p className="mb-4">{selectedContent.overview}</p>
-              <div className="flex flex-col gap-2">
-                <Button
-                  className="bg-black text-white border-2 border-black font-black uppercase hover:bg-gray-900"
-                  fullWidth
-                  onClick={handleAddToLibrary}
-                  leftSection={<Plus size={16} />}
-                  loading={addToLibraryMutation.isPending}
-                >
-                  Add to Library
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-2 border-black font-black uppercase hover:bg-gray-100"
-                  fullWidth
-                  onClick={handleAddToQueue}
-                  leftSection={<ListPlus size={16} />}
-                  loading={addToQueueMutation.isPending}
-                >
-                  Add to Lineup
-                </Button>
-              </div>
-            </div>
-          )}
-        </Modal>
+          onAddToLibrary={handleAddToLibrary}
+          onAddToQueue={handleAddToQueue}
+          isAddingToLibrary={addToLibraryMutation.isPending}
+          isAddingToQueue={addToQueueMutation.isPending}
+        />
       </div>
     );
   }

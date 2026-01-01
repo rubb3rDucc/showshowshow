@@ -1,23 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Container, Button, Loader, Center, Modal, Text } from '@mantine/core';
+import { Container, Button, Loader, Center, Text } from '@mantine/core';
 import { useLocation, useParams } from 'wouter';
-import { ArrowLeft, Plus, ListPlus } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useState, useMemo, useReducer, useEffect } from 'react';
 import { toast } from 'sonner';
 import { getNetworkContent, type NetworkContent } from '../api/networks';
 import { addToLibrary } from '../api/library';
 import { addToQueue, getContentByTmdbId } from '../api/content';
 import { LazyImage } from '../components/browse/LazyImage';
+import { ContentDetailModal } from '../components/browse/ContentDetailModal';
 
 interface Content {
   id: number;
   tmdb_id: number;
   title: string;
   poster_url: string | null;
+  backdrop_url?: string | null;
   overview: string;
   first_air_date: string;
   vote_average: number;
   vote_count: number;
+  content_type?: 'show' | 'movie';
 }
 
 type AccumulatedContentAction =
@@ -45,7 +48,18 @@ function accumulatedContentReducer(
 export function NetworkSectionGrid() {
   const [, setLocation] = useLocation();
   const params = useParams<{ networkId: string; section: string }>();
-  const [selectedContent, setSelectedContent] = useState<Content | null>(null);
+  const [selectedContent, setSelectedContent] = useState<{
+    id: number;
+    tmdb_id: number;
+    title: string;
+    poster_url: string | null;
+    backdrop_url: string | null;
+    overview: string;
+    first_air_date?: string;
+    release_date?: string;
+    vote_average?: number;
+    content_type: 'show' | 'movie';
+  } | null>(null);
   const [contentModalOpen, setContentModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -122,7 +136,13 @@ export function NetworkSectionGrid() {
   // Mutation for adding to library
   const addToLibraryMutation = useMutation({
     mutationFn: async (tmdbId: number) => {
+      // This will automatically cache the content if it doesn't exist
       const content = await getContentByTmdbId(tmdbId, 'tv');
+      
+      if (!content || !content.id) {
+        throw new Error('Failed to fetch or cache content. Please try again.');
+      }
+      
       return addToLibrary({
         content_id: content.id,
         status: 'plan_to_watch' as const,
@@ -145,8 +165,14 @@ export function NetworkSectionGrid() {
   // Mutation for adding to queue
   const addToQueueMutation = useMutation({
     mutationFn: async (tmdbId: number) => {
+      // This will automatically cache the content if it doesn't exist
       const content = await getContentByTmdbId(tmdbId, 'tv');
-      return addToQueue(content.id);
+      
+      if (!content || !content.id) {
+        throw new Error('Failed to fetch or cache content. Please try again.');
+      }
+      
+      return addToQueue({ content_id: content.id });
     },
     onSuccess: () => {
       toast.success('Added to Lineup', {
@@ -163,7 +189,12 @@ export function NetworkSectionGrid() {
   });
 
   const handleContentClick = (item: Content) => {
-    setSelectedContent(item);
+    const normalizedItem = {
+      ...item,
+      content_type: 'show' as const, // Network content is always TV shows
+      backdrop_url: item.backdrop_url || null,
+    };
+    setSelectedContent(normalizedItem);
     setContentModalOpen(true);
   };
 
@@ -414,46 +445,15 @@ export function NetworkSectionGrid() {
       </Container>
 
       {/* Content detail modal */}
-      <Modal
-        opened={contentModalOpen}
+      <ContentDetailModal
+        content={selectedContent}
+        isOpen={contentModalOpen}
         onClose={() => setContentModalOpen(false)}
-        title={selectedContent?.title}
-        size="lg"
-      >
-        {selectedContent && (
-          <div>
-            {selectedContent.poster_url && (
-              <img
-                src={selectedContent.poster_url}
-                alt={selectedContent.title}
-                className="w-40 h-60 mb-4 border-2 border-gray-900"
-              />
-            )}
-            <p className="mb-4">{selectedContent.overview}</p>
-            <div className="flex flex-col gap-2">
-              <Button
-                className="bg-black text-white border-2 border-black font-black uppercase hover:bg-gray-900"
-                fullWidth
-                onClick={handleAddToLibrary}
-                leftSection={<Plus size={16} />}
-                loading={addToLibraryMutation.isPending}
-              >
-                Add to Library
-              </Button>
-              <Button
-                variant="outline"
-                className="border-2 border-black font-black uppercase hover:bg-gray-100"
-                fullWidth
-                onClick={handleAddToQueue}
-                leftSection={<ListPlus size={16} />}
-                loading={addToQueueMutation.isPending}
-              >
-                Add to Lineup
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+        onAddToLibrary={handleAddToLibrary}
+        onAddToQueue={handleAddToQueue}
+        isAddingToLibrary={addToLibraryMutation.isPending}
+        isAddingToQueue={addToQueueMutation.isPending}
+      />
     </div>
   );
 }

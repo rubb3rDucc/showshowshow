@@ -1,17 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 
 interface LazyImageProps {
-  src: string;
+  src: string | null;
   alt: string;
   className?: string;
 }
 
 export function LazyImage({ src, alt, className }: LazyImageProps) {
   const imgRef = useRef<HTMLImageElement>(null);
-  const [currentSrc, setCurrentSrc] = useState<string>('');
+  const [currentSrc, setCurrentSrc] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    // Don't observe if src is empty or null
+    if (!src || src.trim() === '') {
+      setCurrentSrc(null);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -39,10 +45,27 @@ export function LazyImage({ src, alt, className }: LazyImageProps) {
     };
   }, [src]);
 
+  // Don't render if src is empty or null
+  if (!src || src.trim() === '') {
+    return null;
+  }
+
+  // Render placeholder div for IntersectionObserver until image loads
+  if (!currentSrc) {
+    return (
+      <div 
+        ref={imgRef as any}
+        className={className}
+        style={{ minHeight: '1px', display: 'inline-block' }}
+        aria-hidden="true"
+      />
+    );
+  }
+
   return (
     <img
       ref={imgRef}
-      src={currentSrc}
+      src={currentSrc || undefined}
       alt={alt}
       className={className}
       loading="lazy"

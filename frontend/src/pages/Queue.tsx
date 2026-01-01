@@ -213,10 +213,10 @@ export function Queue() {
         <Box mb={isMobile ? '32px' : '48px'}>
           <Group justify="space-between" align="center" mb="md">
             <Box>
-              <Text size="sm" c="dimmed" fw={300}>
+            <Text size="sm" c="dimmed" fw={300}>
                 {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'} in lineup
-              </Text>
-            </Box>
+            </Text>
+          </Box>
 
             {/* Schedule Actions */}
             <Group gap="sm">
@@ -229,28 +229,28 @@ export function Queue() {
                 Quick Schedule
               </Button>
 
-              <Menu shadow="sm" width={200}>
-                <Menu.Target>
-                  <Button
-                    variant="subtle"
+            <Menu shadow="sm" width={200}>
+              <Menu.Target>
+                <Button
+                  variant="subtle"
                     color="gray"
-                    size="sm"
-                  >
+                  size="sm"
+                >
                     More Actions
-                  </Button>
-                </Menu.Target>
+                </Button>
+              </Menu.Target>
 
-                <Menu.Dropdown>
-                  <Menu.Item
-                    onClick={handleClearScheduleForDate}
-                    disabled={!selectedDate || clearScheduleMutation.isPending}
-                    style={{ fontWeight: 300, fontSize: '14px' }}
-                    color="red"
-                  >
-                    Clear Schedule for Day
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
+              <Menu.Dropdown>
+                <Menu.Item
+                  onClick={handleClearScheduleForDate}
+                  disabled={!selectedDate || clearScheduleMutation.isPending}
+                  style={{ fontWeight: 300, fontSize: '14px' }}
+                  color="red"
+                >
+                  Clear Schedule for Day
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
             </Group>
           </Group>
         </Box>

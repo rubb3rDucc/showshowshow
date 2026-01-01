@@ -119,7 +119,7 @@ export function extractUSRating(contentRatings: any, contentType: 'show' | 'movi
 
 // Get image URL (TMDB uses relative paths)
 export function getImageUrl(path: string | null, size: string = 'w500'): string | null {
-  if (!path) return null;
+  if (!path || path.trim() === '') return null;
   return `https://image.tmdb.org/t/p/${size}${path}`;
 }
 
@@ -282,6 +282,36 @@ export async function getTrendingShows(page: number = 1): Promise<any> {
 // Popular TV shows
 export async function getPopularShows(page: number = 1): Promise<any> {
   const endpoint = `/tv/popular?page=${page}`;
+  return fetchTMDB(endpoint);
+}
+
+// Get TV show credits (cast & crew)
+export async function getShowCredits(tmdbId: number): Promise<any> {
+  const endpoint = `/tv/${tmdbId}/credits`;
+  return fetchTMDB(endpoint);
+}
+
+// Get movie credits (cast & crew)
+export async function getMovieCredits(tmdbId: number): Promise<any> {
+  const endpoint = `/movie/${tmdbId}/credits`;
+  return fetchTMDB(endpoint);
+}
+
+// Get person details
+export async function getPersonDetails(personId: number): Promise<any> {
+  const endpoint = `/person/${personId}`;
+  return fetchTMDB(endpoint);
+}
+
+// Get person's combined credits (movies + TV)
+export async function getPersonCombinedCredits(personId: number): Promise<any> {
+  const endpoint = `/person/${personId}/combined_credits`;
+  return fetchTMDB(endpoint);
+}
+
+// Search for people
+export async function searchPeople(query: string, page: number = 1): Promise<any> {
+  const endpoint = `/search/person?query=${encodeURIComponent(query)}&page=${page}`;
   return fetchTMDB(endpoint);
 }
 

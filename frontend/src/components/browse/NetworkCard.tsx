@@ -15,7 +15,7 @@ export function NetworkCard({ network, onClick }: NetworkCardProps) {
       onClick={onClick}
       className="bg-white border-2 border-gray-900 p-4 hover:bg-gray-100 transition-all hover:scale-105 cursor-pointer group w-full"
     >
-      {network.logo_url ? (
+      {network.logo_url && network.logo_url.trim() !== '' ? (
         <div className="flex items-center justify-center h-16">
           <LazyImage 
             src={network.logo_url}
