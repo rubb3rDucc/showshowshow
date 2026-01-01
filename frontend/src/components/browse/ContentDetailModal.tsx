@@ -69,39 +69,39 @@ export function ContentDetailModal({
       padding={0}
       withCloseButton={false}
       classNames={{
-        content: 'border-4 border-gray-900 font-mono bg-gray-50',
+        content: 'border-4 border-gray-900 font-mono bg-gray-50 max-w-[95vw] sm:max-w-xl',
         body: 'p-0',
       }}
     >
       {/* Header */}
-      <div className="bg-black text-white p-4 flex justify-between items-center border-b-4 border-gray-900">
-        <h2 className="text-lg font-black uppercase tracking-tight">
+      <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center border-b-4 border-gray-900">
+        <h2 className="text-sm sm:text-base md:text-lg font-black uppercase tracking-tight truncate pr-2">
           {content.title}
         </h2>
         <button
           onClick={onClose}
-          className="hover:opacity-70 transition-opacity"
+          className="hover:opacity-70 transition-opacity flex-shrink-0"
         >
-          <X size={24} strokeWidth={3} />
+          <X size={20} strokeWidth={3} className="sm:w-6 sm:h-6" />
         </button>
       </div>
 
-      <div className="p-6 max-h-[70vh] overflow-y-auto">
+      <div className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto">
         {/* Title Section */}
-        <div className="flex gap-6 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 mb-6">
           {/* Poster */}
           {content.poster_url && content.poster_url.trim() !== '' && (
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 mx-auto sm:mx-0">
               <img
                 src={content.poster_url}
                 alt={content.title}
-                className="w-32 h-48 object-cover border-2 border-gray-900"
+                className="w-24 h-36 sm:w-32 sm:h-48 object-cover border-2 border-gray-900"
               />
             </div>
           )}
 
           {/* Info & Actions */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="mb-4">
               <div className="text-sm text-gray-600 font-mono mb-3">
                 {year && <span className="font-bold">{year}</span>}
@@ -132,13 +132,14 @@ export function ContentDetailModal({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 className="bg-black text-white border-2 border-black font-black uppercase hover:bg-gray-900"
                 onClick={onAddToLibrary}
                 leftSection={<Plus size={16} />}
                 loading={isAddingToLibrary}
                 size="sm"
+                fullWidth
               >
                 Add to Library
               </Button>
@@ -149,6 +150,7 @@ export function ContentDetailModal({
                 leftSection={<ListPlus size={16} />}
                 loading={isAddingToQueue}
                 size="sm"
+                fullWidth
               >
                 Add to Lineup
               </Button>
@@ -183,22 +185,22 @@ export function ContentDetailModal({
                 {credits.cast.slice(0, 30).map((actor) => (
                   <div
                     key={actor.id}
-                    className="flex items-center gap-3 p-2 border-2 border-gray-900 hover:bg-gray-100 cursor-pointer transition-colors"
+                    className="flex items-center gap-2 sm:gap-3 p-2 border-2 border-gray-900 hover:bg-gray-100 cursor-pointer transition-colors"
                     onClick={() => handlePersonClick(actor.id)}
                   >
                     {actor.profile_url && actor.profile_url.trim() !== '' ? (
                       <img
                         src={actor.profile_url}
                         alt={actor.name}
-                        className="w-12 h-12 object-cover border-2 border-gray-900"
+                        className="w-10 h-10 sm:w-12 sm:h-12 object-cover border-2 border-gray-900 flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 bg-gray-200 border-2 border-gray-900 flex items-center justify-center">
-                        <User size={20} className="text-gray-600" />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 border-2 border-gray-900 flex items-center justify-center flex-shrink-0">
+                        <User size={18} className="text-gray-600 sm:w-5 sm:h-5" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate">{actor.name}</p>
+                      <p className="font-bold text-xs sm:text-sm truncate">{actor.name}</p>
                       {actor.character && (
                         <p className="text-xs text-gray-600 truncate">{actor.character}</p>
                       )}
@@ -234,15 +236,15 @@ export function ContentDetailModal({
                             <img
                               src={member.profile_url}
                               alt={member.name}
-                              className="w-12 h-12 object-cover border-2 border-gray-900"
+                              className="w-10 h-10 sm:w-12 sm:h-12 object-cover border-2 border-gray-900 flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-12 h-12 bg-gray-200 border-2 border-gray-900 flex items-center justify-center">
-                              <User size={20} className="text-gray-600" />
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 border-2 border-gray-900 flex items-center justify-center flex-shrink-0">
+                              <User size={18} className="text-gray-600 sm:w-5 sm:h-5" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm truncate">{member.name}</p>
+                            <p className="font-bold text-xs sm:text-sm truncate">{member.name}</p>
                             <p className="text-xs text-gray-600 truncate">{member.job}</p>
                           </div>
                         </div>

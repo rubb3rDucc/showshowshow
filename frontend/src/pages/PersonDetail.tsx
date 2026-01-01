@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Container, Button, Loader, Center, Text, Tabs, Anchor } from '@mantine/core';
+import { Container, Button, Loader, Center, Text, Tabs } from '@mantine/core';
 import { useLocation, useParams } from 'wouter';
 import { ArrowLeft, Plus, ListPlus, ExternalLink } from 'lucide-react';
 import { useState, useMemo } from 'react';
@@ -207,36 +207,37 @@ export function PersonDetail() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Container size="xl" className="py-8">
+      <Container size="xl" className="py-4 sm:py-8 px-4 sm:px-6">
         {/* Back button */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Button
             variant="outline"
             leftSection={<ArrowLeft size={16} />}
             onClick={() => window.history.back()}
             className="border-2 border-gray-900 font-black uppercase hover:bg-gray-100"
+            size="sm"
           >
             Back
           </Button>
         </div>
 
         {/* Person Info */}
-        <div className="bg-white border-4 border-gray-900 p-6 mb-8">
-          <div className="flex gap-6">
+        <div className="bg-white border-4 border-gray-900 p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
             {/* Profile Photo */}
             {person.profile_url && person.profile_url.trim() !== '' && (
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 mx-auto sm:mx-0">
                 <img
                   src={person.profile_url}
                   alt={person.name}
-                  className="w-48 h-64 object-cover border-2 border-gray-900"
+                  className="w-32 h-48 sm:w-40 sm:h-56 md:w-48 md:h-64 object-cover border-2 border-gray-900"
                 />
               </div>
             )}
 
             {/* Info */}
-            <div className="flex-1">
-              <h1 className="text-4xl font-black uppercase tracking-wider mb-2">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-wider mb-2 break-words">
                 {person.name}
               </h1>
               
@@ -258,24 +259,27 @@ export function PersonDetail() {
                   <p className="text-sm text-gray-700 leading-relaxed">
                     {displayBio}
                   </p>
-                  {bioText.length > 300 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {bioText.length > 300 && (
+                      <Button
+                        variant="subtle"
+                        size="xs"
+                        onClick={() => setShowFullBio(!showFullBio)}
+                        className="p-0 h-auto font-bold"
+                      >
+                        {showFullBio ? 'Show less' : 'Read more'}
+                      </Button>
+                    )}
                     <Button
                       variant="subtle"
                       size="xs"
-                      onClick={() => setShowFullBio(!showFullBio)}
-                      className="mt-2 p-0 h-auto font-bold"
+                      onClick={() => window.open(wikipediaUrl, '_blank', 'noopener,noreferrer')}
+                      className="p-0 h-auto font-bold inline-flex items-center gap-1"
+                      leftSection={<ExternalLink size={14} />}
                     >
-                      {showFullBio ? 'Show less' : 'Read more'}
+                      Wikipedia
                     </Button>
-                  )}
-                  <Anchor
-                    href={wikipediaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-4 text-sm font-bold inline-flex items-center gap-1"
-                  >
-                    Wikipedia <ExternalLink size={14} />
-                  </Anchor>
+                  </div>
                 </div>
               )}
             </div>
@@ -283,8 +287,8 @@ export function PersonDetail() {
         </div>
 
         {/* Filmography */}
-        <div className="bg-white border-4 border-gray-900 p-6">
-          <h2 className="text-2xl font-black uppercase tracking-wider mb-6">
+        <div className="bg-white border-4 border-gray-900 p-4 sm:p-6">
+          <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider mb-4 sm:mb-6">
             Filmography
           </h2>
 
@@ -311,7 +315,7 @@ export function PersonDetail() {
 
             {hasCast && (
               <Tabs.Panel value="acting">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
                   {deduplicatedCast.map((item: ContentItem) => (
                     <div 
                       key={`${item.id}-${item.title || item.name}`}
@@ -331,7 +335,7 @@ export function PersonDetail() {
                           </span>
                         </div>
                       )}
-                      <p className="mt-2 text-sm font-bold truncate group-hover:text-gray-600 transition-colors">
+                      <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-bold truncate group-hover:text-gray-600 transition-colors">
                         {item.title || item.name}
                       </p>
                     </div>
@@ -342,7 +346,7 @@ export function PersonDetail() {
 
             {departments.map((dept) => (
               <Tabs.Panel key={dept} value={dept.toLowerCase()}>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
                   {deduplicatedCrewByDepartment[dept]?.map((item: ContentItem) => (
                     <div 
                       key={`${item.id}-${item.title || item.name}`}
@@ -362,7 +366,7 @@ export function PersonDetail() {
                           </span>
                         </div>
                       )}
-                      <p className="mt-2 text-sm font-bold truncate group-hover:text-gray-600 transition-colors">
+                      <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-bold truncate group-hover:text-gray-600 transition-colors">
                         {item.title || item.name}
                       </p>
                     </div>

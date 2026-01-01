@@ -41,13 +41,15 @@ function SortableNetworkCard({ network, onClick, isEditMode, index }: SortableNe
     listeners,
     setNodeRef,
     transform,
+    transition,
     isDragging,
   } = useSortable({ id: network.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition: 'none',
-    opacity: isDragging ? 0.3 : 1,
+    transition: transition || undefined,
+    opacity: isDragging ? 0.5 : 1,
+    touchAction: 'none' as const,
     // Stagger animation delay for each card
     animationDelay: isEditMode ? `${index * 0.02}s` : '0s',
   };
@@ -56,12 +58,13 @@ function SortableNetworkCard({ network, onClick, isEditMode, index }: SortableNe
     <div
       ref={setNodeRef}
       style={style}
-      className={isEditMode ? 'animate-jiggle' : ''}
+      className={isEditMode ? 'animate-jiggle cursor-grab active:cursor-grabbing' : ''}
       {...(isEditMode ? { ...attributes, ...listeners } : {})}
     >
       <NetworkCard 
         network={network} 
         onClick={isEditMode ? () => {} : onClick}
+        disablePointerEvents={isEditMode}
       />
     </div>
   );
@@ -93,7 +96,11 @@ export function AllNetworks() {
   });
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px of movement before starting drag
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -146,8 +153,8 @@ export function AllNetworks() {
             Back to Browse
           </Button>
 
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-4">
+          <div className="mb-2">
+            <div className="flex items-center gap-4 mb-2">
               <Tv size={32} strokeWidth={2.5} className="text-gray-700" />
               <div>
                 <h1 className="text-3xl font-black uppercase tracking-wider">
@@ -158,7 +165,7 @@ export function AllNetworks() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-2">
               <Button
                 variant={isEditMode ? "filled" : "outline"}
                 onClick={() => setIsEditMode(!isEditMode)}
@@ -166,6 +173,7 @@ export function AllNetworks() {
                   ? "bg-black text-white border-2 border-black font-black uppercase" 
                   : "border-2 border-gray-900 font-black uppercase"
                 }
+                size="sm"
               >
                 {isEditMode ? "Done Editing" : "Edit Order"}
               </Button>
@@ -174,6 +182,7 @@ export function AllNetworks() {
                 leftSection={<Settings size={16} />}
                 onClick={() => setLocation('/networks/manage')}
                 className="border-2 border-gray-900 font-black uppercase"
+                size="sm"
               >
                 Manage
               </Button>
@@ -208,7 +217,7 @@ export function AllNetworks() {
               </SortableContext>
               <DragOverlay>
                 {activeNetwork ? (
-                  <div className="opacity-90">
+                  <div className="opacity-90 rotate-2 scale-105">
                     <NetworkCard network={activeNetwork} onClick={() => {}} />
                   </div>
                 ) : null}

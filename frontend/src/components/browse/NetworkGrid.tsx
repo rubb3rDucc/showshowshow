@@ -48,13 +48,15 @@ function SortableNetworkCard({ network, onClick, isEditMode, index }: SortableNe
     listeners,
     setNodeRef,
     transform,
+    transition,
     isDragging,
   } = useSortable({ id: network.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition: 'none',
-    opacity: isDragging ? 0.3 : 1,
+    transition: transition || undefined,
+    opacity: isDragging ? 0.5 : 1,
+    touchAction: 'none' as const,
     // Stagger animation delay for each card
     animationDelay: isEditMode ? `${index * 0.02}s` : '0s',
   };
@@ -63,12 +65,13 @@ function SortableNetworkCard({ network, onClick, isEditMode, index }: SortableNe
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex-shrink-0 w-32 ${isEditMode ? 'animate-jiggle' : ''}`}
+      className={`flex-shrink-0 w-32 ${isEditMode ? 'animate-jiggle cursor-grab active:cursor-grabbing' : ''}`}
       {...(isEditMode ? { ...attributes, ...listeners } : {})}
     >
       <NetworkCard 
         network={network} 
         onClick={isEditMode ? () => {} : onClick}
+        disablePointerEvents={isEditMode}
       />
     </div>
   );
@@ -99,7 +102,11 @@ export function NetworkGrid({ onNetworkClick, onSeeAllNetworks, limit = 12, enab
   });
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px of movement before starting drag
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -157,7 +164,7 @@ export function NetworkGrid({ onNetworkClick, onSeeAllNetworks, limit = 12, enab
 
   return (
     <section className="mb-12">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-4">
         <SectionHeader
           title="Networks"
           icon={<Tv size={20} strokeWidth={2.5} />}
@@ -166,7 +173,7 @@ export function NetworkGrid({ onNetworkClick, onSeeAllNetworks, limit = 12, enab
         {enableDragDrop && (
           <Button
             variant={isEditMode ? "filled" : "outline"}
-            size="xs"
+            size="sm"
             onClick={() => setIsEditMode(!isEditMode)}
             className={isEditMode 
               ? "bg-black text-white border-2 border-black font-black uppercase" 
@@ -204,7 +211,7 @@ export function NetworkGrid({ onNetworkClick, onSeeAllNetworks, limit = 12, enab
             </SortableContext>
             <DragOverlay>
               {activeNetwork ? (
-                <div className="flex-shrink-0 w-32 opacity-90">
+                <div className="flex-shrink-0 w-32 opacity-90 rotate-2 scale-105">
                   <NetworkCard network={activeNetwork} onClick={() => {}} />
                 </div>
               ) : null}

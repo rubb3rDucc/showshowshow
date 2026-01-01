@@ -334,19 +334,19 @@ export function Browse() {
               Back to Home
             </Button>
 
-            <div className="flex items-center gap-4 mb-2">
+            <div className="flex items-center gap-2 sm:gap-4 mb-2 flex-wrap">
               {networkContent.network.logo_url && (
                 <img
                   src={networkContent.network.logo_url}
                   alt={networkContent.network.name}
-                  className="h-16 w-auto object-contain"
+                  className="h-8 sm:h-10 md:h-12 w-auto object-contain"
                 />
               )}
-              <div>
-                <h1 className="text-3xl font-black uppercase tracking-wider">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-wider break-words">
                   {networkContent.network.name}
                 </h1>
-                <p className="text-sm text-gray-600 font-mono">
+                <p className="text-xs sm:text-sm text-gray-600 font-mono">
                   {networkContent.total_results} shows available
                 </p>
               </div>
