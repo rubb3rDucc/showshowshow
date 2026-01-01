@@ -477,11 +477,19 @@ export function LibraryCard({
             {/* Collapsible Episode Tracker for TV Shows */}
             {item.content.contentType === 'show' && (
               <div className="bg-white border-2 border-gray-900">
-                <button
+                <div
                   onClick={() =>
                     setIsEpisodeTrackerExpanded(!isEpisodeTrackerExpanded)
                   }
-                  className="w-full flex items-center justify-between p-3 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  className="w-full flex items-center justify-between p-3 bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setIsEpisodeTrackerExpanded(!isEpisodeTrackerExpanded);
+                    }
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-black tracking-widest">
@@ -496,7 +504,7 @@ export function LibraryCard({
                   ) : (
                     <ChevronDown size={16} strokeWidth={3} />
                   )}
-                </button>
+                </div>
                 <Collapse in={isEpisodeTrackerExpanded}>
                   <div className="p-3">
                     <EpisodeTracker

@@ -31,9 +31,32 @@ export interface Credits {
   crew: CrewMember[];
 }
 
+export interface PersonFilmographyItem {
+  id: number;
+  tmdb_id?: number;
+  title?: string;
+  name?: string;
+  poster_url?: string | null;
+  poster_path?: string | null;
+  backdrop_url?: string | null;
+  overview?: string;
+  first_air_date?: string;
+  release_date?: string;
+  media_type?: 'tv' | 'movie';
+  content_type?: 'show' | 'movie';
+}
+
 export interface PersonWithCredits extends Person {
-  cast: any[];
-  crew_by_department: Record<string, any[]>;
+  cast: PersonFilmographyItem[];
+  crew_by_department: Record<string, PersonFilmographyItem[]>;
+}
+
+export interface KnownForItem {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path?: string | null;
+  media_type?: 'tv' | 'movie';
 }
 
 export interface PersonSearchResult {
@@ -41,7 +64,7 @@ export interface PersonSearchResult {
   name: string;
   profile_url: string | null;
   known_for_department: string | null;
-  known_for: any[];
+  known_for: KnownForItem[];
 }
 
 export interface SearchPeopleResponse {

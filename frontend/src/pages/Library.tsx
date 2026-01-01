@@ -147,7 +147,7 @@ export function Library() {
   };
 
   const handleAddToQueue = (item: LibraryItemUI) => {
-    addToQueueMutation.mutate(item.contentId);
+    addToQueueMutation.mutate({ content_id: item.contentId });
   };
 
   const handleRemove = (id: string) => {

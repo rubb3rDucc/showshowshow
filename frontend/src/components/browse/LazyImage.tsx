@@ -7,14 +7,19 @@ interface LazyImageProps {
 }
 
 export function LazyImage({ src, alt, className }: LazyImageProps) {
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [currentSrc, setCurrentSrc] = useState<string | null>(null);
+  const containerRef = useRef<HTMLElement>(null);
+  const [currentSrc, setCurrentSrc] = useState<string | null>(() => {
+    // Initialize state based on src
+    if (!src || src.trim() === '') {
+      return null;
+    }
+    return null; // Start with null, will be set by IntersectionObserver
+  });
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     // Don't observe if src is empty or null
     if (!src || src.trim() === '') {
-      setCurrentSrc(null);
       return;
     }
 
@@ -33,7 +38,7 @@ export function LazyImage({ src, alt, className }: LazyImageProps) {
       }
     );
 
-    const currentRef = imgRef.current;
+    const currentRef = containerRef.current;
     if (currentRef) {
       observer.observe(currentRef);
     }
@@ -54,7 +59,7 @@ export function LazyImage({ src, alt, className }: LazyImageProps) {
   if (!currentSrc) {
     return (
       <div 
-        ref={imgRef as any}
+        ref={containerRef as React.RefObject<HTMLDivElement>}
         className={className}
         style={{ minHeight: '1px', display: 'inline-block' }}
         aria-hidden="true"
@@ -64,7 +69,7 @@ export function LazyImage({ src, alt, className }: LazyImageProps) {
 
   return (
     <img
-      ref={imgRef}
+      ref={containerRef as React.RefObject<HTMLImageElement>}
       src={currentSrc || undefined}
       alt={alt}
       className={className}

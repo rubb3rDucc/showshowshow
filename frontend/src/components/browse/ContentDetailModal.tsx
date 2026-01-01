@@ -1,9 +1,9 @@
-import { Modal, Tabs, Button, Badge, Loader, Center } from '@mantine/core';
+import { Modal, Tabs, Button, Loader, Center } from '@mantine/core';
 import { X, Plus, ListPlus, User } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { getContentCredits, type Credits, type CrewMember } from '../../api/people';
+import { getContentCredits, type CrewMember } from '../../api/people';
 
 interface ContentDetailModalProps {
   content: {

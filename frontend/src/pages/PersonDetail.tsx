@@ -1,32 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Container, Button, Loader, Center, Text, Tabs } from '@mantine/core';
-import { useLocation, useParams } from 'wouter';
-import { ArrowLeft, Plus, ListPlus, ExternalLink } from 'lucide-react';
+import { Container, Button, Loader, Center, Tabs } from '@mantine/core';
+import { useParams } from 'wouter';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { getPersonDetails, type PersonWithCredits } from '../api/people';
+import { getPersonDetails, type PersonFilmographyItem } from '../api/people';
 import { addToLibrary } from '../api/library';
 import { addToQueue, getContentByTmdbId } from '../api/content';
 import { ContentDetailModal } from '../components/browse/ContentDetailModal';
 
-interface ContentItem {
-  id: number;
-  tmdb_id?: number;
-  title: string;
-  name?: string;
-  poster_url: string | null;
-  poster_path?: string | null;
-  overview?: string;
-  first_air_date?: string;
-  release_date?: string;
-  media_type?: 'tv' | 'movie';
-  content_type?: 'show' | 'movie';
-}
-
 export function PersonDetail() {
-  const [, setLocation] = useLocation();
   const params = useParams<{ tmdbId: string }>();
-  const [selectedContent, setSelectedContent] = useState<any | null>(null);
+  const [selectedContent, setSelectedContent] = useState<{
+    id: number;
+    tmdb_id: number;
+    title: string;
+    poster_url: string | null;
+    backdrop_url: string | null;
+    overview: string;
+    first_air_date?: string;
+    release_date?: string;
+    vote_average?: number;
+    content_type: 'show' | 'movie';
+  } | null>(null);
   const [contentModalOpen, setContentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string | null>('acting');
   const [showFullBio, setShowFullBio] = useState(false);
@@ -46,9 +42,7 @@ export function PersonDetail() {
     mutationFn: async () => {
       if (!selectedContent) throw new Error('No content selected');
       
-      const contentType = selectedContent.media_type === 'tv' || selectedContent.content_type === 'show' 
-        ? 'show' 
-        : 'movie';
+      const contentType = selectedContent.content_type === 'show' ? 'tv' : 'movie';
       const tmdbId = selectedContent.id || selectedContent.tmdb_id;
       
       // Get or cache content (getContentByTmdbId automatically caches if needed)
@@ -68,7 +62,7 @@ export function PersonDetail() {
       queryClient.invalidateQueries({ queryKey: ['library'] });
       setContentModalOpen(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to add to library');
     },
   });
@@ -78,9 +72,7 @@ export function PersonDetail() {
     mutationFn: async () => {
       if (!selectedContent) throw new Error('No content selected');
       
-      const contentType = selectedContent.media_type === 'tv' || selectedContent.content_type === 'show'
-        ? 'show' 
-        : 'movie';
+      const contentType = selectedContent.content_type === 'show' ? 'tv' : 'movie';
       const tmdbId = selectedContent.id || selectedContent.tmdb_id;
       
       // Get or cache content (getContentByTmdbId automatically caches if needed)
@@ -92,8 +84,8 @@ export function PersonDetail() {
       
       return addToQueue({
         content_id: content.id,
-        season: contentType === 'show' ? 1 : null,
-        episode: contentType === 'show' ? 1 : null,
+        season: selectedContent.content_type === 'show' ? 1 : null,
+        episode: selectedContent.content_type === 'show' ? 1 : null,
       });
     },
     onSuccess: () => {
@@ -101,12 +93,12 @@ export function PersonDetail() {
       queryClient.invalidateQueries({ queryKey: ['queue'] });
       setContentModalOpen(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to add to lineup');
     },
   });
 
-  const handleContentClick = (item: ContentItem) => {
+  const handleContentClick = (item: PersonFilmographyItem) => {
     const normalizedItem = {
       id: item.id,
       tmdb_id: item.tmdb_id || item.id,
@@ -140,21 +132,21 @@ export function PersonDetail() {
   // Deduplicate content by TMDB ID (must be before conditional returns)
   const deduplicatedCast = useMemo(() => {
     if (!person?.cast) return [];
-    const seen = new Set();
-    return person.cast.filter((item: ContentItem) => {
+    const seen = new Set<number>();
+    return person.cast.filter((item: PersonFilmographyItem) => {
       const id = item.id || item.tmdb_id;
       if (!id || seen.has(id)) return false;
       seen.add(id);
       return true;
     });
-  }, [person?.cast]);
+  }, [person]);
 
   const deduplicatedCrewByDepartment = useMemo(() => {
     if (!person?.crew_by_department) return {};
-    const result: Record<string, ContentItem[]> = {};
+    const result: Record<string, PersonFilmographyItem[]> = {};
     Object.keys(person.crew_by_department).forEach((dept) => {
-      const seen = new Set();
-      result[dept] = person.crew_by_department[dept].filter((item: ContentItem) => {
+      const seen = new Set<number>();
+      result[dept] = person.crew_by_department[dept].filter((item: PersonFilmographyItem) => {
         const id = item.id || item.tmdb_id;
         if (!id || seen.has(id)) return false;
         seen.add(id);
@@ -162,7 +154,7 @@ export function PersonDetail() {
       });
     });
     return result;
-  }, [person?.crew_by_department]);
+  }, [person]);
 
   // Truncate biography (must be before conditional returns)
   const bioText = person?.biography || '';
@@ -316,7 +308,7 @@ export function PersonDetail() {
             {hasCast && (
               <Tabs.Panel value="acting">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
-                  {deduplicatedCast.map((item: ContentItem) => (
+                  {deduplicatedCast.map((item: PersonFilmographyItem) => (
                     <div 
                       key={`${item.id}-${item.title || item.name}`}
                       className="cursor-pointer group"
@@ -347,7 +339,7 @@ export function PersonDetail() {
             {departments.map((dept) => (
               <Tabs.Panel key={dept} value={dept.toLowerCase()}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
-                  {deduplicatedCrewByDepartment[dept]?.map((item: ContentItem) => (
+                  {deduplicatedCrewByDepartment[dept]?.map((item: PersonFilmographyItem) => (
                     <div 
                       key={`${item.id}-${item.title || item.name}`}
                       className="cursor-pointer group"
