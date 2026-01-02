@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Container, Button, Loader, Center, Text } from '@mantine/core';
 import { useLocation, useParams } from 'wouter';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Star, Tv } from 'lucide-react';
 import { useState, useMemo, useReducer, useEffect } from 'react';
 import { toast } from 'sonner';
 import { getNetworkContent, type NetworkContent } from '../api/networks';
@@ -235,14 +235,62 @@ export function NetworkSectionGrid() {
           .sort((a, b) => b.vote_average - a.vote_average);
       }
       
+      case '70s':{
+        const decadeMap: Record<string, [number, number]> = {
+          '70s': [1970, 1979],
+        };
+        const [startYear, endYear] = decadeMap[section] || [0, 0];
+        return accumulatedContent
+          .filter((item: Content) => {
+            if (!item.first_air_date) return false;
+            const year = new Date(item.first_air_date).getFullYear();
+            return year >= startYear && year <= endYear;
+          })
+          .sort((a, b) => (b.vote_average * b.vote_count) - (a.vote_average * a.vote_count));
+      }
+        
       case '80s':
-      case '90s':
-      case '2000s':
-      case '2010s': {
+        {
         const decadeMap: Record<string, [number, number]> = {
           '80s': [1980, 1989],
+        };
+        const [startYear, endYear] = decadeMap[section] || [0, 0];
+        return accumulatedContent
+          .filter((item: Content) => {
+            if (!item.first_air_date) return false;
+            const year = new Date(item.first_air_date).getFullYear();
+            return year >= startYear && year <= endYear;
+          })
+          .sort((a, b) => (b.vote_average * b.vote_count) - (a.vote_average * a.vote_count));
+      }
+      case '90s': {
+        const decadeMap: Record<string, [number, number]> = {
           '90s': [1990, 1999],
-          '2000s': [2000, 2009],
+        };
+        const [startYear, endYear] = decadeMap[section] || [0, 0];
+        return accumulatedContent
+          .filter((item: Content) => {
+            if (!item.first_air_date) return false;
+            const year = new Date(item.first_air_date).getFullYear();
+            return year >= startYear && year <= endYear;
+          })
+          .sort((a, b) => (b.vote_average * b.vote_count) - (a.vote_average * a.vote_count));
+      }
+      case '2000s': {
+          const decadeMap: Record<string, [number, number]> = {
+            '2000s': [2000, 2009],
+          };
+          const [startYear, endYear] = decadeMap[section] || [0, 0];
+          return accumulatedContent
+            .filter((item: Content) => {
+              if (!item.first_air_date) return false;
+              const year = new Date(item.first_air_date).getFullYear();
+              return year >= startYear && year <= endYear;
+            })
+            .sort((a, b) => (b.vote_average * b.vote_count) - (a.vote_average * a.vote_count));
+        }
+      case '2010s': {
+        const decadeMap: Record<string, [number, number]> = {
           '2010s': [2010, 2019],
         };
         const [startYear, endYear] = decadeMap[section] || [0, 0];
@@ -254,7 +302,19 @@ export function NetworkSectionGrid() {
           })
           .sort((a, b) => (b.vote_average * b.vote_count) - (a.vote_average * a.vote_count));
       }
-      
+      case '2020s':{
+        const decadeMap: Record<string, [number, number]> = {
+          '2020s': [2020, 2029],
+        };
+        const [startYear, endYear] = decadeMap[section] || [0, 0];
+        return accumulatedContent
+          .filter((item: Content) => {
+            if (!item.first_air_date) return false;
+            const year = new Date(item.first_air_date).getFullYear();
+            return year >= startYear && year <= endYear;
+          })
+          .sort((a, b) => (b.vote_average * b.vote_count) - (a.vote_average * a.vote_count));
+      }
       case 'all':
       default: {
         return [...accumulatedContent].sort((a, b) => 
@@ -292,14 +352,25 @@ export function NetworkSectionGrid() {
       'popular': 'Popular',
       'new': 'New Releases',
       'rated': 'Highly Rated',
-      '80s': 'Classic 80s',
-      '90s': '90s Favorites',
-      '2000s': '2000s Era',
-      '2010s': '2010s Hits',
+      '70s': 'The 70s',
+      '80s': 'The 80s',
+      '90s': 'The 90s',
+      '2000s': 'The 2000s',
+      '2010s': 'The 2010s',
+      '2020s': 'The 2020s',
       'all': 'All Shows',
     };
     return titles[section || 'all'] || 'Shows';
   };
+
+  // Skeleton component for loading cards
+  const ContentCardSkeleton = () => (
+    <div className="animate-pulse">
+      <div className="w-full aspect-[2/3] bg-gray-200 border-2 border-gray-300 rounded" />
+      <div className="mt-2 h-4 bg-gray-200 rounded w-3/4" />
+      <div className="mt-1 h-3 bg-gray-200 rounded w-1/2" />
+    </div>
+  );
 
   if (isLoading) {
     return (
@@ -365,7 +436,9 @@ export function NetworkSectionGrid() {
                 {getSectionTitle()}
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 font-mono">
-                {network?.name} • {filteredContent.length} {hasNextPage ? '+' : ''} shows
+                {network?.name} • {filteredContent.length}
+                {data?.total_results ? ` of ${data.total_results}` : ''}
+                {hasNextPage ? ' (more available)' : ''} shows
               </p>
             </div>
           </div>
@@ -378,40 +451,65 @@ export function NetworkSectionGrid() {
               {filteredContent.map((item: Content) => (
                 <div 
                   key={item.id}
-                  className="cursor-pointer group"
+                  className="cursor-pointer group relative"
                   onClick={() => handleContentClick(item)}
                 >
+                  <div className="relative overflow-hidden">
                   {item.poster_url ? (
                     <LazyImage 
                       src={item.poster_url}
                       alt={item.title}
-                      className="w-full h-auto object-cover border-2 border-gray-900 group-hover:border-4 transition-all"
+                        className="w-full aspect-[2/3] object-cover border-2 border-gray-900 group-hover:border-4 transition-all group-hover:scale-105 group-hover:shadow-lg"
                     />
                   ) : (
-                    <div className="w-full aspect-[2/3] bg-gray-200 border-2 border-gray-900 flex items-center justify-center">
+                      <div className="w-full aspect-[2/3] bg-gray-200 border-2 border-gray-900 flex items-center justify-center group-hover:scale-105 transition-transform">
                       <span className="text-xs font-black text-gray-600 text-center px-2">
                         NO IMAGE
                       </span>
                     </div>
                   )}
+                    {/* Overlay on hover (desktop only) */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 hidden md:flex">
+                      <div className="text-white text-center px-2">
+                        <p className="font-bold text-sm mb-1">{item.title}</p>
+                        {item.vote_average && (
+                          <div className="flex items-center justify-center gap-1">
+                            <Star size={14} fill="white" />
+                            <span className="text-xs">{item.vote_average.toFixed(1)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                   <p className="mt-2 text-sm font-bold truncate group-hover:text-gray-600 transition-colors">
                     {item.title}
                   </p>
+                  {item.vote_average && (
+                    <div className="flex items-center gap-1 text-xs font-mono text-gray-600 mt-1">
+                      <Star size={12} fill="currentColor" />
+                      <span>{item.vote_average.toFixed(1)}</span>
+                    </div>
+                  )}
                 </div>
               ))}
+              {/* Show skeletons when loading more */}
+              {isFetching && currentPage > 1 && (
+                <>
+                  {[...Array(6)].map((_, i) => (
+                    <ContentCardSkeleton key={`skeleton-${i}`} />
+                  ))}
+                </>
+              )}
             </div>
 
             {/* Load more button and status */}
             <div className="py-8">
               <Center className="flex-col gap-4">
                 {isFetching && currentPage > 1 ? (
-                  // Show loader when fetching additional pages
-                  <>
-                    <Loader size="md" />
+                  // Show loading message when fetching additional pages (skeletons shown in grid)
                     <Text className="text-sm text-gray-600 font-mono">
                       Loading more shows...
                     </Text>
-                  </>
                 ) : hasNextPage ? (
                   // Show button when there are more pages
                   <>
@@ -424,7 +522,8 @@ export function NetworkSectionGrid() {
                       Load More Shows
                     </Button>
                     <Text className="text-sm text-gray-500 font-mono">
-                      Showing {filteredContent.length}+ shows in this category
+                      Showing {filteredContent.length} of {data?.total_results || 'many'} shows
+                      {hasNextPage && ` • ${(data?.total_results || 0) - filteredContent.length} more available`}
                     </Text>
                   </>
                 ) : (
@@ -439,9 +538,27 @@ export function NetworkSectionGrid() {
         ) : !isLoading ? (
           // Only show "no content" if not loading initial data
           <div className="bg-white border-2 border-gray-900 p-12 text-center">
-            <p className="font-bold text-gray-600">No shows found in this section</p>
+            <Tv size={48} className="mx-auto mb-4 text-gray-400" />
+            <p className="font-bold text-lg mb-2">No shows found</p>
+            <p className="text-sm text-gray-600 font-mono mb-4">
+              This section doesn't have any shows matching the criteria.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => setLocation(`/?network=${networkId}`)}
+              className="border-2 border-gray-900 font-black uppercase"
+            >
+              Browse All {network?.name} Shows
+            </Button>
           </div>
-        ) : null}
+        ) : (
+          // Show skeletons on initial load
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {[...Array(12)].map((_, i) => (
+              <ContentCardSkeleton key={`initial-skeleton-${i}`} />
+            ))}
+          </div>
+        )}
       </Container>
 
       {/* Content detail modal */}

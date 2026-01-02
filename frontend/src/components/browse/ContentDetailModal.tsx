@@ -73,20 +73,42 @@ export function ContentDetailModal({
         body: 'p-0',
       }}
     >
-      {/* Header */}
+      {/* Header with actions (desktop) */}
       <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center border-b-4 border-gray-900">
-        <h2 className="text-sm sm:text-base md:text-lg font-black uppercase tracking-tight truncate pr-2">
+        <h2 className="text-sm sm:text-base md:text-lg font-black uppercase tracking-tight truncate pr-2 flex-1">
           {content.title}
         </h2>
+        {/* Desktop actions in header */}
+        <div className="hidden sm:flex gap-2 ml-4">
+          <Button
+            className="bg-white text-black border-2 border-white font-black uppercase hover:bg-gray-100"
+            onClick={onAddToLibrary}
+            leftSection={<Plus size={14} />}
+            loading={isAddingToLibrary}
+            size="xs"
+          >
+            Add
+          </Button>
+          <Button
+            variant="outline"
+            className="border-2 border-white text-white font-black uppercase hover:bg-gray-800"
+            onClick={onAddToQueue}
+            leftSection={<ListPlus size={14} />}
+            loading={isAddingToQueue}
+            size="xs"
+          >
+            Queue
+          </Button>
+        </div>
         <button
           onClick={onClose}
-          className="hover:opacity-70 transition-opacity flex-shrink-0"
+          className="hover:opacity-70 transition-opacity flex-shrink-0 ml-2"
         >
           <X size={20} strokeWidth={3} className="sm:w-6 sm:h-6" />
         </button>
       </div>
 
-      <div className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto">
+      <div className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto pb-20 sm:pb-6">
         {/* Title Section */}
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 mb-6">
           {/* Poster */}
@@ -100,7 +122,7 @@ export function ContentDetailModal({
             </div>
           )}
 
-          {/* Info & Actions */}
+          {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="mb-4">
               <div className="text-sm text-gray-600 font-mono mb-3">
@@ -129,31 +151,6 @@ export function ContentDetailModal({
                   {content.overview}
                 </p>
               )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                className="bg-black text-white border-2 border-black font-black uppercase hover:bg-gray-900"
-                onClick={onAddToLibrary}
-                leftSection={<Plus size={16} />}
-                loading={isAddingToLibrary}
-                size="sm"
-                fullWidth
-              >
-                Add to Library
-              </Button>
-              <Button
-                variant="outline"
-                className="border-2 border-black font-black uppercase hover:bg-gray-100"
-                onClick={onAddToQueue}
-                leftSection={<ListPlus size={16} />}
-                loading={isAddingToQueue}
-                size="sm"
-                fullWidth
-              >
-                Add to Lineup
-              </Button>
             </div>
           </div>
         </div>
@@ -258,6 +255,31 @@ export function ContentDetailModal({
             )}
           </Tabs.Panel>
         </Tabs>
+      </div>
+
+      {/* Sticky action bar at bottom (mobile only) */}
+      <div className="sticky bottom-0 bg-white border-t-4 border-gray-900 p-4 sm:hidden">
+        <div className="flex gap-2">
+          <Button
+            className="bg-black text-white border-2 border-black font-black uppercase hover:bg-gray-900 flex-1"
+            onClick={onAddToLibrary}
+            leftSection={<Plus size={16} />}
+            loading={isAddingToLibrary}
+            size="sm"
+          >
+            Add to Library
+          </Button>
+          <Button
+            variant="outline"
+            className="border-2 border-black font-black uppercase hover:bg-gray-100 flex-1"
+            onClick={onAddToQueue}
+            leftSection={<ListPlus size={16} />}
+            loading={isAddingToQueue}
+            size="sm"
+          >
+            Add to Lineup
+          </Button>
+        </div>
       </div>
     </Modal>
   );

@@ -169,27 +169,30 @@ export function Library() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <Container size="xl" className="py-4 md:py-8 lg:py-12 px-2 md:px-4">
+    <div className="min-h-screen bg-white pb-20">
+      <Container size="xl" className="py-6 md:py-10 lg:py-12 px-4 md:px-6">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6 md:mb-8">
-          <Button
-            size="sm"
-            variant="subtle"
-            className="text-gray-600 hover:text-gray-900"
-            onClick={() => setLocation('/stats')}
-          >
-            → View Stats
-          </Button>
-          <Button
-            size="sm"
-            className="bg-black text-white border-2 border-black font-black uppercase tracking-wider"
-            radius="xs"
-            leftSection={<Plus size={16} />}
-            onClick={handleNavigateToSearch}
-          >
-            ADD MEDIA
-          </Button>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">My Collection</h1>
+          <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              variant="subtle"
+              className="text-gray-600 hover:text-gray-900"
+              onClick={() => setLocation('/stats')}
+            >
+              View Stats
+            </Button>
+            <Button
+              size="sm"
+              className="bg-gray-900 text-white hover:bg-gray-800 font-medium"
+              radius="md"
+              leftSection={<Plus size={16} />}
+              onClick={handleNavigateToSearch}
+            >
+              Add Media
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -205,18 +208,18 @@ export function Library() {
         />
 
         {/* Results Count */}
-        <div className="mb-4">
+        <div className="mb-6">
           <Text
             size="sm"
-            className="font-mono font-black uppercase tracking-wider"
+            className="text-gray-600 font-medium"
           >
-            {filteredLibrary.length} ITEMS
+            {filteredLibrary.length} {filteredLibrary.length === 1 ? 'title' : 'titles'}
           </Text>
         </div>
 
-        {/* Library Grid - Responsive */}
+        {/* Library Grid - Responsive Poster Grid */}
         {filteredLibrary.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
             {filteredLibrary.map((item) => (
               <LibraryCard
                 key={`${item.id}-${item.status}-${item.score ?? 'null'}-${item.notes ?? 'null'}`}
@@ -230,24 +233,24 @@ export function Library() {
             ))}
           </div>
         ) : (
-          <div className="bg-gray-200 border-2 border-gray-900 p-12 text-center">
+          <div className="bg-gray-50 rounded-lg p-12 text-center border border-gray-200">
             <div className="text-6xl mb-4">📚</div>
-            <h3 className="text-2xl font-black uppercase tracking-tight mb-2">
-              NO ITEMS FOUND
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              No items found
             </h3>
-            <p className="text-sm opacity-70 mb-4">
+            <p className="text-sm text-gray-600 mb-6">
               {searchQuery || filterStatus !== 'all' || filterType !== 'all'
                 ? 'Try adjusting your filters'
                 : 'Start building your library'}
             </p>
             <Button
               size="md"
-              className="bg-black text-white border-2 border-black font-black uppercase tracking-wider"
-              radius="xs"
+              className="bg-gray-900 text-white hover:bg-gray-800 font-medium"
+              radius="md"
               leftSection={<Plus size={16} />}
               onClick={handleNavigateToSearch}
             >
-              ADD MEDIA
+              Add Media
             </Button>
           </div>
         )}
