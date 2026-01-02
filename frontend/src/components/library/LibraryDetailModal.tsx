@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Modal, Drawer, Textarea, Button, Badge, Menu, ActionIcon, Text, Collapse, useMantineTheme } from '@mantine/core';
+import { useState, useEffect, useCallback, useRef, useEffectEvent } from 'react';
+import { Modal, Drawer, Textarea, Button, Badge, Menu, ActionIcon, Text, useMantineTheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-import { X, Save, Calendar, Trash2, MoreVertical, CheckCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { X, Calendar, Trash2, MoreVertical, Star, CheckCircle, FileText } from 'lucide-react';
 import type { LibraryItemUI, LibraryStatus } from '../../types/library.types';
 import { EpisodeTracker } from './EpisodeTracker';
 
@@ -41,162 +41,104 @@ interface NotesSectionProps {
   notes: string;
   status: LibraryStatus;
   score: number | null;
-  notesSectionOpened: boolean;
   onNotesChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onStatusChange: (status: LibraryStatus) => void;
   onScoreChange: (score: number | null) => void;
   onToggle: () => void;
-  onSave: () => void;
 }
 
 // Notes Section Component (Magic Patterns style) - Moved outside to prevent re-creation
 const NotesSection = ({
   notes,
-  status,
   score,
-  notesSectionOpened,
   onNotesChange,
-  onStatusChange,
   onScoreChange,
-  onToggle,
-  onSave,
 }: NotesSectionProps) => {
   return (
     <div className="border-b border-gray-200 bg-white w-full">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between p-6 md:p-8 bg-white hover:bg-white transition-colors focus:outline-none"
-      >
+      <div className="w-full flex items-center justify-between p-2 md:p-4">
+
         <div className="flex items-center gap-3">
           <FileText size={18} className="text-gray-600" />
-          <span className="font-medium text-gray-900">Details & notes</span>
+          <span className="font-medium text-gray-900">Notes</span>
         </div>
-        {notesSectionOpened ? (
-          <ChevronUp size={18} className="text-gray-400" />
-        ) : (
-          <ChevronDown size={18} className="text-gray-400" />
-        )}
-      </button>
+      </div>
 
-      <Collapse 
-        in={notesSectionOpened}
-        transitionDuration={200}
-      >
-        <div className="p-6 md:p-8 pt-0 space-y-6 w-full">
-          {/* Metadata Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Status Selector */}
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-2">
-                Status
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {STATUS_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => onStatusChange(option.value)}
-                    className={`
-                      min-h-[40px] px-4 py-2 text-sm border border-gray-300 font-medium
-                      transition-all
-                      ${status === option.value
-                        ? `${option.color} text-white border-transparent`
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                      }
-                    `}
-                    style={{ borderRadius: 0 }}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+      <div className="p-6 md:p-8 pt-0 space-y-6 w-full">
+        {/* Metadata Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-1">
 
-            {/* Score Selector */}
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-2">
-                Score
-              </label>
-              <div className="flex flex-wrap gap-2">
+          {/* Score Selector */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-2">
+              Score
+            </label>
+            <div className="flex flex-wrap gap-1">
+              {/* // Star rating instead of number grid */}
+              <div className="flex items-center gap-1 overflow-x-auto">
                 <button
                   onClick={() => onScoreChange(null)}
                   className={`
-                    w-10 h-10 text-sm border border-gray-300 font-medium
+                    w-8 h-8 text-sm border border-gray-300 font-medium
                     transition-all flex items-center justify-center
                     ${score === null
                       ? 'bg-gray-900 text-white border-gray-900'
                       : 'bg-white text-gray-700 hover:bg-gray-50'
                     }
-                  `}
+                    `}
                   style={{ borderRadius: 0 }}
                   aria-label="No score"
                 >
                   —
                 </button>
-                {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                   <button
                     key={num}
                     onClick={() => onScoreChange(num)}
                     className={`
-                      w-10 h-10 text-sm border border-gray-300 font-medium
-                      transition-all flex items-center justify-center
-                      ${score === num
-                        ? 'bg-gray-900 text-white border-gray-900'
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
+        ${score && score >= num
+                        ? 'text-amber-500'
+                        : 'text-gray-300'
                       }
-                    `}
-                    style={{ borderRadius: 0 }}
-                    aria-label={`Rate ${num} out of 10`}
+        hover:text-amber-400 transition-colors
+      `}
                   >
-                    {num}
+                    <Star size={12} fill={score && score >= num ? 'currentColor' : 'none'} />
                   </button>
                 ))}
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Notes */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-2">
-              Notes
-            </label>
-            <Textarea
-              placeholder="Add your notes about this show..."
-              value={notes}
-              onChange={onNotesChange}
-              minRows={4}
-              maxLength={1000}
-              classNames={{
-                input: 'border border-gray-300 focus:border-gray-900 bg-white font-medium',
-              }}
-              styles={{
-                input: {
-                  borderRadius: 0,
-                },
-              }}
-            />
-            <div className="text-right mt-1">
-              <span className="text-xs font-medium text-gray-400">
-                {notes.length}/1000
-              </span>
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <Button
-            onClick={onSave}
-            fullWidth
-            leftSection={<Save size={16} />}
-            className="bg-gray-900 hover:bg-gray-800 text-white font-medium"
+        {/* Notes */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-2">
+            Notes
+          </label>
+          <Textarea
+            placeholder="Add your notes about this show..."
+            value={notes}
+            resize="vertical"
+            onChange={onNotesChange}
+            minRows={4}
+            maxLength={250}
+            classNames={{
+              input: 'border border-gray-300 focus:border-gray-900 bg-white font-medium',
+            }}
             styles={{
-              root: {
+              input: {
                 borderRadius: 0,
               },
             }}
-          >
-            Save changes
-          </Button>
+          />
+          <div className="text-right mt-1">
+            <span className="text-xs font-medium text-gray-400">
+              {notes.length}/250
+            </span>
+          </div>
         </div>
-      </Collapse>
+      </div>
     </div>
   );
 };
@@ -211,20 +153,47 @@ export function LibraryDetailModal({
 }: LibraryDetailModalProps) {
   const theme = useMantineTheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.md})`);
-  
+
   const [status, setStatus] = useState<LibraryStatus>(
     item?.status || 'plan_to_watch',
   );
+  
   const [score, setScore] = useState<number | null>(item?.score || null);
   const [notes, setNotes] = useState(item?.notes || '');
   const [notesSectionOpened, setNotesSectionOpened] = useState(false);
+  
+  const onStatusChange = useEffectEvent((item: LibraryStatus) => {
+    setStatus(item);
+  });
+  const onScoreChange = useEffectEvent((item: number | null) => {
+    setScore(item);
+  });
+  const onNotesChange = useEffectEvent((item: string) => {
+    setNotes(item);
+  });
+
+  const autoSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedRef = useRef<{
+    status: LibraryStatus;
+    score: number | null;
+    notes: string | null;
+  } | null>(null);
 
   // Reset form when item changes
   useEffect(() => {
     if (item) {
-      setStatus(item.status);
-      setScore(item.score);
-      setNotes(item.notes || '');
+      onStatusChange(item.status as LibraryStatus);
+      onScoreChange(item.score || 1);
+      onNotesChange(item.notes || '');
+      // setStatus(item.status as LibraryStatus);
+      // setNotes(item.notes || '');
+      // setScore(item.score || 0);
+
+      lastSavedRef.current = {
+        status: item.status,
+        score: item.score,
+        notes: item.notes || null,
+      };
     }
   }, [item]);
 
@@ -232,16 +201,53 @@ export function LibraryDetailModal({
     setNotes(e.currentTarget.value);
   }, []);
 
-  const handleSave = useCallback(() => {
+  useEffect(() => {
     if (!item) return;
-    onSave({
-      id: item.id,
+
+    const nextPayload = {
       status,
-      score: score,
+      score,
       notes: notes || null,
-    });
-    onClose();
-  }, [item, status, score, notes, onSave, onClose]);
+    };
+
+    // Avoid saving if nothing changed
+    const last = lastSavedRef.current;
+    const hasChanged =
+      !last ||
+      last.status !== nextPayload.status ||
+      last.score !== nextPayload.score ||
+      last.notes !== nextPayload.notes;
+
+    if (!hasChanged) return;
+
+    // Debounce save
+    if (autoSaveTimeout.current) {
+      clearTimeout(autoSaveTimeout.current);
+    }
+
+    autoSaveTimeout.current = setTimeout(() => {
+      onSave({
+        id: item.id,
+        ...nextPayload,
+      });
+
+      lastSavedRef.current = nextPayload;
+    }, 800); // ← adjust debounce delay here
+
+    return () => {
+      if (autoSaveTimeout.current) {
+        clearTimeout(autoSaveTimeout.current);
+      }
+    };
+
+    // onSave({
+    //   id: item.id,
+    //   status,
+    //   score: score,
+    //   notes: notes || null,
+    // });
+    // onClose();
+  }, [item, status, score, notes, onSave]);
 
   if (!item) return null;
 
@@ -260,9 +266,11 @@ export function LibraryDetailModal({
 
   // Header Component (Magic Patterns ShowCardHeader style)
   const ShowCardHeader = () => {
-    const progress = item.content.contentType === 'show' && item.progress 
-      ? item.progress.percentage 
-      : 0;
+    // const progress = item.content.contentType === 'show' && item.progress
+    // ? item.progress.percentage
+    // : 0;
+
+    // const progress = item.content.contentType === 'show' && item.progress
     const watchedEpisodes = item.progress?.episodesWatched || 0;
     const totalEpisodes = item.progress?.totalEpisodes || 0;
 
@@ -271,7 +279,7 @@ export function LibraryDetailModal({
         <div className="flex justify-between items-start gap-3 sm:gap-4">
           <div className="flex gap-3 sm:gap-4 items-start flex-1 min-w-0">
             {/* Poster - Responsive sizing */}
-            <div className="w-12 h-18 xs:w-14 xs:h-21 sm:w-16 sm:h-24 md:w-20 md:h-28 lg:w-24 lg:h-36 bg-gray-900 flex-shrink-0 overflow-hidden">
+            <div className="w-12 h-20 xs:w-4 xs:h-10 sm:w-24 sm:h-32 md:w-28 md:h-36 lg:w-32 lg:h-44 bg-gray-900 flex-shrink-0 overflow-hidden">
               {item.content.posterUrl ? (
                 <img
                   src={item.content.posterUrl}
@@ -304,7 +312,7 @@ export function LibraryDetailModal({
                     },
                   }}
                 >
-                  {item.content.contentType === 'movie' ? 'MOVIE' : 'TV'}
+                  {item.content.contentType === 'movie' ? 'FILM' : 'SHOW'}
                 </Badge>
                 {item.content.contentType === 'show' && item.progress && (
                   <Text
@@ -313,23 +321,102 @@ export function LibraryDetailModal({
                     c="dimmed"
                     className="text-[10px] sm:text-xs"
                   >
-                    {watchedEpisodes}/{totalEpisodes} ep • {progress}%
+                    {/* {watchedEpisodes}/{totalEpisodes} ep • {progress}% */}
+                    {watchedEpisodes}/{totalEpisodes} ep
                   </Text>
                 )}
               </div>
 
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  color="black"
+                  className="bg-gray-900 hover:bg-gray-800 text-white font-medium"
+                  leftSection={<Calendar size={14} />}
+                  onClick={() => onAddToQueue(item)}
+                >
+                  Add to Queue
+                </Button>
+                {item.content.contentType === 'show' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    color="black"
+                    className="border-2 border-gray-900 font-medium"
+                    leftSection={<CheckCircle size={14} />}
+                    onClick={handleMarkShowWatched}
+                  >
+                    Mark Complete
+                  </Button>
+                )}
+              </div>
+
               {/* Progress Bar */}
-              {item.content.contentType === 'show' && item.progress && (
-                <div className="w-full max-w-[150px] sm:max-w-[200px] bg-gray-200 h-1.5 sm:h-2 overflow-hidden mt-1">
-                  <div
-                    className="bg-gray-900 h-full transition-all duration-500 ease-out"
-                    style={{
-                      width: `${progress}%`,
-                    }}
-                  />
+              {/* <div className="flex flex-wrap items-center gap-2">
+
+                {item.content.contentType === 'show' && item.progress && (
+                  <div className="w-full max-w-[150px] sm:max-w-[200px] bg-gray-200 h-1.5 sm:h-2 overflow-hidden mt-1">
+                    <div
+                      className="bg-gray-900 h-full transition-all duration-500 ease-out"
+                      style={{
+                        width: `${item.progress.episodesWatched / item.progress.totalEpisodes * 100}%`,
+                      }}
+                    />
+                  </div>
+                )}
+
+                {item.content.contentType === 'show' && item.progress && (
+                  <div>
+                    <p className="text-xs text-gray-500">{`${item.progress.percentage}%`}</p>
+                  </div>
+                )}
+              </div> */}
+{/* 
+<div className="flex flex-wrap gap-2">
+                {STATUS_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => onStatusChange(option.value)}
+                    className={`
+                      min-h-[40px] px-4 py-2 text-sm border border-gray-300 font-medium
+                      transition-all
+                      ${status === option.value
+                        ? `${option.color} text-white border-transparent`
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                      }
+                    `}
+                    style={{ borderRadius: 0 }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div> */}
+
+              {/* Add quick status selector in header */}
+              <span className="text-xs text-gray-500">Status:</span>
+              <div className="flex items-center gap-2 mt-2 overflow-x-auto">
+                <div className="flex gap-1">
+                  {STATUS_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {setStatus(option.value);
+                        // Auto-save or show save indicator
+                      }}
+                      className={`
+                            px-2 py-0.5 text-sm rounded-none
+                            ${status === option.value
+                          ? `${option.color} text-white`
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }
+                          `}
+                    >
+                      {option.label.toLocaleLowerCase()}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
+
           </div>
 
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
@@ -415,42 +502,34 @@ export function LibraryDetailModal({
               </Menu.Dropdown>
             </Menu>
           </div>
+
         </div>
+
       </div>
     );
   };
 
-
-
   // Render content directly (not as a component to avoid render-time creation)
   const renderContent = () => (
     <div className="bg-white flex flex-col w-full">
-      {/* Close Button - Prominent and visible */}
-      <div className="flex justify-end p-4 border-brelative">
-        <button
-          onClick={onClose}
-          className='flex items-center justify-center relative bg-white border-gray-700 border-2 hover:border-blue-600'
-          aria-label="Close modal"
-        >
-        <X size={20} color="red" />
-        </button>
-      </div>
+
 
       {/* Show Card Header */}
       <ShowCardHeader />
+
 
       {/* Notes Section */}
       <NotesSection
         notes={notes}
         status={status}
         score={score}
-        notesSectionOpened={notesSectionOpened}
+        // notesSectionOpened={notesSectionOpened}
         onNotesChange={handleNotesChange}
         onStatusChange={setStatus}
         onScoreChange={setScore}
         onToggle={() => setNotesSectionOpened(!notesSectionOpened)}
-        onSave={handleSave}
       />
+
 
       {/* Episode Tracker for TV Shows */}
       {item.content.contentType === 'show' && (
@@ -463,6 +542,8 @@ export function LibraryDetailModal({
           />
         </div>
       )}
+
+
     </div>
   );
 
@@ -489,7 +570,7 @@ export function LibraryDetailModal({
             borderTopRightRadius: '1rem',
             width: '100%',
             maxWidth: '100%',
-            maxHeight: '90vh',
+            maxHeight: '85vh',
             height: 'auto',
             margin: 'auto',
           },
@@ -500,6 +581,12 @@ export function LibraryDetailModal({
           },
         }}
       >
+        {/* Drag handle for mobile */}
+        {isMobile && (
+          <div className="flex justify-center pt-2 pb-1">
+            <div className="w-12 h-1 bg-gray-300 rounded-full" />
+          </div>
+        )}
         {renderContent()}
       </Drawer>
     );

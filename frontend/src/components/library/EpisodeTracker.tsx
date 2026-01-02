@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, Loader, Text } from '@mantine/core';
+import { Button, Loader, Text, Tabs  } from '@mantine/core';
 import { ListVideo, Check, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import type { LibraryItemUI } from '../../types/library.types';
@@ -22,25 +22,52 @@ interface SeasonTabsProps {
 
 function SeasonTabs({ seasons, activeSeason, onSeasonChange }: SeasonTabsProps) {
   return (
-    <div className="border-b border-gray-200 overflow-x-auto">
-      <div className="flex gap-2 min-w-max">
-        {Array.from({ length: seasons }, (_, i) => i + 1).map((season) => (
-          <button
-            key={season}
-            onClick={() => onSeasonChange(season)}
-            className={`
-              px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0
-              ${activeSeason === season
-                ? 'bg-blue-600 text-blue-100'
-                : 'border-transparent text-gray-100 hover:text-blue-700'
-              }
-            `}
-          >
-            Season {season}
-          </button>
-        ))}
-      </div>
+    <div className="pb-4">
+      <Tabs
+        value={activeSeason.toString()}
+        onChange={(val) => onSeasonChange(parseInt(val || '1'))}
+        variant="pills"
+        classNames={{
+          list: 'gap-2',
+          tab: 'border border-gray-300 font-medium data-[active]:bg-gray-900 data-[active]:text-white data-[active]:border-gray-900 hover:bg-gray-100 transition-colors',
+        }}
+        styles={{
+          tab: {
+            borderRadius: 0,
+          },
+        }}
+      >
+        <Tabs.List>
+          {Array.from({ length: seasons }, (_, i) => i + 1).map((season) => (
+            <Tabs.Tab
+              key={season}
+              value={season.toString()}
+            >
+              Season {season}
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
+      </Tabs>
     </div>
+    // <div className="border-b border-gray-200 overflow-x-auto">
+    //   <div className="flex gap-2 min-w-max">
+    //     {Array.from({ length: seasons }, (_, i) => i + 1).map((season) => (
+    //       <button
+    //         key={season}
+    //         onClick={() => onSeasonChange(season)}
+    //         className={`
+    //           px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0
+    //           ${activeSeason === season
+    //             ? 'bg-blue-600 text-blue-100'
+    //             : 'border-transparent text-gray-100 hover:text-blue-700'
+    //           }
+    //         `}
+    //       >
+    //         Season {season}
+    //       </button>
+    //     ))}
+    //   </div>
+    // </div>
   );
 }
 
@@ -441,7 +468,8 @@ export function EpisodeTracker({
   return (
     <div className="bg-white w-full">
       {/* Header */}
-      <div className="w-full flex items-center p-6 md:p-8 border-b border-gray-200">
+      {/* <div className="w-full flex items-center p-4 md:p-4 border-b border-gray-200"> */}
+      <div className="w-full flex items-center p-4 md:p-4">
         <div className="flex items-center gap-3">
           <ListVideo size={18} className="text-gray-600" />
           <span className="font-medium text-gray-900">Episode tracker</span>

@@ -17,8 +17,7 @@ import { Settings } from './pages/Settings';
 import { Browse } from './pages/Browse';
 import { Stats } from './pages/Stats';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
-import { AllNetworks } from './pages/AllNetworks';
-import { ManageNetworks } from './pages/ManageNetworks';
+import { Networks } from './pages/Networks';
 import { PersonDetail } from './pages/PersonDetail';
 
 // Create QueryClient instance
@@ -125,15 +124,7 @@ function App() {
         <Route path="/networks">
           <ProtectedRoute>
             <Layout>
-              <AllNetworks />
-            </Layout>
-          </ProtectedRoute>
-        </Route>
-
-        <Route path="/networks/manage">
-          <ProtectedRoute>
-            <Layout>
-              <ManageNetworks />
+              <Networks />
             </Layout>
           </ProtectedRoute>
         </Route>

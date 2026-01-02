@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Container, Button, Loader, Center, Text } from '@mantine/core';
 import { useLocation } from 'wouter';
-import { Search as SearchIcon, ArrowLeft, TrendingUp, Sparkles, Award, Calendar, Tv, Clock } from 'lucide-react';
+import { Search as SearchIcon, ArrowLeft, TrendingUp, Award, Tv, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { NetworkGrid } from '../components/browse/NetworkGrid';
 import { ContentCarousel } from '../components/browse/ContentCarousel';
@@ -33,32 +33,32 @@ export function Browse() {
     queryKey: ['network-content', selectedNetworkId],
     queryFn: async () => {
       if (!selectedNetworkId) return null;
-      
+
       // Fetch first page to get total_pages info
       const firstPage = await getNetworkContent(selectedNetworkId, 1);
-      
+
       // Determine how many pages to fetch (max 3, or less if not available)
       const pagesToFetch = Math.min(3, firstPage.total_pages);
-      
+
       // Fetch additional pages in parallel if needed
       const additionalPages = [];
       for (let i = 2; i <= pagesToFetch; i++) {
         additionalPages.push(getNetworkContent(selectedNetworkId, i));
       }
-      
+
       const fetchedAdditionalPages = await Promise.all(additionalPages);
       const pages = [firstPage, ...fetchedAdditionalPages];
-      
+
       // Combine all content from all pages
       const allContent = pages.flatMap(page => page.content);
-      
+
       // Remove duplicates by tmdb_id
       const uniqueContent = Array.from(
         new Map(allContent.map(item => [item.tmdb_id, item])).values()
       );
-      
+
       console.log(`Fetched ${pagesToFetch} pages with ${uniqueContent.length} unique shows for ${firstPage.network.name}`);
-      
+
       // Return in the same format as a single page response
       return {
         network: firstPage.network,
@@ -78,11 +78,11 @@ export function Browse() {
       // Network content is always TV shows, so specify type='tv'
       // This will automatically cache the content if it doesn't exist
       const content = await getContentByTmdbId(tmdbId, 'tv');
-      
+
       if (!content || !content.id) {
         throw new Error('Failed to fetch or cache content. Please try again.');
       }
-      
+
       return addToLibrary({
         content_id: content.id,
         status: 'plan_to_watch' as const,
@@ -108,11 +108,11 @@ export function Browse() {
       // Network content is always TV shows, so specify type='tv'
       // This will automatically cache the content if it doesn't exist
       const content = await getContentByTmdbId(tmdbId, 'tv');
-      
+
       if (!content || !content.id) {
         throw new Error('Failed to fetch or cache content. Please try again.');
       }
-      
+
       return addToQueue({ content_id: content.id });
     },
     onSuccess: () => {
@@ -167,11 +167,11 @@ export function Browse() {
   };
 
   // Get date range for new releases
-  const getNewReleasesDateRange = () => {
-    const currentYear = new Date().getFullYear();
-    const twoYearsAgo = currentYear - 2;
-    return `${twoYearsAgo}-${currentYear}`;
-  };
+  // const getNewReleasesDateRange = () => {
+  //   const currentYear = new Date().getFullYear();
+  //   const twoYearsAgo = currentYear - 2;
+  //   return `${twoYearsAgo}-${currentYear}`;
+  // };
 
   // Apply search and filters to content
   const applySearchFilters = (content: NetworkContentItem[], filters: SearchFilters) => {
@@ -180,7 +180,7 @@ export function Browse() {
     // Text search
     if (filters.query) {
       const query = filters.query.toLowerCase();
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         item.title?.toLowerCase().includes(query) ||
         item.overview?.toLowerCase().includes(query)
       );
@@ -189,6 +189,7 @@ export function Browse() {
     // Decade filter
     if (filters.decade) {
       const decadeMap: Record<string, [number, number]> = {
+        '1970s': [1970, 1979],
         '1980s': [1980, 1989],
         '1990s': [1990, 1999],
         '2000s': [2000, 2009],
@@ -235,29 +236,29 @@ export function Browse() {
   // Ensures exactly 12 items per section (or less if not available)
   const organizeSections = (content: NetworkContentItem[]) => {
     const ITEMS_PER_SECTION = 12;
-    
+
     // Helper to ensure exactly 12 items (or less if not available)
     const ensureCount = (items: NetworkContentItem[], count: number = ITEMS_PER_SECTION) => {
       return items.slice(0, count);
     };
-    
+
     // Sort by popularity (vote_average * vote_count)
-    const sortedByPopularity = [...content].sort((a, b) => 
+    const sortedByPopularity = [...content].sort((a, b) =>
       (b.vote_average * b.vote_count) - (a.vote_average * a.vote_count)
     );
-    
+
     // Get recent shows (from last 2 years)
     const twoYearsAgo = new Date();
     twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
     const recentShows = content
       .filter(item => item.first_air_date && new Date(item.first_air_date) >= twoYearsAgo)
       .sort((a, b) => new Date(b.first_air_date).getTime() - new Date(a.first_air_date).getTime());
-    
+
     // Get high-rated shows
     const highRated = content
       .filter(item => item.vote_average >= 7.5 && item.vote_count > 100)
       .sort((a, b) => b.vote_average - a.vote_average);
-    
+
     // Filter by decades
     const getDecadeShows = (startYear: number, endYear: number) => {
       return content
@@ -268,21 +269,25 @@ export function Browse() {
         })
         .sort((a, b) => (b.vote_average * b.vote_count) - (a.vote_average * a.vote_count));
     };
-    
+
+    const shows70s = getDecadeShows(1970, 1979);
     const shows80s = getDecadeShows(1980, 1989);
     const shows90s = getDecadeShows(1990, 1999);
     const shows2000s = getDecadeShows(2000, 2009);
     const shows2010s = getDecadeShows(2010, 2019);
-    
+    const shows2020s = getDecadeShows(2020, 2029);
+
     return {
       popular: ensureCount(sortedByPopularity),
       recent: ensureCount(recentShows),
       highRated: ensureCount(highRated),
       decades: {
+        '70s': ensureCount(shows70s),
         '80s': ensureCount(shows80s),
         '90s': ensureCount(shows90s),
         '2000s': ensureCount(shows2000s),
         '2010s': ensureCount(shows2010s),
+        '2020s': ensureCount(shows2020s),
       },
       all: ensureCount(sortedByPopularity),
       fullList: content,
@@ -306,23 +311,25 @@ export function Browse() {
   // Show network detail view (Apple Music style)
   if (selectedNetworkId && networkContent) {
     const sections = organizeSections(networkContent.content || []);
-    
+
     // Log section sizes for debugging
     console.log('Section sizes:', {
       total: networkContent.content?.length || 0,
       popular: sections.popular.length,
       recent: sections.recent.length,
       highRated: sections.highRated.length,
+      '70s': sections.decades['70s'].length,
       '80s': sections.decades['80s'].length,
       '90s': sections.decades['90s'].length,
       '2000s': sections.decades['2000s'].length,
       '2010s': sections.decades['2010s'].length,
+      '2020s': sections.decades['2020s'].length,
       all: sections.all.length,
     });
 
     return (
       <div className="min-h-screen bg-gray-50">
-        <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
+        <Container size="xl" className="py-4 md:py-8 px-2 md:px-4"> 
           {/* Back button and network header */}
           <div className="mb-8">
             <Button
@@ -334,19 +341,19 @@ export function Browse() {
               Back to Home
             </Button>
 
-            <div className="flex items-center gap-2 sm:gap-4 mb-2 flex-wrap">
+            <div className="flex items-center gap-4 mb-2">
               {networkContent.network.logo_url && (
                 <img
                   src={networkContent.network.logo_url}
                   alt={networkContent.network.name}
-                  className="h-8 sm:h-10 md:h-12 w-auto object-contain"
+                  className="h-16 w-auto object-contain"
                 />
               )}
-              <div className="min-w-0 flex-1">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-wider break-words">
+              <div>
+                <h1 className="text-3xl font-black uppercase tracking-wider">
                   {networkContent.network.name}
                 </h1>
-                <p className="text-xs sm:text-sm text-gray-600 font-mono">
+                <p className="text-sm text-gray-600 font-mono">
                   {networkContent.total_results} shows available
                 </p>
               </div>
@@ -367,13 +374,13 @@ export function Browse() {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {filteredContent.map((item) => (
-                  <div 
+                  <div
                     key={item.id}
                     className="cursor-pointer group"
                     onClick={() => handleContentClick(item)}
                   >
                     {item.poster_url ? (
-                      <img 
+                      <img
                         src={item.poster_url}
                         alt={item.title}
                         className="w-full h-auto object-cover border-2 border-gray-900 group-hover:border-4 transition-all"
@@ -404,8 +411,8 @@ export function Browse() {
               {/* Popular Section */}
               {sections.popular.length > 0 && (
                 <section>
-                  <SectionHeader 
-                    title="Popular" 
+                  <SectionHeader
+                    title="Popular"
                     icon={<TrendingUp size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/popular`)}
                   />
@@ -416,10 +423,10 @@ export function Browse() {
                 </section>
               )}
 
-              {/* New Releases Section */}
+              {/* New Releases Section
               {sections.recent.length > 0 && (
                 <section>
-                  <SectionHeader 
+                  <SectionHeader
                     title={`New Releases (${getNewReleasesDateRange()})`}
                     icon={<Sparkles size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/new`)}
@@ -429,13 +436,13 @@ export function Browse() {
                     onItemClick={handleContentClick}
                   />
                 </section>
-              )}
+              )} */}
 
               {/* Highly Rated Section */}
               {sections.highRated.length > 0 && (
                 <section>
-                  <SectionHeader 
-                    title="Highly Rated" 
+                  <SectionHeader
+                    title="Highly Rated"
                     icon={<Award size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/rated`)}
                   />
@@ -447,43 +454,16 @@ export function Browse() {
               )}
 
               {/* Decades Sections */}
-              {sections.decades['80s'].length > 0 && (
-                <section>
-                  <SectionHeader 
-                    title="Classic 80s" 
-                    icon={<Clock size={20} strokeWidth={2.5} />}
-                    onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/80s`)}
-                  />
-                  <ContentCarousel<NetworkContentItem>
-                    items={sections.decades['80s']}
-                    onItemClick={handleContentClick}
-                  />
-                </section>
-              )}
 
-              {sections.decades['90s'].length > 0 && (
+              {sections.decades['2020s'].length > 0 && (
                 <section>
-                  <SectionHeader 
-                    title="The 90s" 
+                  <SectionHeader
+                    title="The 2020s"
                     icon={<Clock size={20} strokeWidth={2.5} />}
-                    onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/90s`)}
+                    onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/2020s`)}
                   />
                   <ContentCarousel<NetworkContentItem>
-                    items={sections.decades['90s']}
-                    onItemClick={handleContentClick}
-                  />
-                </section>
-              )}
-
-              {sections.decades['2000s'].length > 0 && (
-                <section>
-                  <SectionHeader 
-                    title="The 2000s" 
-                    icon={<Clock size={20} strokeWidth={2.5} />}
-                    onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/2000s`)}
-                  />
-                  <ContentCarousel<NetworkContentItem>
-                    items={sections.decades['2000s']}
+                    items={sections.decades['2020s']}
                     onItemClick={handleContentClick}
                   />
                 </section>
@@ -491,8 +471,8 @@ export function Browse() {
 
               {sections.decades['2010s'].length > 0 && (
                 <section>
-                  <SectionHeader 
-                    title="The 2010s" 
+                  <SectionHeader
+                    title="The 2010s"
                     icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/2010s`)}
                   />
@@ -503,11 +483,67 @@ export function Browse() {
                 </section>
               )}
 
+              {sections.decades['2000s'].length > 0 && (
+                <section>
+                  <SectionHeader
+                    title="The 2000s"
+                    icon={<Clock size={20} strokeWidth={2.5} />}
+                    onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/2000s`)}
+                  />
+                  <ContentCarousel<NetworkContentItem>
+                    items={sections.decades['2000s']}
+                    onItemClick={handleContentClick}
+                  />
+                </section>
+              )}
+
+              {sections.decades['90s'].length > 0 && (
+                <section>
+                  <SectionHeader
+                    title="The 90s"
+                    icon={<Clock size={20} strokeWidth={2.5} />}
+                    onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/90s`)}
+                  />
+                  <ContentCarousel<NetworkContentItem>
+                    items={sections.decades['90s']}
+                    onItemClick={handleContentClick}
+                  />
+                </section>
+              )}
+
+              {sections.decades['80s'].length > 0 && (
+                <section>
+                  <SectionHeader
+                    title="The 80s"
+                    icon={<Clock size={20} strokeWidth={2.5} />}
+                    onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/80s`)}
+                  />
+                  <ContentCarousel<NetworkContentItem>
+                    items={sections.decades['80s']}
+                    onItemClick={handleContentClick}
+                  />
+                </section>
+              )}
+
+              {sections.decades['70s'].length > 0 && (
+                <section>
+                  <SectionHeader
+                    title="The 70s"
+                    icon={<Clock size={20} strokeWidth={2.5} />}
+                    onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/70s`)}
+                  />
+                  <ContentCarousel<NetworkContentItem>
+                    items={sections.decades['70s']}
+                    onItemClick={handleContentClick}
+                  />
+                </section>
+              )}
+
               {/* All Shows Section - Now as scrollable carousel */}
               {sections.all.length > 0 && (
                 <section>
-                  <SectionHeader 
-                    title="All Shows" 
+                  <SectionHeader
+                    title="All Shows"
                     icon={<Tv size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/all`)}
                   />
@@ -550,38 +586,41 @@ export function Browse() {
         </div>
 
         {/* Network Grid */}
-        <NetworkGrid 
+        <NetworkGrid
           onNetworkClick={handleNetworkClick}
           onSeeAllNetworks={() => setLocation('/networks')}
           limit={12}
           enableDragDrop={true}
         />
 
+        <div className="text-center">
+          <Button
+            size="md"
+            className="bg-black text-white border-2 border-black font-black uppercase tracking-wider"
+            radius="xs"
+            leftSection={<SearchIcon size={16} />}
+            onClick={() => setLocation('/search')}
+          >
+            Search for Content
+          </Button>
+        </div>
+
         {/* Coming Soon Section */}
-        <div className="mt-12 bg-white border-2 border-gray-900 p-8">
-          <div className="text-center mb-6">
-            <Calendar size={48} strokeWidth={2} className="mx-auto mb-4 text-gray-700" />
+        {/* <div className="mt-12 bg-white border-2 border-gray-900 p-8"> */}
+        {/* <div className="text-center mb-6">
+            {/* <Calendar size={48} strokeWidth={2} className="mx-auto mb-4 text-gray-700" />
             <Text size="xl" fw={700} className="mb-2">
               More Discovery Features Coming Soon
             </Text>
             <Text c="dimmed" className="mb-6">
               We're working on trending content, theme filters, and more!
-            </Text>
-          </div>
+            </Text> */}
+        {/* </div> */}
+        {/* Temporary Search Link */}
 
-          {/* Temporary Search Link */}
-          <div className="text-center">
-            <Button
-              size="md"
-              className="bg-black text-white border-2 border-black font-black uppercase tracking-wider"
-              radius="xs"
-              leftSection={<SearchIcon size={16} />}
-              onClick={() => setLocation('/search')}
-            >
-              Search for Content
-            </Button>
-          </div>
-        </div>
+
+
+        {/* </div> */}
       </Container>
     </div>
   );
