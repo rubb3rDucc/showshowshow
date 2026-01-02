@@ -590,7 +590,7 @@ export function Browse() {
           onNetworkClick={handleNetworkClick}
           onSeeAllNetworks={() => setLocation('/networks')}
           limit={12}
-          enableDragDrop={true}
+          // enableDragDrop={false}
         />
 
         <div className="text-center">

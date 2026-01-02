@@ -3,10 +3,11 @@ import type { LibraryItemUI, LibraryStatus } from '../../types/library.types';
 
 interface LibraryCardProps {
   item: LibraryItemUI;
-  onViewDetails: (item: LibraryItemUI) => void;
-  onChangeStatus: (item: LibraryItemUI) => void;
-  onRemove: (id: string) => void;
-  onSave: (updates: Partial<LibraryItemUI>) => void;
+  onViewDetails: (item: LibraryItemUI) => void; // View details modal     
+  onChangeStatus: (item: LibraryItemUI) => void;  // Change status
+  onSave: (updates: Partial<LibraryItemUI>) => void;  // Save changes
+  onAddToQueue: (item: LibraryItemUI) => void;  // Add to queue
+  onRemove: (id: string) => void;  // Remove from library
 }
 
 const STATUS_COLORS: Record<LibraryStatus, { 
