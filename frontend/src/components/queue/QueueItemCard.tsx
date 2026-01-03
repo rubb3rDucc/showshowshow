@@ -79,22 +79,11 @@ export function QueueItemCard({
     <Box
       style={{
         backgroundColor: 'white',
-        borderBottom: '1px solid #f3f4f6',
+        borderBottom: '1px solid #e5e7eb',
         paddingTop: '16px',
         paddingBottom: '16px',
         opacity: isDragging ? 0.5 : 1,
-        transition: 'background-color 0.2s',
         cursor: isDragging ? 'grabbing' : 'default',
-      }}
-      onMouseEnter={(e) => {
-        if (!isDragging) {
-          e.currentTarget.style.backgroundColor = '#f9fafb';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isDragging) {
-          e.currentTarget.style.backgroundColor = 'white';
-        }
       }}
     >
       <Stack gap="xs">
@@ -103,8 +92,8 @@ export function QueueItemCard({
           <Box
             style={{
               position: 'relative',
-              width: '50px',
-              height: '75px',
+              width: '40px',
+              height: '60px',
               flexShrink: 0,
               borderRadius: '4px',
               overflow: 'hidden',

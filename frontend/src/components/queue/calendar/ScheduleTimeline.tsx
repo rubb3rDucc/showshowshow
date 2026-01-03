@@ -93,10 +93,9 @@ export function ScheduleTimeline({
                   left: '80px',
                   right: 0,
                   height: '2px',
-                  backgroundColor: '#4A90E2',
+                  backgroundColor: '#646cff',
                   pointerEvents: 'none',
                   zIndex: 5,
-                  boxShadow: '0 0 4px rgba(74, 144, 226, 0.5)',
                 }}
               />
               <Box
@@ -104,13 +103,12 @@ export function ScheduleTimeline({
                   position: 'fixed',
                   top: `${hoveredTime.mouseY}px`,
                   left: `${hoveredTime.mouseX + 15}px`,
-                  backgroundColor: 'rgba(0,0,0,0.9)',
+                  backgroundColor: 'rgba(0,0,0,0.75)',
                   color: 'white',
                   padding: '10px 14px',
                   borderRadius: '6px',
                   pointerEvents: 'none',
                   zIndex: 1000,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                   minWidth: '180px',
                   transform: 'translateY(-50%)',
                 }}

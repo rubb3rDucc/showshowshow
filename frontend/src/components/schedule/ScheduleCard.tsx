@@ -1,333 +1,260 @@
-import { useState } from 'react'
-import { Badge } from '@mantine/core'
-import type { ScheduleCardItem, QueueCardItem } from './scheduleCardAdapters'
-import { getGifForTitle } from '../../utils/gif'
-import { normalizeRating } from '../../utils/rating'
+import { useState } from 'react';
+import { IconCheck } from '@tabler/icons-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { ScheduleCardItem, QueueCardItem } from './scheduleCardAdapters';
+import { markAsWatched } from '../../api/schedule';
+import { normalizeRating } from '../../utils/rating';
+import { QuietDesign } from '../../styles/quiet-design-system';
 
 interface ScheduleCardProps {
-  scheduleItem: ScheduleCardItem
-  queueItem?: QueueCardItem
-  onMarkWatched?: (id: string) => void
-  rowNumber: number
-  season?: number | null
-  episode?: number | null
-  episodeTitle?: string | null
+  scheduleItem: ScheduleCardItem;
+  queueItem?: QueueCardItem;
+  rowNumber: number;
+  season?: number | null;
+  episode?: number | null;
+  episodeTitle?: string | null;
+  watched?: boolean;
 }
-
-// Pastel color schemes for softer aesthetic
-const COLOR_SCHEMES = [
-  {
-    bg: 'bg-yellow-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-pink-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-cyan-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-purple-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-blue-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-orange-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-green-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-rose-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-indigo-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-teal-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-]
 
 export function ScheduleCard({
   scheduleItem,
   queueItem,
-  rowNumber,
   season,
   episode,
   episodeTitle,
+  watched = false,
 }: ScheduleCardProps) {
-  const [isHovered, setIsHovered] = useState(false)
-  const [gifUrl, setGifUrl] = useState<string | null>(null)
-  const [isLoadingGif, setIsLoadingGif] = useState(false)
+  const queryClient = useQueryClient();
+  const [isWatched, setIsWatched] = useState(watched);
 
-  const colorIndex =
-    parseInt(scheduleItem.id.replace(/\D/g, '') || '0') % COLOR_SCHEMES.length
-  const colors = COLOR_SCHEMES[colorIndex]
+  const watchedMutation = useMutation({
+    mutationFn: () => markAsWatched(scheduleItem.id),
+    onSuccess: () => {
+      setIsWatched(true);
+      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+    },
+  });
+
   const durationMinutes = Math.round(
-    (scheduleItem.endTime.getTime() - scheduleItem.startTime.getTime()) / 60000,
-  )
+    (scheduleItem.endTime.getTime() - scheduleItem.startTime.getTime()) / 60000
+  );
+
   const startTime = scheduleItem.startTime.toLocaleTimeString([], {
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
-    hour12: false,
-  })
+    hour12: true,
+  });
+
   const endTime = scheduleItem.endTime.toLocaleTimeString([], {
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
-    hour12: false,
-  })
+    hour12: true,
+  });
 
-  const title = queueItem?.title || scheduleItem.title
+  const title = queueItem?.title || scheduleItem.title;
+  const rating = normalizeRating(queueItem?.rating);
 
-  // Fetch GIF when hovering
-  const handleMouseEnter = async () => {
-    setIsHovered(true)
-    if (!gifUrl && !isLoadingGif) {
-      setIsLoadingGif(true)
-      const gif = await getGifForTitle(title)
-      setGifUrl(gif)
-      setIsLoadingGif(false)
+  const handleMarkWatched = () => {
+    if (!isWatched) {
+      watchedMutation.mutate();
     }
-  }
+  };
 
-  const handleMouseLeave = () => {
-    setIsHovered(false)
-  }
   return (
     <div
       className={`
-        relative
-        ${colors.bg} ${colors.text}
-        border-2 ${colors.border}
-        font-mono
+        bg-white border rounded-lg p-4
+        transition-opacity duration-300
+        ${isWatched ? 'opacity-30' : 'opacity-100'}
+        ${isWatched ? 'grayscale' : ''}
+        border-gray-200 hover:border-blue-500
       `}
+      style={{
+        borderWidth: QuietDesign.borders.width.default,
+        borderRadius: QuietDesign.borders.radius.card,
+        padding: QuietDesign.spacing.cardPadding,
+      }}
     >
       {/* Mobile Layout (< md) */}
-      <div className="md:hidden">
-        <div className="flex items-stretch min-h-[100px]">
-          {/* Row Number */}
-          <div
-            className={`w-12 border-r-2 ${colors.border} flex items-center justify-center flex-shrink-0`}
-          >
-            <div className="text-2xl font-black leading-none">
-              {rowNumber.toString().padStart(2, '0')}
-            </div>
-          </div>
-
-          {/* Poster */}
-          <div
-            className={`w-16 border-r-2 ${colors.border} flex items-center justify-center p-1 flex-shrink-0`}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-          >
-            {queueItem?.posterUrl ? (
-              <div
-                className={`w-full h-20 border ${colors.border} overflow-hidden relative`}
-              >
-                {/* Static Poster */}
-                <img
-                  src={queueItem.posterUrl}
-                  alt=""
-                  className={`w-full h-full object-cover transition-opacity duration-300 absolute inset-0 ${
-                    isHovered && gifUrl ? 'opacity-0' : 'opacity-100'
-                  }`}
-                />
-                {/* Animated GIF on Hover */}
-                {isHovered && gifUrl && (
-                  <img
-                    src={gifUrl}
-                    alt=""
-                    className="w-full h-full object-cover absolute inset-0 opacity-100 transition-opacity duration-300"
-                  />
-                )}
-              </div>
-            ) : (
-              <div
-                className={`w-full h-20 border ${colors.border} flex items-center justify-center text-[8px] font-black`}
-              >
-                NO IMG
-              </div>
-            )}
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
-            <div>
-              <h2 className="text-lg font-black uppercase leading-tight tracking-tight break-words mb-1">
-                {queueItem?.title || scheduleItem.title}
-              </h2>
-              {queueItem?.type === 'show' && season !== null && episode !== null && (
-                <div className="mb-2">
-                  <div className="text-xs font-black uppercase tracking-tight opacity-80">
-                    S{String(season).padStart(2, '0')}E{String(episode).padStart(2, '0')}
-                    {episodeTitle && ` • ${episodeTitle}`}
-                  </div>
-                </div>
-              )}
-              <div className="flex gap-2 items-center flex-wrap">
-                <Badge
-                  className="bg-black text-white border-black font-black uppercase tracking-wider text-[10px]"
-                  size="sm"
-                  color='black'
-                  // radius="xs"
-                >
-                  {queueItem?.type === 'movie' ? 'FILM' : 'SERIES'}
-                </Badge>
-                {/* Rating Badge */}
-                {normalizeRating(queueItem?.rating) && (
-                  <Badge
-                    className="bg-black text-white border-black font-black uppercase tracking-wider text-[10px]"
-                    size="sm"
-                    color="black"
-                  >
-                    {normalizeRating(queueItem?.rating)}
-                  </Badge>
-                )}
-              </div>
-            </div>
-            <div className="flex justify-between items-end mt-2">
-              <div className="text-sm font-black leading-none">
-                {startTime} — {endTime}
-              </div>
-              <div className="text-sm font-black leading-none opacity-80">
-                {durationMinutes}m
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop Layout (>= md) */}
-      <div className="hidden md:grid grid-cols-12 min-h-[120px]">
-        {/* Column 1: Row Number */}
-        <div
-          className={`col-span-1 border-r-2 ${colors.border} flex items-center justify-center p-3`}
-        >
-          <div className="text-3xl lg:text-4xl font-black leading-none">
-            {rowNumber.toString().padStart(2, '0')}
-          </div>
-        </div>
-
-        {/* Column 2: Poster */}
-        <div
-          className={`col-span-2 border-r-2 ${colors.border} flex items-center justify-center p-2`}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          {queueItem?.posterUrl ? (
-            <div
-              className={`w-full h-20 lg:h-24 border ${colors.border} overflow-hidden relative`}
-            >
-              {/* Static Poster */}
-              <img
-                src={queueItem.posterUrl}
-                alt=""
-                className={`w-full h-full object-cover transition-opacity duration-300 absolute inset-0 ${
-                  isHovered && gifUrl ? 'opacity-0' : 'opacity-100'
-                }`}
-              />
-              {/* Animated GIF on Hover */}
-              {isHovered && gifUrl && (
-                <img
-                  src={gifUrl}
-                  alt=""
-                  className="w-full h-full object-cover absolute inset-0 opacity-100 transition-opacity duration-300"
-                />
-              )}
-            </div>
-          ) : (
-            <div
-              className={`w-full h-20 lg:h-24 border ${colors.border} flex items-center justify-center text-xs font-black`}
-            >
-              NO IMAGE
-            </div>
-          )}
-        </div>
-
-        {/* Column 3: Time */}
-        <div
-          className={`col-span-3 border-r-2 ${colors.border} flex flex-col items-center justify-center p-3 gap-1`}
-        >
-          <div className="text-2xl lg:text-3xl font-black leading-none tracking-tighter">
+      <div className="md:hidden flex flex-col gap-3">
+        {/* Time (Dominant) */}
+        <div className="flex items-center gap-2">
+          <div className="text-3xl font-bold text-gray-900 leading-none">
             {startTime}
           </div>
-          <div className="text-lg lg:text-xl font-black leading-none opacity-60">
-            —
-          </div>
-          <div className="text-2xl lg:text-3xl font-black leading-none tracking-tighter">
+          <div className="text-3xl font-normal text-gray-400 leading-none">—</div>
+          <div className="text-3xl font-bold text-gray-900 leading-none">
             {endTime}
           </div>
         </div>
 
-        {/* Column 4: Title & Type */}
-        <div
-          className={`col-span-5 border-r-2 ${colors.border} flex flex-col justify-center p-4 lg:p-5 gap-2`}
-        >
-          <h2 className="text-xl lg:text-2xl xl:text-3xl font-black uppercase leading-[0.95] tracking-tight break-words">
-            {queueItem?.title || scheduleItem.title}
+        {/* Content Info */}
+        <div>
+          <h2 className="text-lg font-medium text-gray-900 leading-tight mb-1">
+            {title}
           </h2>
           {queueItem?.type === 'show' && season !== null && episode !== null && (
-            <div className="text-sm lg:text-base font-black uppercase tracking-tight opacity-80">
+            <div className="text-sm text-gray-500 mb-1">
               S{String(season).padStart(2, '0')}E{String(episode).padStart(2, '0')}
               {episodeTitle && ` • ${episodeTitle}`}
             </div>
           )}
-          <div className="flex gap-2 items-center flex-wrap">
-              <Badge
-                className="bg-black text-white border-black font-black uppercase tracking-wider text-[10px]"
-                size="sm"
-                color='black'
-                // radius="xs"
-              >
-              {queueItem?.type === 'movie' ? 'FILM' : 'SERIES'}
-            </Badge>
-            {/* Rating Badge */}
-            {normalizeRating(queueItem?.rating) && (
-              <Badge
-                className="bg-black text-white border-black font-black uppercase tracking-wider text-[10px]"
-                size="sm"
-                color="black"
-              >
-                {normalizeRating(queueItem?.rating)}
-              </Badge>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span>{queueItem?.type === 'movie' ? 'Movie' : 'TV Show'}</span>
+            {rating && (
+              <>
+                <span>•</span>
+                <span>{rating}</span>
+              </>
             )}
+            <span>•</span>
+            <span>{durationMinutes} min</span>
           </div>
         </div>
 
-        {/* Column 5: Duration */}
-        <div className="col-span-1 flex flex-col items-center justify-center p-3 gap-1">
-          <div className="text-2xl lg:text-3xl font-black leading-none">
-            {durationMinutes}
-          </div>
-          <div className="text-[10px] lg:text-xs font-black uppercase tracking-wider opacity-80">
-            MIN
-          </div>
+        {/* Poster + Checkbox Inline */}
+        <div className="flex items-center justify-between">
+          {queueItem?.posterUrl && (
+            <img
+              src={queueItem.posterUrl}
+              alt=""
+              className={`object-cover ${isWatched ? 'grayscale' : ''}`}
+              style={{
+                width: '32px',
+                height: '48px',
+                borderRadius: QuietDesign.borders.radius.poster,
+              }}
+            />
+          )}
+          <button
+            onClick={handleMarkWatched}
+            disabled={isWatched}
+            className={`
+              flex items-center justify-center rounded-full border-2 transition-all
+              ${
+                isWatched
+                  ? 'bg-blue-500 border-blue-500'
+                  : 'border-gray-300 hover:border-blue-500'
+              }
+            `}
+            style={{
+              width: QuietDesign.checkbox.size,
+              height: QuietDesign.checkbox.size,
+              transition: QuietDesign.transitions.fast,
+            }}
+            aria-label={`Mark as watched: ${title}`}
+            aria-checked={isWatched}
+          >
+            {isWatched && (
+              <IconCheck size={Number(QuietDesign.checkbox.iconSize)} className="text-white" />
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Bottom Border Accent */}
-      <div className={`h-1 ${colors.border} bg-current opacity-20`} />
-    </div>
-  )
-}
+      {/* Desktop Layout (>= md) */}
+      <div className="hidden md:grid gap-4" style={{ gridTemplateColumns: '3fr 6fr 2fr 1fr' }}>
+        {/* Column 1: Time (Dominant) */}
+        <div className="flex flex-col justify-center">
+          <div
+            className="font-bold text-gray-900 leading-none"
+            style={{ fontSize: QuietDesign.typography.sizes.time }}
+          >
+            {startTime}
+          </div>
+          <div
+            className="font-normal text-gray-400 my-1 leading-none"
+            style={{ fontSize: QuietDesign.typography.sizes.time }}
+          >
+            —
+          </div>
+          <div
+            className="font-bold text-gray-900 leading-none"
+            style={{ fontSize: QuietDesign.typography.sizes.time }}
+          >
+            {endTime}
+          </div>
+        </div>
 
+        {/* Column 2: Content Info */}
+        <div className="flex flex-col justify-center">
+          <h2
+            className="font-medium text-gray-900 leading-tight mb-1"
+            style={{
+              fontSize: QuietDesign.typography.sizes.title,
+              lineHeight: QuietDesign.typography.lineHeights.compact,
+            }}
+          >
+            {title}
+          </h2>
+          {queueItem?.type === 'show' && season !== null && episode !== null && (
+            <div
+              className="text-gray-500 mb-1"
+              style={{ fontSize: QuietDesign.typography.sizes.body }}
+            >
+              S{String(season).padStart(2, '0')}E{String(episode).padStart(2, '0')}
+              {episodeTitle && ` • ${episodeTitle}`}
+            </div>
+          )}
+          <div
+            className="flex items-center gap-2 text-gray-400"
+            style={{ fontSize: QuietDesign.typography.sizes.metadata }}
+          >
+            <span>{queueItem?.type === 'movie' ? 'Movie' : 'TV Show'}</span>
+            {rating && (
+              <>
+                <span>•</span>
+                <span>{rating}</span>
+              </>
+            )}
+            <span>•</span>
+            <span>{durationMinutes} min</span>
+          </div>
+        </div>
+
+        {/* Column 3: Poster (De-emphasized) */}
+        <div className="flex items-center justify-end">
+          {queueItem?.posterUrl && (
+            <img
+              src={queueItem.posterUrl}
+              alt=""
+              className={`object-cover ${isWatched ? 'grayscale' : ''}`}
+              style={{
+                width: QuietDesign.poster.card.width,
+                height: QuietDesign.poster.card.height,
+                borderRadius: QuietDesign.borders.radius.poster,
+              }}
+            />
+          )}
+        </div>
+
+        {/* Column 4: Mark Watched Checkbox */}
+        <div className="flex items-center justify-center">
+          <button
+            onClick={handleMarkWatched}
+            disabled={isWatched}
+            className={`
+              flex items-center justify-center rounded-full border-2 transition-all
+              ${
+                isWatched
+                  ? 'bg-blue-500 border-blue-500'
+                  : 'border-gray-300 hover:border-blue-500'
+              }
+            `}
+            style={{
+              width: QuietDesign.checkbox.size,
+              height: QuietDesign.checkbox.size,
+              transition: QuietDesign.transitions.fast,
+            }}
+            aria-label={`Mark as watched: ${title}`}
+            aria-checked={isWatched}
+          >
+            {isWatched && (
+              <IconCheck size={Number(QuietDesign.checkbox.iconSize)} className="text-white" />
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

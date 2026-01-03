@@ -1,18 +1,22 @@
 import { Box, Group, Text, Button, Stack } from '@mantine/core';
-import { IconX, IconGripVertical, IconArrowRight } from '@tabler/icons-react';
+import { IconX } from '@tabler/icons-react';
+import { useState } from 'react';
 import type { ScheduleItemWithType } from './types';
 import { getItemPosition } from './utils';
+import { QuietDesign } from '../../../styles/quiet-design-system';
 
 interface ScheduleBlockProps {
   item: ScheduleItemWithType;
   episodeTitle?: string | null;
   onDelete: (id: string) => void;
+  watched?: boolean;
 }
 
-export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockProps) {
+export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }: ScheduleBlockProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const position = getItemPosition(item);
   const isShow = item.season !== null && item.episode !== null;
-  
+
   // Build display title with episode title if available
   let displayTitle: string;
   if (isShow) {
@@ -28,21 +32,21 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
 
   const startTime = new Date(item.scheduled_time);
   const endTime = new Date(startTime.getTime() + (item.duration || 0) * 60 * 1000);
-  
+
   const startTimeStr = startTime.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
   });
-  
+
   const endTimeStr = endTime.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
   });
-  
-  const timeRange = `[${startTimeStr} - ${endTimeStr}]`;
-  const durationStr = `[${item.duration || 0}min]`;
+
+  const timeRange = `${startTimeStr} - ${endTimeStr}`;
+  const durationStr = `${item.duration || 0} min`;
 
   return (
     <Box
@@ -53,8 +57,9 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
         right: '8px',
         height: position.height,
         marginBottom: '8px',
-        backgroundColor: '#1A1B1E',
-        borderRadius: '8px',
+        backgroundColor: QuietDesign.colors.gray[50],
+        border: `1px solid ${QuietDesign.colors.gray[200]}`,
+        borderRadius: QuietDesign.borders.radius.card,
         padding: position.duration <= 15 ? '8px 12px' : '12px 14px',
         cursor: 'default',
         zIndex: 2,
@@ -64,7 +69,12 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
         pointerEvents: 'auto',
         minHeight: position.duration <= 15 ? '40px' : '60px',
         boxSizing: 'border-box',
+        opacity: watched ? QuietDesign.colors.watched.opacity : 1,
+        filter: watched ? QuietDesign.colors.watched.filter : 'none',
+        transition: `opacity ${QuietDesign.transitions.normal}, filter ${QuietDesign.transitions.normal}`,
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onMouseDown={(e) => {
         const target = e.target as HTMLElement;
         if (target.closest('button') || target.closest('[data-block-content]')) {
@@ -80,24 +90,20 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
       }}
     >
       {position.duration <= 15 ? (
-        <Group 
-          justify="space-between" 
-          wrap="nowrap" 
+        // Compact view for short items
+        <Group
+          justify="space-between"
+          wrap="nowrap"
           gap="xs"
           data-block-content
           style={{ width: '100%' }}
         >
           <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-            <IconGripVertical 
-              size={14} 
-              style={{ color: '#C1C2C5', flexShrink: 0 }} 
-              data-block-content
-            />
             <Text
               size="xs"
               fw={500}
-              c="#E9ECEF"
               style={{
+                color: QuietDesign.colors.gray[900],
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -107,73 +113,26 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
             >
               {displayTitle}
             </Text>
-            <Text size="xs" c="#ADB5BD" style={{ whiteSpace: 'nowrap' }} data-block-content>
-              {timeRange} {durationStr}
+            <Text
+              size="xs"
+              style={{
+                color: QuietDesign.colors.gray[500],
+                whiteSpace: 'nowrap',
+              }}
+              data-block-content
+            >
+              {timeRange} • {durationStr}
             </Text>
           </Group>
-          <Button
-            size="xs"
-            variant="subtle"
-            color="red"
-            style={{
-              padding: '2px 4px',
-              minWidth: 'auto',
-              height: '18px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(item.id);
-            }}
-          >
-            <IconX size={12} />
-          </Button>
-        </Group>
-      ) : (
-        <Stack gap={4} data-block-content style={{ width: '100%' }}>
-          <Group 
-            justify="space-between" 
-            wrap="nowrap" 
-            gap="xs"
-            data-block-content
-          >
-            <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-              {/* <IconGripVertical 
-                size={14} 
-                style={{ color: '#C1C2C5', flexShrink: 0 }} 
-                data-block-content
-              /> */}
-
-              <IconArrowRight
-                size={14} 
-                style={{ color: '#C1C2C5', flexShrink: 0 }} 
-                data-block-content
-              
-              />
-
-              <Text
-                size="sm"
-                fw={500}
-                c="#E9ECEF"
-                style={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-                data-block-content
-              >
-                {displayTitle}
-              </Text>
-            </Group>
+          {isHovered && (
             <Button
               size="xs"
-              variant="filled"
-              color="red"
+              variant="subtle"
               style={{
-                padding: '4px 4px',
+                padding: '2px 4px',
                 minWidth: 'auto',
                 height: '18px',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: QuietDesign.colors.gray[400],
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -182,13 +141,59 @@ export function ScheduleBlock({ item, episodeTitle, onDelete }: ScheduleBlockPro
             >
               <IconX size={12} />
             </Button>
+          )}
+        </Group>
+      ) : (
+        // Expanded view for longer items
+        <Stack gap={4} data-block-content style={{ width: '100%' }}>
+          <Group
+            justify="space-between"
+            wrap="nowrap"
+            gap="xs"
+            data-block-content
+          >
+            <Text
+              size="sm"
+              fw={500}
+              style={{
+                color: QuietDesign.colors.gray[900],
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1,
+              }}
+              data-block-content
+            >
+              {displayTitle}
+            </Text>
+            {isHovered && (
+              <Button
+                size="xs"
+                variant="subtle"
+                style={{
+                  padding: '4px 4px',
+                  minWidth: 'auto',
+                  height: '18px',
+                  color: QuietDesign.colors.gray[400],
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(item.id);
+                }}
+              >
+                <IconX size={12} />
+              </Button>
+            )}
           </Group>
-          <Text size="xs" c="#ADB5BD" data-block-content>
-            {timeRange} {durationStr}
+          <Text
+            size="xs"
+            style={{ color: QuietDesign.colors.gray[500] }}
+            data-block-content
+          >
+            {timeRange} • {durationStr}
           </Text>
         </Stack>
       )}
     </Box>
   );
 }
-
