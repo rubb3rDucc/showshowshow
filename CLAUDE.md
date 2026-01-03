@@ -295,6 +295,43 @@ When schema changes are needed:
 5. **Rate Limiting**: Auth endpoints have stricter limits (100/hour) vs general endpoints (1000/hour)
 6. **Timezone Handling**: Schedule times stored in UTC with separate `timezone_offset` field
 
+## Current UI State & Planned Migration
+
+⚠️ **IMPORTANT**: The current codebase is in a transitional state between two architectures.
+
+### Current State (As-Is)
+**Visible in UI:**
+- **Queue page** (`/frontend/src/pages/Queue.tsx`) - Currently the main scheduling interface
+  - Displays a calendar timeline view with drag-drop
+  - Users build their queue and generate schedules from it
+  - This is what users interact with today
+
+**Hidden from UI (Components Exist):**
+- **Schedule page** - ScheduleCard/ScheduleView components exist but are temporarily removed from navigation
+  - Components: `/frontend/src/components/schedule/ScheduleCard.tsx`, `ScheduleView.tsx`
+  - These are complete and functional, just not currently accessible via routing
+
+### Canonical Model (Target State)
+**Documented in `docs/DATA_MODEL.md`:**
+- `lineups` table - Time-bounded viewing schedules (the canonical concept)
+- `scheduled_items` table - Items within lineups
+- Separation of "intent" (lineups) vs "reflection" (manual watch events)
+
+### Current Database Schema (Interim)
+**Actually implemented:**
+- `queue` table - Will become part of lineups concept
+- `schedule` table - Will become scheduled_items
+- Works but doesn't match canonical model terminology
+
+### What This Means for Development
+
+1. **When working on "lineup" features**: You're actually modifying the Queue page
+2. **When working on schedule display**: Components exist but aren't currently routed
+3. **Data model migration is planned**: queue → lineups, schedule → scheduled_items
+4. **All components have been updated** to "quiet utility" design philosophy (as of Jan 2026)
+
+**For detailed migration history and plans**, see `docs/MIGRATION_NOTES.md`.
+
 ## Code Style Preferences
 
 - **Backend**: ESM modules (`.js` imports), async/await, Kysely query builder
