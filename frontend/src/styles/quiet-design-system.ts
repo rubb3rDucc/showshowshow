@@ -62,7 +62,7 @@ export const QuietDesign = {
 
   borders: {
     radius: {
-      card: '8px',     // Cards, timeline blocks
+      card: '4px',     // Cards, timeline blocks
       poster: '4px',   // Posters
       circle: '50%',   // Checkboxes
     },

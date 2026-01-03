@@ -133,22 +133,30 @@ export function ScheduleCard({
           )}
           <button
             onClick={handleToggleWatched}
-            className={`
-              flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all
-              ${
-                isWatched
-                  ? 'bg-blue-500 border-blue-500 text-white'
-                  : 'border-gray-300 hover:border-blue-500 text-gray-600 hover:text-blue-500'
-              }
-            `}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all"
             style={{
               fontSize: QuietDesign.typography.sizes.metadata,
               transition: QuietDesign.transitions.fast,
+              backgroundColor: isWatched ? QuietDesign.colors.accent : 'white',
+              borderColor: isWatched ? QuietDesign.colors.accent : QuietDesign.colors.gray[300],
+              color: isWatched ? 'white' : QuietDesign.colors.gray[600],
             }}
             aria-label={isWatched ? `Mark as unwatched: ${title}` : `Mark as watched: ${title}`}
             aria-checked={isWatched}
+            onMouseEnter={(e) => {
+              if (!isWatched) {
+                e.currentTarget.style.borderColor = QuietDesign.colors.accent;
+                e.currentTarget.style.color = QuietDesign.colors.accent;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isWatched) {
+                e.currentTarget.style.borderColor = QuietDesign.colors.gray[300];
+                e.currentTarget.style.color = QuietDesign.colors.gray[600];
+              }
+            }}
           >
-            {isWatched && <IconCheck size={14} className="text-white" />}
+            {isWatched && <IconCheck size={14} style={{ color: 'white' }} />}
             <span className="font-normal">
               {isWatched ? 'Watched' : 'Mark watched'}
             </span>
@@ -236,22 +244,30 @@ export function ScheduleCard({
         <div className="flex items-center justify-center">
           <button
             onClick={handleToggleWatched}
-            className={`
-              flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all
-              ${
-                isWatched
-                  ? 'bg-blue-500 border-blue-500 text-white'
-                  : 'border-gray-300 hover:border-blue-500 text-gray-600 hover:text-blue-500'
-              }
-            `}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all"
             style={{
               fontSize: QuietDesign.typography.sizes.metadata,
               transition: QuietDesign.transitions.fast,
+              backgroundColor: isWatched ? QuietDesign.colors.accent : 'white',
+              borderColor: isWatched ? QuietDesign.colors.accent : QuietDesign.colors.gray[300],
+              color: isWatched ? 'white' : QuietDesign.colors.gray[600],
             }}
             aria-label={isWatched ? `Mark as unwatched: ${title}` : `Mark as watched: ${title}`}
             aria-checked={isWatched}
+            onMouseEnter={(e) => {
+              if (!isWatched) {
+                e.currentTarget.style.borderColor = QuietDesign.colors.accent;
+                e.currentTarget.style.color = QuietDesign.colors.accent;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isWatched) {
+                e.currentTarget.style.borderColor = QuietDesign.colors.gray[300];
+                e.currentTarget.style.color = QuietDesign.colors.gray[600];
+              }
+            }}
           >
-            {isWatched && <IconCheck size={14} className="text-white" />}
+            {isWatched && <IconCheck size={14} style={{ color: 'white' }} />}
             <span className="font-normal whitespace-nowrap">
               {isWatched ? 'Watched' : 'Mark watched'}
             </span>

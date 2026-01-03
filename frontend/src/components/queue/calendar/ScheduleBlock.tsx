@@ -1,4 +1,4 @@
-import { Box, Group, Text, Button, Stack } from '@mantine/core';
+import { Box, Group, Text, Button, Stack, Tooltip } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { ScheduleItemWithType } from './types';
@@ -44,7 +44,7 @@ export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }:
   const timeRange = `${startTimeStr} - ${endTimeStr}`;
   const durationStr = `${item.duration || 0} min`;
 
-  return (
+  const blockContent = (
     <Box
       style={{
         position: 'absolute',
@@ -190,4 +190,28 @@ export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }:
       )}
     </Box>
   );
+
+  // Only show tooltip if episode has a title
+  if (episodeTitle && isShow) {
+    return (
+      <Tooltip
+        label={episodeTitle}
+        position="top"
+        withArrow
+        styles={{
+          tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 400,
+            padding: '6px 10px',
+          },
+        }}
+      >
+        {blockContent}
+      </Tooltip>
+    );
+  }
+
+  return blockContent;
 }

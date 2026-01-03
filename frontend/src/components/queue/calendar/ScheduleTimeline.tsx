@@ -1,4 +1,5 @@
 import { Text, ScrollArea, Box } from '@mantine/core';
+import { useEffect, useRef } from 'react';
 import { TimeLabels } from './TimeLabels';
 import { TimelineGrid } from './TimelineGrid';
 import { ScheduleBlock } from './ScheduleBlock';
@@ -30,14 +31,26 @@ export function ScheduleTimeline({
   onTimelineMouseLeave,
   onDeleteItem,
 }: ScheduleTimelineProps) {
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
+
   const allItems: ScheduleItemWithType[] = [
     ...savedItems.map(item => ({ ...item, type: 'saved' as const })),
     ...pendingItems.map(item => ({ ...item, type: 'pending' as const })),
   ];
 
+  // Scroll to 6 AM on initial mount
+  useEffect(() => {
+    if (scrollViewportRef.current) {
+      // 6 AM = 6 hours = 360 minutes
+      // Each minute = 2px, plus 12px padding top
+      const scrollPosition = (6 * 60 * 2) + (-8);
+      scrollViewportRef.current.scrollTop = scrollPosition;
+    }
+  }, []);
+
   return (
     <>
-        <ScrollArea h={600}>
+        <ScrollArea h={600} viewportRef={scrollViewportRef}>
         <Box
           style={{
             position: 'relative',
@@ -90,7 +103,7 @@ export function ScheduleTimeline({
                 style={{
                   position: 'absolute',
                   top: `${12 + ((hoveredTime.hour * 60 + hoveredTime.minute) * 2)}px`,
-                  left: '80px',
+                  left: '50px',
                   right: 0,
                   height: '2px',
                   backgroundColor: '#646cff',
