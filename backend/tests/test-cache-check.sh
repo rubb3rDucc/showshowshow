@@ -144,3 +144,4 @@ echo "- ✅ Dedicated /check endpoint"
 echo "- ✅ Prevents duplicate caching"
 echo "- ✅ Frontend can show library status"
 
+

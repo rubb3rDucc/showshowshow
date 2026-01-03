@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { IconCheck } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ScheduleCardItem, QueueCardItem } from './scheduleCardAdapters';
-import { markAsWatched } from '../../api/schedule';
+import { markAsWatched, unmarkAsWatched } from '../../api/schedule';
 import { normalizeRating } from '../../utils/rating';
 import { QuietDesign } from '../../styles/quiet-design-system';
 
@@ -28,10 +28,17 @@ export function ScheduleCard({
   const [isWatched, setIsWatched] = useState(watched);
 
   const watchedMutation = useMutation({
-    mutationFn: () => markAsWatched(scheduleItem.id),
+    mutationFn: () => isWatched ? unmarkAsWatched(scheduleItem.id) : markAsWatched(scheduleItem.id),
+    onMutate: () => {
+      // Optimistic update
+      setIsWatched(!isWatched);
+    },
     onSuccess: () => {
-      setIsWatched(true);
       queryClient.invalidateQueries({ queryKey: ['schedule'] });
+    },
+    onError: () => {
+      // Revert on error
+      setIsWatched(isWatched);
     },
   });
 
@@ -54,10 +61,8 @@ export function ScheduleCard({
   const title = queueItem?.title || scheduleItem.title;
   const rating = normalizeRating(queueItem?.rating);
 
-  const handleMarkWatched = () => {
-    if (!isWatched) {
-      watchedMutation.mutate();
-    }
+  const handleToggleWatched = () => {
+    watchedMutation.mutate();
   };
 
   return (
@@ -112,7 +117,7 @@ export function ScheduleCard({
           </div>
         </div>
 
-        {/* Poster + Checkbox Inline */}
+        {/* Poster + Watched Toggle */}
         <div className="flex items-center justify-between">
           {queueItem?.posterUrl && (
             <img
@@ -127,27 +132,26 @@ export function ScheduleCard({
             />
           )}
           <button
-            onClick={handleMarkWatched}
-            disabled={isWatched}
+            onClick={handleToggleWatched}
             className={`
-              flex items-center justify-center rounded-full border-2 transition-all
+              flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all
               ${
                 isWatched
-                  ? 'bg-blue-500 border-blue-500'
-                  : 'border-gray-300 hover:border-blue-500'
+                  ? 'bg-blue-500 border-blue-500 text-white'
+                  : 'border-gray-300 hover:border-blue-500 text-gray-600 hover:text-blue-500'
               }
             `}
             style={{
-              width: QuietDesign.checkbox.size,
-              height: QuietDesign.checkbox.size,
+              fontSize: QuietDesign.typography.sizes.metadata,
               transition: QuietDesign.transitions.fast,
             }}
-            aria-label={`Mark as watched: ${title}`}
+            aria-label={isWatched ? `Mark as unwatched: ${title}` : `Mark as watched: ${title}`}
             aria-checked={isWatched}
           >
-            {isWatched && (
-              <IconCheck size={Number(QuietDesign.checkbox.iconSize)} className="text-white" />
-            )}
+            {isWatched && <IconCheck size={14} className="text-white" />}
+            <span className="font-normal">
+              {isWatched ? 'Watched' : 'Mark watched'}
+            </span>
           </button>
         </div>
       </div>
@@ -158,19 +162,19 @@ export function ScheduleCard({
         <div className="flex flex-col justify-center">
           <div
             className="font-bold text-gray-900 leading-none"
-            style={{ fontSize: QuietDesign.typography.sizes.time }}
+            style={{ fontSize: '28px' }}
           >
             {startTime}
           </div>
           <div
             className="font-normal text-gray-400 my-1 leading-none"
-            style={{ fontSize: QuietDesign.typography.sizes.time }}
+            style={{ fontSize: '28px' }}
           >
             —
           </div>
           <div
             className="font-bold text-gray-900 leading-none"
-            style={{ fontSize: QuietDesign.typography.sizes.time }}
+            style={{ fontSize: '28px' }}
           >
             {endTime}
           </div>
@@ -228,30 +232,29 @@ export function ScheduleCard({
           )}
         </div>
 
-        {/* Column 4: Mark Watched Checkbox */}
+        {/* Column 4: Watched Toggle */}
         <div className="flex items-center justify-center">
           <button
-            onClick={handleMarkWatched}
-            disabled={isWatched}
+            onClick={handleToggleWatched}
             className={`
-              flex items-center justify-center rounded-full border-2 transition-all
+              flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all
               ${
                 isWatched
-                  ? 'bg-blue-500 border-blue-500'
-                  : 'border-gray-300 hover:border-blue-500'
+                  ? 'bg-blue-500 border-blue-500 text-white'
+                  : 'border-gray-300 hover:border-blue-500 text-gray-600 hover:text-blue-500'
               }
             `}
             style={{
-              width: QuietDesign.checkbox.size,
-              height: QuietDesign.checkbox.size,
+              fontSize: QuietDesign.typography.sizes.metadata,
               transition: QuietDesign.transitions.fast,
             }}
-            aria-label={`Mark as watched: ${title}`}
+            aria-label={isWatched ? `Mark as unwatched: ${title}` : `Mark as watched: ${title}`}
             aria-checked={isWatched}
           >
-            {isWatched && (
-              <IconCheck size={Number(QuietDesign.checkbox.iconSize)} className="text-white" />
-            )}
+            {isWatched && <IconCheck size={14} className="text-white" />}
+            <span className="font-normal whitespace-nowrap">
+              {isWatched ? 'Watched' : 'Mark watched'}
+            </span>
           </button>
         </div>
       </div>

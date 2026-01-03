@@ -78,3 +78,4 @@ export async function down(db: Kysely<any>): Promise<void> {
   console.log('✅ Migration 009: Networks tables dropped successfully');
 }
 
+

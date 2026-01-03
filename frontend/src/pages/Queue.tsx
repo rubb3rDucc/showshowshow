@@ -28,6 +28,7 @@ import {
   Menu,
   Box,
   ActionIcon,
+  Tabs,
 } from '@mantine/core';
 import { useMediaQuery, useDisclosure } from '@mantine/hooks';
 import { IconAlertCircle, IconList, IconChevronLeft } from '@tabler/icons-react';
@@ -36,6 +37,7 @@ import { toast } from 'sonner';
 import { getQueue, removeFromQueue, reorderQueue } from '../api/content';
 import { QueueList } from '../components/queue/QueueList';
 import { QueueBuilderCalendar } from '../components/queue/QueueBuilderCalendar';
+import { ScheduleView } from '../components/schedule/ScheduleView';
 import { GenerateScheduleModal } from '../components/schedule/GenerateScheduleModal';
 import { clearScheduleForDate } from '../api/schedule';
 import type { QueueItem } from '../types/api';
@@ -47,6 +49,7 @@ export function Queue() {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [opened, { open, close }] = useDisclosure(false);
   const [generateModalOpened, setGenerateModalOpened] = useState(false);
+  const [activeTab, setActiveTab] = useState<string | null>('builder');
   // Default to today's date for "Clear Schedule for Day" - calendar manages its own date internally
   const selectedDate = new Date();
   const [openEpisodeDescriptionId, setOpenEpisodeDescriptionId] = useState<string | null>(null);
@@ -209,96 +212,118 @@ export function Queue() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white', paddingBottom: isMobile ? '80px' : 0 }}>
       <Box style={{ paddingTop: isMobile ? '6px' : '12px', paddingBottom: isMobile ? '6px' : '6px', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '100%' }}>
-        {/* Header with Action Buttons */}
-        <Box mb={isMobile ? '32px' : '48px'}>
-          <Group justify="space-between" align="center" mb="md">
-            <Box>
-            <Text size="sm" c="dimmed" fw={300}>
-                {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'} in lineup
-            </Text>
-          </Box>
+        {/* Page-Level Tabs */}
+        <Tabs value={activeTab} onChange={setActiveTab}>
+          <Tabs.List mb="lg">
+            <Tabs.Tab value="builder">
+              Builder
+            </Tabs.Tab>
+            <Tabs.Tab value="schedule">
+              Schedule
+            </Tabs.Tab>
+          </Tabs.List>
 
-            {/* Schedule Actions */}
-            <Group gap="sm">
-              <Button
-                variant="filled"
-                color="dark"
-                size="sm"
-                onClick={() => setGenerateModalOpened(true)}
-              >
-                Quick Schedule
-              </Button>
+          {/* Builder Tab - Full lineup builder interface */}
+          <Tabs.Panel value="builder">
+            {/* Header with Action Buttons */}
+            <Box mb={isMobile ? '32px' : '48px'}>
+              <Group justify="space-between" align="center" mb="md">
+                <Box>
+                  <Text size="sm" c="dimmed" fw={300}>
+                    {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'} in lineup
+                  </Text>
+                </Box>
 
-            <Menu shadow="sm" width={200}>
-              <Menu.Target>
-                <Button
-                  variant="subtle"
-                    color="gray"
-                  size="sm"
-                >
-                    More Actions
-                </Button>
-              </Menu.Target>
+                {/* Schedule Actions */}
+                <Group gap="sm">
+                  <Button
+                    variant="filled"
+                    color="dark"
+                    size="sm"
+                    onClick={() => setGenerateModalOpened(true)}
+                  >
+                    Quick Schedule
+                  </Button>
 
-              <Menu.Dropdown>
-                <Menu.Item
-                  onClick={handleClearScheduleForDate}
-                  disabled={!selectedDate || clearScheduleMutation.isPending}
-                  style={{ fontWeight: 300, fontSize: '14px' }}
-                  color="red"
-                >
-                  Clear Schedule for Day
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-            </Group>
-          </Group>
-        </Box>
-      
-        <Grid gutter="xl" align="flex-start">
-          {/* Queue Section - Desktop Only */}
-          <Grid.Col
-            span={{
-              base: 12,
-              md: 5,
-              lg: 4,
-            }}
-            style={{ display: isMobile ? 'none' : 'block' }}
-          >
-            <Box style={{ maxHeight: 'calc(100vh - 16rem)', overflowY: 'auto' }}>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext items={localQueue.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-                  <QueueList
-                    items={localQueue}
-                    onRemove={handleRemove}
-                    openEpisodeDescriptionId={openEpisodeDescriptionId}
-                    onToggleEpisodeDescription={(id) => {
-                      setOpenEpisodeDescriptionId(openEpisodeDescriptionId === id ? null : id);
-                    }}
-                  />
-                </SortableContext>
-              </DndContext>
+                  <Menu shadow="sm" width={200}>
+                    <Menu.Target>
+                      <Button
+                        variant="subtle"
+                        color="gray"
+                        size="sm"
+                      >
+                        More Actions
+                      </Button>
+                    </Menu.Target>
+
+                    <Menu.Dropdown>
+                      <Menu.Item
+                        onClick={handleClearScheduleForDate}
+                        disabled={!selectedDate || clearScheduleMutation.isPending}
+                        style={{ fontWeight: 300, fontSize: '14px' }}
+                        color="red"
+                      >
+                        Clear Schedule for Day
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                </Group>
+              </Group>
             </Box>
-          </Grid.Col>
 
-          {/* Calendar Section - Always Visible */}
-          <Grid.Col
-            span={{
-              base: 12,
-              md: 7,
-              lg: 8,
-            }}
-          >
-            <Box style={{ height: 'calc(100vh - 16rem)' }}>
-              <QueueBuilderCalendar />
+            <Grid gutter="xl" align="flex-start">
+              {/* Queue Section - Desktop Only */}
+              <Grid.Col
+                span={{
+                  base: 12,
+                  md: 5,
+                  lg: 4,
+                }}
+                style={{ display: isMobile ? 'none' : 'block' }}
+              >
+                <Box style={{ maxHeight: 'calc(100vh - 16rem)', overflowY: 'auto' }}>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext items={localQueue.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                      <QueueList
+                        items={localQueue}
+                        onRemove={handleRemove}
+                        openEpisodeDescriptionId={openEpisodeDescriptionId}
+                        onToggleEpisodeDescription={(id) => {
+                          setOpenEpisodeDescriptionId(openEpisodeDescriptionId === id ? null : id);
+                        }}
+                      />
+                    </SortableContext>
+                  </DndContext>
+                </Box>
+              </Grid.Col>
+
+              {/* Calendar Section */}
+              <Grid.Col
+                span={{
+                  base: 12,
+                  md: 7,
+                  lg: 8,
+                }}
+              >
+                <Box style={{ height: 'calc(100vh - 20rem)' }}>
+                  <QueueBuilderCalendar />
+                </Box>
+              </Grid.Col>
+            </Grid>
+          </Tabs.Panel>
+
+          {/* Schedule Tab - Read-only schedule view */}
+          <Tabs.Panel value="schedule">
+            <Box style={{ maxHeight: 'calc(100vh - 12rem)', overflowY: 'auto' }}>
+              <ScheduleView />
             </Box>
-          </Grid.Col>
-        </Grid>
+          </Tabs.Panel>
+        </Tabs>
       </Box>
 
       {/* Mobile Queue Drawer */}

@@ -86,3 +86,4 @@ export const authRateLimitPlugin = async (fastify: FastifyInstance) => {
     // In development, this should work fine
   });
 };
+

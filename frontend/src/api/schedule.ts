@@ -85,6 +85,15 @@ export async function markAsWatched(scheduleItemId: string): Promise<void> {
 }
 
 /**
+ * Unmark schedule item as watched
+ */
+export async function unmarkAsWatched(scheduleItemId: string): Promise<void> {
+  return apiCall<void>(`/api/schedule/${scheduleItemId}/watched`, {
+    method: 'DELETE',
+  });
+}
+
+/**
  * Create a schedule item manually
  */
 export async function createScheduleItem(params: {

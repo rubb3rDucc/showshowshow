@@ -17,15 +17,11 @@ export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }:
   const position = getItemPosition(item);
   const isShow = item.season !== null && item.episode !== null;
 
-  // Build display title with episode title if available
+  // Build display title without episode name (only show/movie title + episode number)
   let displayTitle: string;
   if (isShow) {
     const seasonEpisode = `S${String(item.season).padStart(2, '0')}E${String(item.episode).padStart(2, '0')}`;
-    if (episodeTitle) {
-      displayTitle = `${item.title} - ${seasonEpisode} - ${episodeTitle}`;
-    } else {
-      displayTitle = `${item.title} - ${seasonEpisode}`;
-    }
+    displayTitle = `${item.title} - ${seasonEpisode}`;
   } else {
     displayTitle = item.title;
   }
@@ -57,8 +53,8 @@ export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }:
         right: '8px',
         height: position.height,
         marginBottom: '8px',
-        backgroundColor: QuietDesign.colors.gray[50],
-        border: `1px solid ${QuietDesign.colors.gray[200]}`,
+        backgroundColor: QuietDesign.colors.white,
+        border: `2px solid ${QuietDesign.colors.gray[300]}`,
         borderRadius: QuietDesign.borders.radius.card,
         padding: position.duration <= 15 ? '8px 12px' : '12px 14px',
         cursor: 'default',
@@ -90,7 +86,7 @@ export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }:
       }}
     >
       {position.duration <= 15 ? (
-        // Compact view for short items
+        // Compact view for short items - essential info only
         <Group
           justify="space-between"
           wrap="nowrap"
@@ -98,32 +94,30 @@ export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }:
           data-block-content
           style={{ width: '100%' }}
         >
-          <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-            <Text
-              size="xs"
-              fw={500}
-              style={{
-                color: QuietDesign.colors.gray[900],
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flex: 1,
-              }}
-              data-block-content
-            >
-              {displayTitle}
-            </Text>
-            <Text
-              size="xs"
-              style={{
-                color: QuietDesign.colors.gray[500],
-                whiteSpace: 'nowrap',
-              }}
-              data-block-content
-            >
-              {timeRange} • {durationStr}
-            </Text>
-          </Group>
+          <Text
+            size="xs"
+            fw={500}
+            style={{
+              color: QuietDesign.colors.gray[900],
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: 1,
+            }}
+            data-block-content
+          >
+            {displayTitle}
+          </Text>
+          <Text
+            size="xs"
+            style={{
+              color: QuietDesign.colors.gray[500],
+              whiteSpace: 'nowrap',
+            }}
+            data-block-content
+          >
+            {startTimeStr}
+          </Text>
           {isHovered && (
             <Button
               size="xs"
