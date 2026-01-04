@@ -173,7 +173,7 @@ export function Library() {
       <Container size="xl" className="py-6 md:py-10 lg:py-12 px-4 md:px-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">My Collection</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">My Library</h1>
           <div className="flex items-center gap-3">
             <Button
               size="sm"
@@ -234,7 +234,7 @@ export function Library() {
           </div>
         ) : (
           <div className="bg-gray-50 rounded-lg p-12 text-center border border-gray-200">
-            <div className="text-6xl mb-4">📚</div>
+              <div className="text-6xl mb-4"></div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               No items found
             </h3>

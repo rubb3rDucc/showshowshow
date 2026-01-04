@@ -1,3 +1,4 @@
+import { sql } from 'kysely';
 import { db } from '../db/index.js';
 import { authenticate } from '../plugins/auth.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
@@ -40,6 +41,16 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
         'content.content_type',
         'content.rating',
         'episodes.title as episode_title',
+        sql<boolean>`
+          EXISTS (
+            SELECT 1
+            FROM watch_history
+            WHERE watch_history.user_id = schedule.user_id
+              AND watch_history.content_id = schedule.content_id
+              AND watch_history.season IS NOT DISTINCT FROM schedule.season
+              AND watch_history.episode IS NOT DISTINCT FROM schedule.episode
+          )
+        `.as('is_rerun'),
       ])
       .where('schedule.user_id', '=', userId)
       .orderBy('schedule.scheduled_time', 'asc');
@@ -112,6 +123,16 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
         'content.content_type',
         'content.rating',
         'episodes.title as episode_title',
+        sql<boolean>`
+          EXISTS (
+            SELECT 1
+            FROM watch_history
+            WHERE watch_history.user_id = schedule.user_id
+              AND watch_history.content_id = schedule.content_id
+              AND watch_history.season IS NOT DISTINCT FROM schedule.season
+              AND watch_history.episode IS NOT DISTINCT FROM schedule.episode
+          )
+        `.as('is_rerun'),
       ])
       .where('schedule.user_id', '=', userId)
       .where('schedule.scheduled_time', '>=', startDate)
@@ -405,6 +426,8 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
       throw new NotFoundError('Schedule item not found');
     }
 
+    const watchedAt = new Date();
+
     // Mark as watched in transaction
     await db.transaction().execute(async (trx) => {
       // Update schedule
@@ -412,7 +435,137 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
         .updateTable('schedule')
         .set({ watched: true })
         .where('id', '=', id)
+        .where('user_id', '=', userId)
         .execute();
+
+      const content = await trx
+        .selectFrom('content')
+        .select(['id', 'content_type'])
+        .where('id', '=', scheduleItem.content_id)
+        .executeTakeFirst();
+
+      if (!content) {
+        throw new NotFoundError('Content not found');
+      }
+
+      const existingLibrary = await trx
+        .selectFrom('user_library')
+        .select(['id', 'status', 'started_at'])
+        .where('user_id', '=', userId)
+        .where('content_id', '=', scheduleItem.content_id)
+        .executeTakeFirst();
+
+      if (!existingLibrary) {
+        const isMovie = content.content_type === 'movie';
+        const now = watchedAt;
+        await trx
+          .insertInto('user_library')
+          .values({
+            id: crypto.randomUUID(),
+            user_id: userId,
+            content_id: scheduleItem.content_id,
+            status: isMovie ? 'completed' : 'watching',
+            current_season: 1,
+            current_episode: 1,
+            started_at: isMovie ? now : now,
+            completed_at: isMovie ? now : null,
+            last_watched_at: now,
+            episodes_watched: 0,
+            created_at: now,
+            updated_at: now,
+          })
+          .execute();
+      }
+
+      if (content.content_type === 'movie') {
+        const now = watchedAt;
+        await trx
+          .updateTable('user_library')
+          .set({
+            status: 'completed',
+            completed_at: now,
+            last_watched_at: now,
+            updated_at: now,
+            started_at: existingLibrary?.started_at ?? now,
+          })
+          .where('user_id', '=', userId)
+          .where('content_id', '=', scheduleItem.content_id)
+          .execute();
+      } else if (scheduleItem.season !== null && scheduleItem.episode !== null) {
+        await trx
+          .insertInto('library_episode_status')
+          .values({
+            id: crypto.randomUUID(),
+            user_id: userId,
+            content_id: scheduleItem.content_id,
+            season: scheduleItem.season,
+            episode: scheduleItem.episode,
+            status: 'watched',
+            watched_at: watchedAt,
+            created_at: new Date(),
+          })
+          .onConflict((oc) => oc
+            .columns(['user_id', 'content_id', 'season', 'episode'])
+            .doUpdateSet({
+              status: 'watched',
+              watched_at: watchedAt,
+            })
+          )
+          .execute();
+
+        const watchedCount = await trx
+          .selectFrom('library_episode_status')
+          .select(sql<number>`COUNT(*)::int`.as('count'))
+          .where('user_id', '=', userId)
+          .where('content_id', '=', scheduleItem.content_id)
+          .where('status', '=', 'watched')
+          .executeTakeFirst();
+
+        const episodesWatched = watchedCount?.count || 0;
+        const now = watchedAt;
+        const updates: {
+          episodes_watched: number;
+          last_watched_at: Date;
+          updated_at: Date;
+          status?: 'watching' | 'completed' | 'dropped' | 'plan_to_watch';
+        } = {
+          episodes_watched: episodesWatched,
+          last_watched_at: now,
+          updated_at: now,
+        };
+
+        if (existingLibrary?.status === 'plan_to_watch') {
+          updates.status = 'watching';
+        }
+
+        await trx
+          .updateTable('user_library')
+          .set(updates)
+          .where('user_id', '=', userId)
+          .where('content_id', '=', scheduleItem.content_id)
+          .execute();
+      } else {
+        const now = watchedAt;
+        const updates: {
+          last_watched_at: Date;
+          updated_at: Date;
+          status?: 'watching' | 'completed' | 'dropped' | 'plan_to_watch';
+        } = {
+          last_watched_at: now,
+          updated_at: now,
+        };
+
+        if (existingLibrary?.status === 'plan_to_watch') {
+          updates.status = 'watching';
+        }
+
+        await trx
+          .updateTable('user_library')
+          .set(updates)
+          .where('user_id', '=', userId)
+          .where('content_id', '=', scheduleItem.content_id)
+          .execute();
+      }
 
       // Add/update watch history
       const existingHistory = await trx
@@ -430,7 +583,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
           .updateTable('watch_history')
           .set({
             rewatch_count: existingHistory.rewatch_count + 1,
-            watched_at: new Date(),
+            watched_at: watchedAt,
             synced: false,
           })
           .where('id', '=', existingHistory.id)
@@ -445,7 +598,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
             content_id: scheduleItem.content_id,
             season: scheduleItem.season ?? null,
             episode: scheduleItem.episode ?? null,
-            watched_at: new Date(),
+            watched_at: watchedAt,
             rewatch_count: 0,
             synced: false,
             created_at: new Date(),
@@ -456,5 +609,152 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
 
     return reply.send({ success: true });
   });
-};
 
+  // Unmark schedule item as watched
+  fastify.delete('/api/schedule/:id/watched', { preHandler: authenticate }, async (request, reply) => {
+    if (!request.user) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+
+    const userId = request.user.userId;
+    const { id } = request.params as { id: string };
+
+    // Get schedule item
+    const scheduleItem = await db
+      .selectFrom('schedule')
+      .selectAll()
+      .where('id', '=', id)
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (!scheduleItem) {
+      throw new NotFoundError('Schedule item not found');
+    }
+
+    // Unmark as watched in transaction
+    await db.transaction().execute(async (trx) => {
+      // Update schedule
+      await trx
+        .updateTable('schedule')
+        .set({ watched: false })
+        .where('id', '=', id)
+        .where('user_id', '=', userId)
+        .execute();
+
+      const content = await trx
+        .selectFrom('content')
+        .select(['id', 'content_type'])
+        .where('id', '=', scheduleItem.content_id)
+        .executeTakeFirst();
+
+      if (!content) {
+        throw new NotFoundError('Content not found');
+      }
+
+      const existingLibrary = await trx
+        .selectFrom('user_library')
+        .select(['id'])
+        .where('user_id', '=', userId)
+        .where('content_id', '=', scheduleItem.content_id)
+        .executeTakeFirst();
+
+      if (existingLibrary) {
+        if (content.content_type === 'movie') {
+          await trx
+            .updateTable('user_library')
+            .set({
+              status: 'plan_to_watch',
+              completed_at: null,
+              last_watched_at: null,
+              updated_at: new Date(),
+            })
+            .where('user_id', '=', userId)
+            .where('content_id', '=', scheduleItem.content_id)
+            .execute();
+        } else if (scheduleItem.season !== null && scheduleItem.episode !== null) {
+          await trx
+            .insertInto('library_episode_status')
+            .values({
+              id: crypto.randomUUID(),
+              user_id: userId,
+              content_id: scheduleItem.content_id,
+              season: scheduleItem.season,
+              episode: scheduleItem.episode,
+              status: 'unwatched',
+              watched_at: null,
+              created_at: new Date(),
+            })
+            .onConflict((oc) => oc
+              .columns(['user_id', 'content_id', 'season', 'episode'])
+              .doUpdateSet({
+                status: 'unwatched',
+                watched_at: null,
+              })
+            )
+            .execute();
+
+          const watchedCount = await trx
+            .selectFrom('library_episode_status')
+            .select(sql<number>`COUNT(*)::int`.as('count'))
+            .where('user_id', '=', userId)
+            .where('content_id', '=', scheduleItem.content_id)
+            .where('status', '=', 'watched')
+            .executeTakeFirst();
+
+          const lastWatched = await trx
+            .selectFrom('library_episode_status')
+            .select(sql<Date | null>`MAX(watched_at)`.as('last_watched_at'))
+            .where('user_id', '=', userId)
+            .where('content_id', '=', scheduleItem.content_id)
+            .where('status', '=', 'watched')
+            .executeTakeFirst();
+
+          const episodesWatched = watchedCount?.count || 0;
+          const lastWatchedAt = lastWatched?.last_watched_at ?? null;
+
+          await trx
+            .updateTable('user_library')
+            .set({
+              episodes_watched: episodesWatched,
+              last_watched_at: lastWatchedAt,
+              updated_at: new Date(),
+            })
+            .where('user_id', '=', userId)
+            .where('content_id', '=', scheduleItem.content_id)
+            .execute();
+        } else {
+          const lastWatched = await trx
+            .selectFrom('library_episode_status')
+            .select(sql<Date | null>`MAX(watched_at)`.as('last_watched_at'))
+            .where('user_id', '=', userId)
+            .where('content_id', '=', scheduleItem.content_id)
+            .where('status', '=', 'watched')
+            .executeTakeFirst();
+
+          const lastWatchedAt = lastWatched?.last_watched_at ?? null;
+
+          await trx
+            .updateTable('user_library')
+            .set({
+              last_watched_at: lastWatchedAt,
+              updated_at: new Date(),
+            })
+            .where('user_id', '=', userId)
+            .where('content_id', '=', scheduleItem.content_id)
+            .execute();
+        }
+      }
+
+      // Remove from watch history
+      await trx
+        .deleteFrom('watch_history')
+        .where('user_id', '=', userId)
+        .where('content_id', '=', scheduleItem.content_id)
+        .where('season', '=', scheduleItem.season ?? null)
+        .where('episode', '=', scheduleItem.episode ?? null)
+        .execute();
+    });
+
+    return reply.send({ success: true, watched_at: null });
+  });
+};

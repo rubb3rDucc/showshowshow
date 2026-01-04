@@ -122,6 +122,7 @@ export interface ScheduleItem {
   source_type?: string;
   source_id?: string | null;
   watched: boolean;
+  is_rerun?: boolean;
   timezone_offset?: string | null; // Timezone offset in format like "-05:00" (EST) or "+00:00" (UTC)
   created_at?: string;
   // Joined data from backend
@@ -143,4 +144,3 @@ export interface GenerateScheduleRequest {
   rotation_type?: 'round_robin' | 'random';
   include_reruns?: boolean;
 }
-

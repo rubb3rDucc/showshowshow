@@ -78,9 +78,22 @@ export async function generateScheduleFromQueue(
 /**
  * Mark schedule item as watched
  */
-export async function markAsWatched(scheduleItemId: string): Promise<void> {
-  return apiCall<void>(`/api/schedule/${scheduleItemId}/watched`, {
+export async function markAsWatched(
+  scheduleItemId: string
+): Promise<{ success: boolean; watched_at: string }> {
+  return apiCall<{ success: boolean; watched_at: string }>(`/api/schedule/${scheduleItemId}/watched`, {
     method: 'POST',
+  });
+}
+
+/**
+ * Unmark schedule item as watched
+ */
+export async function unmarkAsWatched(
+  scheduleItemId: string
+): Promise<{ success: boolean; watched_at: null }> {
+  return apiCall<{ success: boolean; watched_at: null }>(`/api/schedule/${scheduleItemId}/watched`, {
+    method: 'DELETE',
   });
 }
 
@@ -134,4 +147,3 @@ export async function clearScheduleForDate(date: string): Promise<{ success: boo
     method: 'DELETE',
   });
 }
-
