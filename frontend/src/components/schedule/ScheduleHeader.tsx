@@ -1,4 +1,4 @@
-import { Text, Button } from '@mantine/core'
+import { Button } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import {
   Calendar as CalendarIcon,
@@ -52,79 +52,7 @@ export function ScheduleHeader({
   }
   return (
     <div className="mb-8">
-      {/* Top Bar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div>
-          <Text
-            size="xs"
-            c="dimmed"
-            fw={500}
-            className="uppercase tracking-widest mb-1"
-          >
-            Your Schedule
-          </Text>
-          <Text size="3xl" fw={300} className="text-gray-900 tracking-tight">
-            {selectedDate?.toLocaleDateString('en-US', {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </Text>
-        </div>
-
-        {/* <Group>
-          <div className="bg-gray-100 p-1 rounded-lg flex items-center">
-            <ActionIcon
-              variant={viewMode === 'grid' ? 'white' : 'transparent'}
-              color="dark"
-              size="md"
-              radius="md"
-              className={viewMode === 'grid' ? 'shadow-sm' : ''}
-              onClick={() => onViewModeChange('grid')}
-            >
-              <LayoutGrid size={16} />
-            </ActionIcon>
-            <ActionIcon
-              variant={viewMode === 'list' ? 'white' : 'transparent'}
-              color="dark"
-              size="md"
-              radius="md"
-              className={viewMode === 'list' ? 'shadow-sm' : ''}
-              onClick={() => onViewModeChange('list')}
-            >
-              <List size={16} />
-            </ActionIcon>
-          </div>
-
-          <Menu shadow="md" width={200}>
-            <Menu.Target>
-              <ActionIcon variant="light" color="gray" size="lg" radius="md">
-                <MoreHorizontal size={18} />
-              </ActionIcon>
-            </Menu.Target>
-
-            <Menu.Dropdown>
-              <Menu.Label>Actions</Menu.Label>
-              <Menu.Item
-                leftSection={<CalendarIcon size={14} />}
-                onClick={handleToday}
-              >
-                Jump to Today
-              </Menu.Item>
-              <Menu.Divider />
-              <Menu.Item
-                color="red"
-                leftSection={<Trash2 size={14} />}
-                onClick={onClearDay}
-              >
-                Clear Day
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        </Group> */}
-      </div>
-
-      {/* Navigation Bar */}
+      {/* Date Navigation Bar */}
       <div className="flex items-center justify-between bg-white border border-gray-200 p-2 shadow-sm">
         <Button
           variant="subtle"

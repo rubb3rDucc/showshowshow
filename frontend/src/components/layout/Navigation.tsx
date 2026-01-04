@@ -60,8 +60,9 @@ export function Navigation() {
           <div className="hidden md:flex items-center space-x-4">
             <Button
               onClick={logout}
-              variant="gradient"
-              gradient={{ from: 'violet', to: 'orange', deg: 90 }}
+              variant='filled'
+              // variant="gradient"
+              // gradient={{ from: 'violet', to: 'orange', deg: 90 }}
             >
               Logout
             </Button>
@@ -105,8 +106,9 @@ export function Navigation() {
           
           <Button
             onClick={handleLogout}
-            variant="gradient"
-            gradient={{ from: 'violet', to: 'orange', deg: 90 }}
+            // variant="gradient"
+            variant='filled'
+            // gradient={{ from: 'violet', to: 'orange', deg: 90 }}
             fullWidth
             leftSection={<IconLogout size={16} />}
           >

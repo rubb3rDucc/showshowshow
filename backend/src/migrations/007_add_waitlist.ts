@@ -39,3 +39,4 @@ export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('waitlist').execute();
 }
 
+

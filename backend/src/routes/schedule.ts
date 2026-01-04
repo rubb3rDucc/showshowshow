@@ -456,5 +456,48 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
 
     return reply.send({ success: true });
   });
+
+  // Unmark schedule item as watched
+  fastify.delete('/api/schedule/:id/watched', { preHandler: authenticate }, async (request, reply) => {
+    if (!request.user) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+
+    const userId = request.user.userId;
+    const { id } = request.params as { id: string };
+
+    // Get schedule item
+    const scheduleItem = await db
+      .selectFrom('schedule')
+      .selectAll()
+      .where('id', '=', id)
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+
+    if (!scheduleItem) {
+      throw new NotFoundError('Schedule item not found');
+    }
+
+    // Unmark as watched in transaction
+    await db.transaction().execute(async (trx) => {
+      // Update schedule
+      await trx
+        .updateTable('schedule')
+        .set({ watched: false })
+        .where('id', '=', id)
+        .execute();
+
+      // Remove from watch history
+      await trx
+        .deleteFrom('watch_history')
+        .where('user_id', '=', userId)
+        .where('content_id', '=', scheduleItem.content_id)
+        .where('season', '=', scheduleItem.season ?? null)
+        .where('episode', '=', scheduleItem.episode ?? null)
+        .execute();
+    });
+
+    return reply.send({ success: true });
+  });
 };
 

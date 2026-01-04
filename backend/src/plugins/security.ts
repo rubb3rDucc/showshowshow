@@ -86,3 +86,4 @@ export const securityPlugin = async (fastify: FastifyInstance) => {
   await fastify.register(helmet, helmetConfig);
 };
 
+

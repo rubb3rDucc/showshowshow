@@ -529,3 +529,4 @@ async function fixMigrationTableSchema() {
 
 main();
 
+
