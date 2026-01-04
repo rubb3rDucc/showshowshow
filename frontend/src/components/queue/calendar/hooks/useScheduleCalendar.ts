@@ -312,14 +312,16 @@ export function useScheduleCalendar(expanded: boolean) {
     startTime: Date,
     duration: number,
     schedule: ScheduleItem[] | undefined,
-    pendingItems: Map<string, PendingScheduleItem>
+    pendingItems: Map<string, PendingScheduleItem>,
+    endLimit?: Date
   ): Date | null => {
     let currentTime = new Date(startTime);
     const endOfDay = new Date(currentTime);
     endOfDay.setHours(23, 59, 59, 999);
+    const endTimeLimit = endLimit && endLimit < endOfDay ? endLimit : endOfDay;
 
     // Try every 15 minutes until we find an available slot or reach end of day
-    while (currentTime <= endOfDay) {
+    while (currentTime <= endTimeLimit) {
       if (!isTimeRangeOccupied(currentTime, duration, schedule, pendingItems)) {
         return currentTime;
       }
@@ -327,6 +329,21 @@ export function useScheduleCalendar(expanded: boolean) {
       currentTime = new Date(currentTime.getTime() + 15 * 60 * 1000);
     }
     return null;
+  };
+
+  const getBlockEndTime = (startTime: Date) => {
+    const availableMinutes = getAvailableDuration(startTime, schedule, pendingItems);
+    return new Date(startTime.getTime() + availableMinutes * 60 * 1000);
+  };
+
+  const alignToNextQuarterHour = (time: Date) => {
+    const aligned = new Date(time);
+    const minutes = aligned.getMinutes();
+    const remainder = minutes % 15;
+    if (remainder !== 0 || aligned.getSeconds() !== 0 || aligned.getMilliseconds() !== 0) {
+      aligned.setMinutes(minutes + (15 - remainder), 0, 0);
+    }
+    return aligned;
   };
 
   // Add to pending - updated to handle both sequential and random modes
@@ -349,6 +366,8 @@ export function useScheduleCalendar(expanded: boolean) {
 
       let currentTime = new Date(dateObj);
       currentTime.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
+      currentTime = alignToNextQuarterHour(currentTime);
+      const blockEndTime = getBlockEndTime(currentTime);
 
       const newPendingItems = new Map(pendingItems);
       const scheduled: Array<{ season: number; episode: number; title: string }> = [];
@@ -360,7 +379,7 @@ export function useScheduleCalendar(expanded: boolean) {
         // For sequential: use current time, for random: find next available
         const scheduleTime = schedulingMode === 'sequential'
           ? currentTime
-          : findNextAvailableTime(currentTime, duration, schedule, newPendingItems);
+          : findNextAvailableTime(currentTime, duration, schedule, newPendingItems, blockEndTime);
 
         if (!scheduleTime) {
           failed.push({
@@ -368,6 +387,16 @@ export function useScheduleCalendar(expanded: boolean) {
             episode: ep.episode,
             title: ep.episodeData?.title || `S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
             reason: 'No available time slots remaining',
+          });
+          break;
+        }
+
+        if (scheduleTime.getTime() + duration * 60 * 1000 > blockEndTime.getTime()) {
+          failed.push({
+            season: ep.season,
+            episode: ep.episode,
+            title: ep.episodeData?.title || `S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
+            reason: 'Not enough contiguous time in this block',
           });
           break;
         }
@@ -404,11 +433,9 @@ export function useScheduleCalendar(expanded: boolean) {
         });
 
         // Update current time based on mode
-        if (schedulingMode === 'sequential') {
-          currentTime = new Date(scheduleTime.getTime() + duration * 60 * 1000);
-        } else {
-          currentTime = new Date(scheduleTime.getTime() + duration * 60 * 1000);
-        }
+        currentTime = alignToNextQuarterHour(
+          new Date(scheduleTime.getTime() + duration * 60 * 1000)
+        );
       }
 
       setPendingItems(newPendingItems);
@@ -428,12 +455,17 @@ export function useScheduleCalendar(expanded: boolean) {
 
       setSelectedEpisodes(new Map());
     } else {
-      const scheduledTime = new Date(dateObj);
+      const scheduledTime = alignToNextQuarterHour(new Date(dateObj));
       scheduledTime.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
       const duration = 120;
+      const blockEndTime = getBlockEndTime(scheduledTime);
       
       if (isTimeRangeOccupied(scheduledTime, duration, schedule, pendingItems)) {
         toast.error(getOccupiedErrorMessage(scheduledTime, duration, schedule, pendingItems));
+        return;
+      }
+      if (scheduledTime.getTime() + duration * 60 * 1000 > blockEndTime.getTime()) {
+        toast.error('Not enough contiguous time in this block');
         return;
       }
 
@@ -474,6 +506,8 @@ export function useScheduleCalendar(expanded: boolean) {
 
       let currentTime = new Date(dateObj);
       currentTime.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
+      currentTime = alignToNextQuarterHour(currentTime);
+      const blockEndTime = getBlockEndTime(currentTime);
 
       const scheduled: Array<{ season: number; episode: number; title: string }> = [];
       const failed: Array<{ season: number; episode: number; title: string; reason: string }> = [];
@@ -484,7 +518,7 @@ export function useScheduleCalendar(expanded: boolean) {
         // For sequential: use current time, for random: find next available
         const scheduleTime = schedulingMode === 'sequential'
           ? currentTime
-          : findNextAvailableTime(currentTime, duration, schedule, pendingItems);
+          : findNextAvailableTime(currentTime, duration, schedule, pendingItems, blockEndTime);
 
         if (!scheduleTime) {
           failed.push({
@@ -492,6 +526,16 @@ export function useScheduleCalendar(expanded: boolean) {
             episode: ep.episode,
             title: ep.episodeData?.title || `S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
             reason: 'No available time slots remaining',
+          });
+          break;
+        }
+
+        if (scheduleTime.getTime() + duration * 60 * 1000 > blockEndTime.getTime()) {
+          failed.push({
+            season: ep.season,
+            episode: ep.episode,
+            title: ep.episodeData?.title || `S${String(ep.season).padStart(2, '0')}E${String(ep.episode).padStart(2, '0')}`,
+            reason: 'Not enough contiguous time in this block',
           });
           break;
         }
@@ -526,11 +570,9 @@ export function useScheduleCalendar(expanded: boolean) {
           });
 
           // Update current time based on mode
-          if (schedulingMode === 'sequential') {
-            currentTime = new Date(scheduleTime.getTime() + duration * 60 * 1000);
-          } else {
-            currentTime = new Date(scheduleTime.getTime() + duration * 60 * 1000);
-          }
+          currentTime = alignToNextQuarterHour(
+            new Date(scheduleTime.getTime() + duration * 60 * 1000)
+          );
         } catch {
           failed.push({
             season: ep.season,
@@ -560,12 +602,17 @@ export function useScheduleCalendar(expanded: boolean) {
       setSelectedTimeSlot(null);
       setSelectedEpisodes(new Map());
     } else {
-      const scheduledTime = new Date(dateObj);
+      const scheduledTime = alignToNextQuarterHour(new Date(dateObj));
       scheduledTime.setHours(selectedTimeSlot.hour, selectedTimeSlot.minute, 0, 0);
       const duration = 120;
+      const blockEndTime = getBlockEndTime(scheduledTime);
       
       if (isTimeRangeOccupied(scheduledTime, duration, schedule, pendingItems)) {
         toast.error(getOccupiedErrorMessage(scheduledTime, duration, schedule, pendingItems));
+        return;
+      }
+      if (scheduledTime.getTime() + duration * 60 * 1000 > blockEndTime.getTime()) {
+        toast.error('Not enough contiguous time in this block');
         return;
       }
       
@@ -666,4 +713,3 @@ export function useScheduleCalendar(expanded: boolean) {
     onModalClose: resetModalSelection,
   };
 }
-

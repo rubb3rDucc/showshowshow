@@ -42,13 +42,54 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
         'content.rating',
         'episodes.title as episode_title',
         sql<boolean>`
-          EXISTS (
-            SELECT 1
-            FROM watch_history
-            WHERE watch_history.user_id = schedule.user_id
-              AND watch_history.content_id = schedule.content_id
-              AND watch_history.season IS NOT DISTINCT FROM schedule.season
-              AND watch_history.episode IS NOT DISTINCT FROM schedule.episode
+          (
+            EXISTS (
+              SELECT 1
+              FROM watch_history
+              WHERE watch_history.user_id = schedule.user_id
+                AND watch_history.content_id = schedule.content_id
+                AND watch_history.season IS NOT DISTINCT FROM schedule.season
+                AND watch_history.episode IS NOT DISTINCT FROM schedule.episode
+            )
+            OR (
+              content.content_type = 'show'
+              AND schedule.season IS NOT NULL
+              AND schedule.episode IS NOT NULL
+              AND EXISTS (
+                SELECT 1
+                FROM library_episode_status
+                WHERE library_episode_status.user_id = schedule.user_id
+                  AND library_episode_status.content_id = schedule.content_id
+                  AND library_episode_status.season = schedule.season
+                  AND library_episode_status.episode = schedule.episode
+                  AND library_episode_status.status = 'watched'
+              )
+            )
+            OR (
+              content.content_type = 'movie'
+              AND EXISTS (
+                SELECT 1
+                FROM user_library
+                WHERE user_library.user_id = schedule.user_id
+                  AND user_library.content_id = schedule.content_id
+                  AND (
+                    user_library.status = 'completed'
+                    OR user_library.last_watched_at IS NOT NULL
+                  )
+              )
+            )
+            OR (
+              content.content_type = 'show'
+              AND schedule.season IS NULL
+              AND schedule.episode IS NULL
+              AND EXISTS (
+                SELECT 1
+                FROM user_library
+                WHERE user_library.user_id = schedule.user_id
+                  AND user_library.content_id = schedule.content_id
+                  AND user_library.last_watched_at IS NOT NULL
+              )
+            )
           )
         `.as('is_rerun'),
       ])
@@ -124,13 +165,54 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
         'content.rating',
         'episodes.title as episode_title',
         sql<boolean>`
-          EXISTS (
-            SELECT 1
-            FROM watch_history
-            WHERE watch_history.user_id = schedule.user_id
-              AND watch_history.content_id = schedule.content_id
-              AND watch_history.season IS NOT DISTINCT FROM schedule.season
-              AND watch_history.episode IS NOT DISTINCT FROM schedule.episode
+          (
+            EXISTS (
+              SELECT 1
+              FROM watch_history
+              WHERE watch_history.user_id = schedule.user_id
+                AND watch_history.content_id = schedule.content_id
+                AND watch_history.season IS NOT DISTINCT FROM schedule.season
+                AND watch_history.episode IS NOT DISTINCT FROM schedule.episode
+            )
+            OR (
+              content.content_type = 'show'
+              AND schedule.season IS NOT NULL
+              AND schedule.episode IS NOT NULL
+              AND EXISTS (
+                SELECT 1
+                FROM library_episode_status
+                WHERE library_episode_status.user_id = schedule.user_id
+                  AND library_episode_status.content_id = schedule.content_id
+                  AND library_episode_status.season = schedule.season
+                  AND library_episode_status.episode = schedule.episode
+                  AND library_episode_status.status = 'watched'
+              )
+            )
+            OR (
+              content.content_type = 'movie'
+              AND EXISTS (
+                SELECT 1
+                FROM user_library
+                WHERE user_library.user_id = schedule.user_id
+                  AND user_library.content_id = schedule.content_id
+                  AND (
+                    user_library.status = 'completed'
+                    OR user_library.last_watched_at IS NOT NULL
+                  )
+              )
+            )
+            OR (
+              content.content_type = 'show'
+              AND schedule.season IS NULL
+              AND schedule.episode IS NULL
+              AND EXISTS (
+                SELECT 1
+                FROM user_library
+                WHERE user_library.user_id = schedule.user_id
+                  AND user_library.content_id = schedule.content_id
+                  AND user_library.last_watched_at IS NOT NULL
+              )
+            )
           )
         `.as('is_rerun'),
       ])

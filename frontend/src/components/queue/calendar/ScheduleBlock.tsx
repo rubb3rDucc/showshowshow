@@ -1,6 +1,7 @@
 import { Box, Group, Text, Button, Stack, Tooltip } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 import { useState } from 'react';
+import { useMediaQuery } from '@mantine/hooks';
 import type { ScheduleItemWithType } from './types';
 import { getItemPosition } from './utils';
 import { QuietDesign } from '../../../styles/quiet-design-system';
@@ -14,6 +15,7 @@ interface ScheduleBlockProps {
 
 export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }: ScheduleBlockProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const position = getItemPosition(item);
   const isShow = item.season !== null && item.episode !== null;
 
@@ -87,56 +89,58 @@ export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }:
     >
       {position.duration <= 15 ? (
         // Compact view for short items - essential info only
-        <Group
-          justify="space-between"
-          wrap="nowrap"
-          gap="xs"
-          data-block-content
-          style={{ width: '100%' }}
-        >
-          <Text
-            size="xs"
-            fw={500}
-            style={{
-              color: QuietDesign.colors.gray[900],
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              flex: 1,
-            }}
+        <Stack gap={2} data-block-content style={{ width: '100%' }}>
+          <Group
+            justify="space-between"
+            wrap="nowrap"
+            gap="xs"
             data-block-content
+            style={{ width: '100%' }}
           >
-            {displayTitle}
-          </Text>
-          <Text
-            size="xs"
-            style={{
-              color: QuietDesign.colors.gray[500],
-              whiteSpace: 'nowrap',
-            }}
-            data-block-content
-          >
-            {startTimeStr}
-          </Text>
-          {isHovered && (
-            <Button
+            <Text
               size="xs"
-              variant="subtle"
+              fw={500}
               style={{
-                padding: '2px 4px',
-                minWidth: 'auto',
-                height: '18px',
-                color: QuietDesign.colors.gray[400],
+                color: QuietDesign.colors.gray[900],
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1,
               }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(item.id);
-              }}
+              data-block-content
             >
-              <IconX size={12} />
-            </Button>
-          )}
-        </Group>
+              {displayTitle}
+            </Text>
+            <Text
+              size="xs"
+              style={{
+                color: QuietDesign.colors.gray[500],
+                whiteSpace: 'nowrap',
+              }}
+              data-block-content
+            >
+              {startTimeStr}
+            </Text>
+            {isHovered && (
+              <Button
+                size="xs"
+                variant="subtle"
+                style={{
+                  padding: '2px 4px',
+                  minWidth: 'auto',
+                  height: '18px',
+                  color: QuietDesign.colors.gray[400],
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(item.id);
+                }}
+              >
+                <IconX size={12} />
+              </Button>
+            )}
+          </Group>
+        </Stack>
       ) : (
         // Expanded view for longer items
         <Stack gap={4} data-block-content style={{ width: '100%' }}>
@@ -179,6 +183,20 @@ export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }:
               </Button>
             )}
           </Group>
+          {isMobile && episodeTitle && isShow && (
+            <Text
+              size="xs"
+              style={{
+                color: QuietDesign.colors.gray[500],
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+              data-block-content
+            >
+              {episodeTitle}
+            </Text>
+          )}
           <Text
             size="xs"
             style={{ color: QuietDesign.colors.gray[500] }}

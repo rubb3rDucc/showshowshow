@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Modal,
   Button,
@@ -8,11 +8,17 @@ import {
   Group,
   Text,
   Box,
+  Radio,
+  Collapse,
+  Checkbox,
 } from '@mantine/core';
+import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { DatePickerInput } from '@mantine/dates';
+import { useMediaQuery } from '@mantine/hooks';
 import { toast } from 'sonner';
+import { getQueue, getEpisodesByContentId } from '../../api/content';
 import { generateScheduleFromQueue } from '../../api/schedule';
-import type { GenerateScheduleRequest } from '../../types/api';
+import type { Episode, GenerateScheduleRequest, QueueItem } from '../../types/api';
 
 interface GenerateScheduleModalProps {
   opened: boolean;
@@ -20,14 +26,178 @@ interface GenerateScheduleModalProps {
   onSuccess: () => void;
 }
 
+interface ShowEpisodeFilterProps {
+  show: QueueItem;
+  isExpanded: boolean;
+  filter: { mode: 'all' | 'include' | 'exclude'; episodes: string[] };
+  onToggleShow: (contentId: string) => void;
+  onToggleEpisode: (contentId: string, season: number, episode: number, checked: boolean) => void;
+  onToggleSeason: (contentId: string, seasonEpisodes: Episode[], checked: boolean) => void;
+  onFilterModeChange: (contentId: string, mode: 'all' | 'include' | 'exclude') => void;
+}
+
+function ShowEpisodeFilter({
+  show,
+  isExpanded,
+  filter,
+  onToggleShow,
+  onToggleEpisode,
+  onToggleSeason,
+  onFilterModeChange,
+}: ShowEpisodeFilterProps) {
+  const { data: episodes = [], isLoading } = useQuery({
+    queryKey: ['episodes', show.content_id, 'filters'],
+    queryFn: () => getEpisodesByContentId(show.content_id),
+    enabled: isExpanded,
+  });
+
+  // Group by season
+  const seasons = episodes.reduce((acc, ep) => {
+    if (!acc[ep.season]) acc[ep.season] = [];
+    acc[ep.season].push(ep);
+    return acc;
+  }, {} as Record<number, Episode[]>);
+
+  return (
+    <Box style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
+      <Group justify="space-between" mb="xs">
+        <Button
+          variant="subtle"
+          size="md"
+          onClick={() => onToggleShow(show.content_id)}
+          leftSection={isExpanded ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+          styles={{
+            root: {
+              fontWeight: 400,
+              padding: '8px 12px',
+              minHeight: '44px',
+            }
+          }}
+        >
+          {show.title}
+        </Button>
+      </Group>
+
+      <Collapse in={isExpanded}>
+        <Stack gap="xs" ml="md">
+          <Radio.Group
+            value={filter.mode}
+            onChange={(value) =>
+              onFilterModeChange(show.content_id, value as 'all' | 'include' | 'exclude')
+            }
+            size="sm"
+          >
+            <Stack gap="xs">
+              <Radio
+                value="all"
+                label="All episodes"
+                styles={{
+                  root: { minHeight: '44px', display: 'flex', alignItems: 'center' },
+                  label: { fontSize: '14px', cursor: 'pointer' }
+                }}
+              />
+              <Radio
+                value="include"
+                label="Include only these"
+                styles={{
+                  root: { minHeight: '44px', display: 'flex', alignItems: 'center' },
+                  label: { fontSize: '14px', cursor: 'pointer' }
+                }}
+              />
+              <Radio
+                value="exclude"
+                label="Skip these"
+                styles={{
+                  root: { minHeight: '44px', display: 'flex', alignItems: 'center' },
+                  label: { fontSize: '14px', cursor: 'pointer' }
+                }}
+              />
+            </Stack>
+          </Radio.Group>
+
+          {isLoading ? (
+            <Text size="xs" c="dimmed">Loading...</Text>
+          ) : Object.keys(seasons).length === 0 ? (
+            <Text size="xs" c="dimmed">No episodes</Text>
+          ) : (
+            <Stack gap="md">
+              {Object.entries(seasons)
+                .sort(([a], [b]) => Number(a) - Number(b))
+                .map(([seasonNum, seasonEpisodes]) => {
+                  const seasonKeys = seasonEpisodes.map((ep) => `${ep.season}-${ep.episode_number}`);
+                  const allSeasonChecked = seasonKeys.every((key) => filter.episodes.includes(key));
+                  const someSeasonChecked = seasonKeys.some((key) => filter.episodes.includes(key));
+
+                  return (
+                    <Box key={seasonNum}>
+                      <Group justify="space-between" mb="xs">
+                        <Text size="sm" fw={500}>Season {seasonNum}</Text>
+                        <Button
+                          variant="subtle"
+                          size="sm"
+                          onClick={() => onToggleSeason(show.content_id, seasonEpisodes, !allSeasonChecked)}
+                          styles={{
+                            root: {
+                              fontWeight: 400,
+                              fontSize: '13px',
+                              minHeight: '36px',
+                              padding: '8px 12px',
+                            }
+                          }}
+                        >
+                          {allSeasonChecked ? 'Deselect all' : someSeasonChecked ? 'Select all' : 'Select all'}
+                        </Button>
+                      </Group>
+                      <Stack gap={4}>
+                        {seasonEpisodes.map((ep) => {
+                          const key = `${ep.season}-${ep.episode_number}`;
+                          return (
+                            <Checkbox
+                              key={ep.id}
+                              size="sm"
+                              label={`${ep.episode_number}. ${ep.title}`}
+                              checked={filter.episodes.includes(key)}
+                              onChange={(e) =>
+                                onToggleEpisode(show.content_id, ep.season, ep.episode_number, e.currentTarget.checked)
+                              }
+                              styles={{
+                                root: { minHeight: '44px', display: 'flex', alignItems: 'center' },
+                                label: { fontSize: '14px', cursor: 'pointer' },
+                                input: { cursor: 'pointer' },
+                              }}
+                            />
+                          );
+                        })}
+                      </Stack>
+                    </Box>
+                  );
+                })}
+            </Stack>
+          )}
+        </Stack>
+      </Collapse>
+    </Box>
+  );
+}
+
 export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModalProps) {
   const queryClient = useQueryClient();
   const today = new Date();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const [scheduleDate, setScheduleDate] = useState<Date | null>(today);
   const [startTimeBlock, setStartTimeBlock] = useState('20:00'); // Prime time default
   const [duration, setDuration] = useState('180'); // 3 hours in minutes
   const [rotationType, setRotationType] = useState<'round_robin' | 'random' | 'round_robin_double'>('round_robin');
+  const [useCustomTimeRange, setUseCustomTimeRange] = useState(false);
+  const [customStartTime, setCustomStartTime] = useState('20:00');
+  const [customEndTime, setCustomEndTime] = useState('23:00');
+  const [showFilters, setShowFilters] = useState(false);
+  const [expandedShows, setExpandedShows] = useState<string[]>([]);
+  const [episodeFilters, setEpisodeFilters] = useState<Record<
+    string,
+    { mode: 'all' | 'include' | 'exclude'; episodes: string[] }
+  >>({});
 
   // Network-style time slots
   const timeBlocks = [
@@ -41,8 +211,67 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
   ];
 
   // Get user's timezone info
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const timezoneAbbr = new Date().toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() || 'Local';
+
+  const timeOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string }> = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        const value = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const label = `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
+        options.push({ value, label });
+      }
+    }
+    return options;
+  }, []);
+
+  // Fetch queue for episode filters
+  const { data: queue } = useQuery({
+    queryKey: ['queue'],
+    queryFn: getQueue,
+    enabled: opened && showFilters,
+  });
+
+  const shows = useMemo(
+    () => (queue || []).filter((item) => item.content_type === 'show' && item.content_id),
+    [queue]
+  );
+
+  const getFilter = (contentId: string) => {
+    return episodeFilters[contentId] || { mode: 'all', episodes: [] };
+  };
+
+  const toggleEpisode = (contentId: string, season: number, episode: number, checked: boolean) => {
+    const filter = getFilter(contentId);
+    const key = `${season}-${episode}`;
+    const episodes = checked
+      ? [...filter.episodes, key]
+      : filter.episodes.filter((entry) => entry !== key);
+    setEpisodeFilters((prev) => ({
+      ...prev,
+      [contentId]: { ...filter, episodes },
+    }));
+  };
+
+  const toggleSeason = (contentId: string, seasonEpisodes: Episode[], checked: boolean) => {
+    const filter = getFilter(contentId);
+    const seasonKeys = seasonEpisodes.map((ep) => `${ep.season}-${ep.episode_number}`);
+    const episodes = checked
+      ? Array.from(new Set([...filter.episodes, ...seasonKeys]))
+      : filter.episodes.filter((key) => !seasonKeys.includes(key));
+    setEpisodeFilters((prev) => ({
+      ...prev,
+      [contentId]: { ...filter, episodes },
+    }));
+  };
+
+  const toggleShow = (contentId: string) => {
+    setExpandedShows((prev) =>
+      prev.includes(contentId) ? prev.filter((id) => id !== contentId) : [...prev, contentId]
+    );
+  };
 
   // Calculate end time based on start time + duration
   const calculateEndTime = (startTime: string, durationMinutes: string): string => {
@@ -52,10 +281,7 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
     const endHour = Math.floor(endMinutes / 60) % 24;
     const endMinute = endMinutes % 60;
 
-    // Format as 12-hour time
-    const period = endHour >= 12 ? 'PM' : 'AM';
-    const displayHour = endHour === 0 ? 12 : endHour > 12 ? endHour - 12 : endHour;
-    return `${displayHour}:${String(endMinute).padStart(2, '0')} ${period}`;
+    return `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
   };
 
   const formatStartTime = (time24: string): string => {
@@ -66,7 +292,11 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
   };
 
   const calculatedEndTime = calculateEndTime(startTimeBlock, duration);
-  const formattedStartTime = formatStartTime(startTimeBlock);
+  const formattedStartTime = formatStartTime(useCustomTimeRange ? customStartTime : startTimeBlock);
+  const formattedEndTime = formatStartTime(useCustomTimeRange ? customEndTime : calculatedEndTime);
+  const formattedDate = scheduleDate instanceof Date
+    ? scheduleDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    : 'Select Date';
 
   const generateMutation = useMutation({
     mutationFn: (params: GenerateScheduleRequest) => generateScheduleFromQueue(params),
@@ -157,13 +387,8 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
       return;
     }
 
-    // Calculate end time based on start time + duration
-    const [startHour, startMinute] = startTimeBlock.split(':').map(Number);
-    const startMinutes = startHour * 60 + startMinute;
-    const endMinutes = startMinutes + Number(duration);
-    const endHour = Math.floor(endMinutes / 60) % 24;
-    const endMinute = endMinutes % 60;
-    const endTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+    const startTimeValue = useCustomTimeRange ? customStartTime : startTimeBlock;
+    const endTimeValue = useCustomTimeRange ? customEndTime : calculateEndTime(startTimeBlock, duration);
 
     // Format dates as YYYY-MM-DD (using local date to preserve the calendar date selected)
     const formatDate = (date: Date | null | string): string => {
@@ -205,8 +430,8 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
     console.log('Schedule generation params:', {
       scheduleDate,
       formattedDate,
-      startTime: startTimeBlock,
-      endTime,
+      startTime: startTimeValue,
+      endTime: endTimeValue,
       duration,
     });
 
@@ -223,11 +448,30 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
     const params: GenerateScheduleRequest = {
       start_date: formattedDate,
       end_date: formattedDate, // Same date for single-day scheduling
-      start_time: startTimeBlock,
-      end_time: endTime,
+      start_time: startTimeValue,
+      end_time: endTimeValue,
       timezone_offset: getTimezoneOffset(), // Send user's current timezone
       rotation_type: rotationType as 'round_robin' | 'random',
     };
+
+    // Add episode filters if any are set
+    const filters: GenerateScheduleRequest['episode_filters'] = {};
+    Object.entries(episodeFilters).forEach(([contentId, filter]) => {
+      const hasSelections = filter.episodes.length > 0;
+      if (filter.mode !== 'all' && hasSelections) {
+        filters[contentId] = {
+          mode: filter.mode,
+          episodes: filter.episodes.map((entry) => {
+            const [season, episode] = entry.split('-').map(Number);
+            return { season, episode };
+          }),
+        };
+      }
+    });
+
+    if (Object.keys(filters).length > 0) {
+      params.episode_filters = filters;
+    }
 
     console.log('Generating schedule with params:', params);
     generateMutation.mutate(params);
@@ -237,7 +481,7 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
     <Modal
       opened={opened}
       onClose={handleClose}
-      title="Generate Schedule"
+      title={`Schedule for ${formattedDate}`}
       size="md"
       closeOnClickOutside={true}
       styles={{
@@ -246,12 +490,17 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
           fontWeight: 500,
           color: '#111827',
         },
+        body: {
+          maxHeight: isMobile ? 'calc(100vh - 120px)' : '70vh',
+          overflowY: 'auto',
+        },
       }}
+      fullScreen={isMobile}
     >
       <Stack gap="lg">
         {/* Timezone info */}
         <Text size="sm" c="dimmed" fw={300}>
-          All times are in your timezone: <strong style={{ fontWeight: 500 }}>{userTimezone}</strong> ({timezoneAbbr})
+          Times shown in <strong style={{ fontWeight: 500 }}>{timezoneAbbr}</strong>
         </Text>
 
         {/* Date */}
@@ -279,6 +528,7 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
             onChange={(value) => setStartTimeBlock(value || '20:00')}
             data={timeBlocks}
             required
+            disabled={useCustomTimeRange}
             styles={{
               label: { fontSize: '14px', fontWeight: 400, color: '#6b7280', marginBottom: '4px' },
             }}
@@ -297,10 +547,55 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
               { value: '180', label: '3 hours' },
             ]}
             required
+            disabled={useCustomTimeRange}
             styles={{
               label: { fontSize: '14px', fontWeight: 400, color: '#6b7280', marginBottom: '4px' },
             }}
           />
+
+          <Radio.Group
+            value={useCustomTimeRange ? 'custom' : 'preset'}
+            onChange={(value) => setUseCustomTimeRange(value === 'custom')}
+            size="sm"
+          >
+            <Stack gap="xs">
+              <Radio
+                value="preset"
+                label="Use preset time block"
+                styles={{
+                  root: { minHeight: '44px', display: 'flex', alignItems: 'center' },
+                  label: { fontSize: '14px', cursor: 'pointer' }
+                }}
+              />
+              <Radio
+                value="custom"
+                label="Custom time range"
+                styles={{
+                  root: { minHeight: '44px', display: 'flex', alignItems: 'center' },
+                  label: { fontSize: '14px', cursor: 'pointer' }
+                }}
+              />
+            </Stack>
+          </Radio.Group>
+
+          {useCustomTimeRange && (
+            <Group grow>
+              <Select
+                label="Custom start"
+                value={customStartTime}
+                onChange={(value) => setCustomStartTime(value || '20:00')}
+                data={timeOptions}
+                searchable
+              />
+              <Select
+                label="Custom end"
+                value={customEndTime}
+                onChange={(value) => setCustomEndTime(value || '23:00')}
+                data={timeOptions}
+                searchable
+              />
+            </Group>
+          )}
 
           {/* Show calculated time range */}
           <Box
@@ -320,11 +615,13 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
                 →
               </Text>
               <Text size="sm" fw={500} c="#111827">
-                {calculatedEndTime}
+                {formattedEndTime}
               </Text>
-              <Text size="xs" c="#6b7280" style={{ marginLeft: '8px' }}>
-                ({duration} min)
-              </Text>
+              {!useCustomTimeRange && (
+                <Text size="xs" c="#6b7280" style={{ marginLeft: '8px' }}>
+                  ({duration} min)
+                </Text>
+              )}
             </Group>
           </Box>
         </Stack>
@@ -343,7 +640,7 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
             data={[
               { value: 'round_robin', label: 'One episode per show' },
               { value: 'round_robin_double', label: 'Two episodes per show' },
-              { value: 'random', label: 'Random mix' },
+              { value: 'random', label: 'Random order' },
             ]}
             styles={{
               label: { fontSize: '14px', fontWeight: 400, color: '#6b7280', marginBottom: '4px' },
@@ -352,25 +649,79 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
           />
         </Stack>
 
-        {/* Actions */}
+        {/* Episode Filters - Collapsible */}
+        <Box>
+          <Button
+            variant="subtle"
+            size="md"
+            onClick={() => setShowFilters(!showFilters)}
+            leftSection={showFilters ? <IconChevronDown size={18} /> : <IconChevronRight size={18} />}
+            styles={{
+              root: {
+                fontWeight: 400,
+                color: '#6b7280',
+                minHeight: '44px',
+                padding: '12px 16px',
+              }
+            }}
+          >
+            Advanced: Filter episodes {showFilters ? '' : `(${shows.length || 0} shows)`}
+          </Button>
+
+          <Collapse in={showFilters}>
+            <Stack gap="md" mt="sm">
+              {shows.length === 0 ? (
+                <Text size="sm" c="dimmed">No shows in Lineup</Text>
+              ) : (
+                shows.map((show) => (
+                  <ShowEpisodeFilter
+                    key={show.content_id}
+                    show={show}
+                    isExpanded={expandedShows.includes(show.content_id)}
+                    filter={getFilter(show.content_id)}
+                    onToggleShow={toggleShow}
+                    onToggleEpisode={toggleEpisode}
+                    onToggleSeason={toggleSeason}
+                    onFilterModeChange={(contentId, mode) => {
+                      const filter = getFilter(contentId);
+                      setEpisodeFilters((prev) => ({
+                        ...prev,
+                        [contentId]: { ...filter, mode },
+                      }));
+                    }}
+                  />
+                ))
+              )}
+            </Stack>
+          </Collapse>
+        </Box>
+
         <Group justify="flex-end" mt="md" gap="sm">
           <Button
             variant="subtle"
             color="gray"
+            size="md"
             onClick={handleClose}
             styles={{
-              root: { fontWeight: 400 },
+              root: {
+                fontWeight: 400,
+                minHeight: '44px',
+                padding: '12px 20px',
+              },
             }}
           >
             Cancel
           </Button>
           <Button
+            size="md"
             onClick={handleGenerate}
             loading={generateMutation.isPending}
             styles={{
               root: {
                 backgroundColor: '#646cff',
                 fontWeight: 400,
+                minHeight: '44px',
+                padding: '12px 20px',
                 '&:hover': {
                   backgroundColor: '#525aef',
                 },

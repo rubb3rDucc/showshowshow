@@ -27,7 +27,6 @@ import {
   Drawer,
   Menu,
   Box,
-  ActionIcon,
   Tabs,
 } from '@mantine/core';
 import { useMediaQuery, useDisclosure } from '@mantine/hooks';
@@ -91,14 +90,14 @@ export function Queue() {
       return { previousQueue };
     },
     onSuccess: () => {
-      toast.success('Removed from lineup');
+      toast.success('Removed from Lineup');
     },
     onError: (error, _itemId, context) => {
       if (context?.previousQueue) {
         queryClient.setQueryData(['queue'], context.previousQueue);
         setLocalQueue(context.previousQueue);
       }
-      toast.error(error.message || 'Failed to remove from lineup');
+      toast.error(error.message || 'Failed to remove from Lineup');
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['queue'] });
@@ -112,7 +111,7 @@ export function Queue() {
       queryClient.invalidateQueries({ queryKey: ['queue'] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to reorder lineup');
+      toast.error(error.message || 'Failed to reorder Lineup');
       isDraggingRef.current = false;
       if (queue) {
         setLocalQueue(queue);
@@ -189,7 +188,7 @@ export function Queue() {
           <Center py={60}>
             <Stack align="center" gap="md">
               <Loader size="lg" />
-              <Text c="dimmed">Loading lineup...</Text>
+              <Text c="dimmed">Loading Lineup...</Text>
             </Stack>
           </Center>
         </div>
@@ -202,7 +201,7 @@ export function Queue() {
       <div className="p-4 md:p-8">
         <div style={{ width: '100%', padding: '0 16px' }}>
           <Alert color="red" title="Error" icon={<IconAlertCircle />}>
-            Failed to load lineup. Please try again.
+            Failed to load Lineup. Please try again.
           </Alert>
         </div>
       </div>
@@ -216,7 +215,7 @@ export function Queue() {
         <Tabs value={activeTab} onChange={setActiveTab}>
           <Tabs.List mb="lg">
             <Tabs.Tab value="builder">
-              Builder
+              Plan
             </Tabs.Tab>
             <Tabs.Tab value="schedule">
               Schedule
@@ -230,7 +229,7 @@ export function Queue() {
               <Group justify="space-between" align="center" mb="md">
                 <Box>
                   <Text size="sm" c="dimmed" fw={300}>
-                    {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'} in lineup
+                    {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'} in Lineup
                   </Text>
                 </Box>
 
@@ -242,7 +241,7 @@ export function Queue() {
                     size="sm"
                     onClick={() => setGenerateModalOpened(true)}
                   >
-                    Quick Schedule
+                    Generate Schedule
                   </Button>
 
                   <Menu shadow="sm" width={200}>
@@ -252,7 +251,7 @@ export function Queue() {
                         color="gray"
                         size="sm"
                       >
-                        More Actions
+                        Schedule Actions
                       </Button>
                     </Menu.Target>
 

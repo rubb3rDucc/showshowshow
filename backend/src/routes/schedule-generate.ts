@@ -23,6 +23,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       include_reruns = false,
       rerun_frequency = 'rarely',
       rotation_type = 'round_robin',
+      episode_filters,
     } = request.body as {
       start_date?: string;
       end_date?: string;
@@ -34,6 +35,11 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       include_reruns?: boolean;
       rerun_frequency?: string;
       rotation_type?: 'round_robin' | 'random' | 'round_robin_double';
+      episode_filters?: Record<string, {
+        mode: 'all' | 'include' | 'exclude';
+        seasons?: number[];
+        episodes?: Array<{ season: number; episode: number }>;
+      }>;
     };
 
     if (!start_date || !end_date) {
@@ -106,6 +112,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       includeReruns: include_reruns,
       rerunFrequency: rerun_frequency,
       rotationType: rotation_type,
+      episodeFilters: episode_filters,
     });
 
     const generationTime = Date.now() - generationStartTime;
@@ -177,6 +184,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       include_reruns = false,
       rerun_frequency = 'rarely',
       rotation_type = 'round_robin',
+      episode_filters,
     } = request.body as {
       show_ids?: string[];
       start_date?: string;
@@ -188,6 +196,11 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       include_reruns?: boolean;
       rerun_frequency?: string;
       rotation_type?: 'round_robin' | 'random' | 'round_robin_double';
+      episode_filters?: Record<string, {
+        mode: 'all' | 'include' | 'exclude';
+        seasons?: number[];
+        episodes?: Array<{ season: number; episode: number }>;
+      }>;
     };
 
     if (!show_ids || !Array.isArray(show_ids) || show_ids.length === 0) {
@@ -242,6 +255,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       includeReruns: include_reruns,
       rerunFrequency: rerun_frequency,
       rotationType: rotation_type,
+      episodeFilters: episode_filters,
     });
 
     const generationTime = Date.now() - generationStartTime;
@@ -294,4 +308,3 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
     });
   });
 };
-

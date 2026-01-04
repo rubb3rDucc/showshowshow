@@ -100,11 +100,11 @@ export function ScheduleCard({
       {/* Mobile Layout (< md) */}
       <div className="md:hidden flex flex-col gap-3">
         {/* Time (Dominant) */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           <div className="text-3xl font-bold text-gray-900 leading-none">
             {startTime}
           </div>
-          <div className="text-3xl font-normal text-gray-400 leading-none">—</div>
+          <div className="text-3xl font-normal text-gray-400 leading-none" style={{ margin: '0 2px' }}>—</div>
           <div className="text-3xl font-bold text-gray-900 leading-none">
             {endTime}
           </div>
@@ -114,14 +114,6 @@ export function ScheduleCard({
               style={{ letterSpacing: '0.08em' }}
             >
               Watched
-            </span>
-          )}
-          {!isWatched && isRerun && (
-            <span
-              className="text-xs text-gray-500 uppercase tracking-wide"
-              style={{ letterSpacing: '0.08em' }}
-            >
-              Rewatch
             </span>
           )}
         </div>
@@ -147,6 +139,12 @@ export function ScheduleCard({
             )}
             <span>•</span>
             <span>{durationMinutes} min</span>
+            {!isWatched && isRerun && (
+              <>
+                <span>•</span>
+                <span>Rerun</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -193,8 +191,8 @@ export function ScheduleCard({
             {startTime}
           </div>
           <div
-            className="font-normal text-gray-400 my-1 leading-none"
-            style={{ fontSize: '28px' }}
+            className="font-normal text-gray-400 leading-none"
+            style={{ fontSize: '28px', margin: '0' }}
           >
             —
           </div>
@@ -207,11 +205,6 @@ export function ScheduleCard({
           {isWatched && (
             <div className="text-xs text-gray-500 uppercase tracking-wide mt-1.5">
               Watched
-            </div>
-          )}
-          {!isWatched && isRerun && (
-            <div className="text-xs text-gray-500 uppercase tracking-wide mt-1.5">
-              Rewatch
             </div>
           )}
         </div>
@@ -237,6 +230,12 @@ export function ScheduleCard({
             )}
             <span>•</span>
             <span>{durationMinutes} min</span>
+            {!isWatched && isRerun && (
+              <>
+                <span>•</span>
+                <span>Rerun</span>
+              </>
+            )}
           </div>
         </div>
 
