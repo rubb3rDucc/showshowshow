@@ -9,6 +9,7 @@ import {
   Group,
   Text,
   TextInput,
+  Box,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { toast } from 'sonner';
@@ -44,6 +45,30 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
   // Get user's timezone info
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const timezoneAbbr = new Date().toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() || 'Local';
+
+  // Calculate end time based on start time + duration
+  const calculateEndTime = (startTime: string, durationMinutes: string): string => {
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = startMinutes + Number(durationMinutes);
+    const endHour = Math.floor(endMinutes / 60) % 24;
+    const endMinute = endMinutes % 60;
+
+    // Format as 12-hour time
+    const period = endHour >= 12 ? 'PM' : 'AM';
+    const displayHour = endHour === 0 ? 12 : endHour > 12 ? endHour - 12 : endHour;
+    return `${displayHour}:${String(endMinute).padStart(2, '0')} ${period}`;
+  };
+
+  const formatStartTime = (time24: string): string => {
+    const [hour, minute] = time24.split(':').map(Number);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
+  };
+
+  const calculatedEndTime = calculateEndTime(startTimeBlock, duration);
+  const formattedStartTime = formatStartTime(startTimeBlock);
 
   const generateMutation = useMutation({
     mutationFn: (params: GenerateScheduleRequest) => generateScheduleFromQueue(params),
@@ -99,7 +124,7 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
         } else {
           description = `❌ Skipped (${skippedCount}): ${skippedList}`;
         }
-        description += '\n💡 Clear existing items or choose a different time range';
+        description += '\n\n💡 To schedule skipped items:\n  • Go to Schedule tab and delete conflicting items, or\n  • Choose a longer duration or different start time';
         
         const conflictMessage = scheduledCount > 0 
           ? `Schedule generated: ${scheduledCount} scheduled, ${skippedCount} skipped`
@@ -278,6 +303,32 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
               label: { fontSize: '14px', fontWeight: 400, color: '#6b7280', marginBottom: '4px' },
             }}
           />
+
+          {/* Show calculated time range */}
+          <Box
+            style={{
+              backgroundColor: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '4px',
+              padding: '12px 14px',
+              marginTop: '8px',
+            }}
+          >
+            <Group gap="xs" justify="center">
+              <Text size="sm" fw={500} c="#111827">
+                {formattedStartTime}
+              </Text>
+              <Text size="sm" c="#9ca3af">
+                →
+              </Text>
+              <Text size="sm" fw={500} c="#111827">
+                {calculatedEndTime}
+              </Text>
+              <Text size="xs" c="#6b7280" style={{ marginLeft: '8px' }}>
+                ({duration} min)
+              </Text>
+            </Group>
+          </Box>
         </Stack>
 
         {/* Options */}

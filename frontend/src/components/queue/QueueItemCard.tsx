@@ -299,6 +299,12 @@ export function QueueItemCard({
                     }}
                   />
 
+                  {selectedSeason && selectedSeasonEpisodes.length > 0 && (
+                    <Text size="xs" c="dimmed" style={{ fontWeight: 300, marginTop: '-4px', paddingLeft: '2px' }}>
+                      Click episodes to view details
+                    </Text>
+                  )}
+
                   {/* Episodes for selected season */}
                   {selectedSeason && selectedSeasonEpisodes.length > 0 && (
                     <Stack gap={0}>

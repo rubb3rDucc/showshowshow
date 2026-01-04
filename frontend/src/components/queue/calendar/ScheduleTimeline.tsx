@@ -161,7 +161,7 @@ export function ScheduleTimeline({
                 zIndex: 3,
               }}
             >
-              <Text size="xs">Hover to see available time • Click to schedule</Text>
+              <Text size="xs">Hover to see available time • Click to choose what to schedule</Text>
             </Box>
           )}
         </Box>
