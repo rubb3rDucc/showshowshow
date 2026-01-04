@@ -230,40 +230,8 @@ export function ScheduleView() {
                 </Text>
               )}
               
-              {/* Table Header - Hidden on Mobile */}
-              {dailyItems.length > 0 && (
-                <div className="hidden md:block bg-black text-white border-2 border-black font-mono mb-0">
-                  <div className="grid grid-cols-12 py-3">
-                    <div className="col-span-1 border-r-2 border-white flex items-center justify-center">
-                      <span className="text-xs lg:text-sm font-black uppercase tracking-widest">
-                        NO.
-                      </span>
-                    </div>
-                    <div className="col-span-2 border-r-2 border-white flex items-center justify-center">
-                      <span className="text-xs lg:text-sm font-black uppercase tracking-widest">
-                        IMG
-                      </span>
-                    </div>
-                    <div className="col-span-3 border-r-2 border-white flex items-center justify-center">
-                      <span className="text-xs lg:text-sm font-black uppercase tracking-widest">
-                        TIME
-                      </span>
-                    </div>
-                    <div className="col-span-5 border-r-2 border-white flex items-center justify-center">
-                      <span className="text-xs lg:text-sm font-black uppercase tracking-widest">
-                        TITLE
-                      </span>
-                    </div>
-                    <div className="col-span-1 flex items-center justify-center">
-                      <span className="text-xs lg:text-sm font-black uppercase tracking-widest">
-                        DUR
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <Stack gap={0}>
+              {/* Cards are self-documenting - no header needed */}
+              <Stack gap="lg">
                 {dailyItems.map((item, index) => {
                   const scheduleCardItem = adaptScheduleItemForCard(item);
                   // Create a queue-like item from the schedule item for poster/type info
@@ -290,9 +258,9 @@ export function ScheduleView() {
         })}
       
       {/* Timezone Info */}
-      <div className="mt-8 md:mt-12 text-center border-t-2 border-black pt-6 md:pt-8 font-mono">
-        <Text size="xs" className="font-black uppercase tracking-widest">
-          TIMEZONE: {userTimezone}
+      <div className="mt-8 text-center border-t border-gray-200 pt-6">
+        <Text size="xs" c="dimmed">
+          Timezone: {userTimezone}
         </Text>
       </div>
     </Stack>

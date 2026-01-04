@@ -27,14 +27,14 @@ export function TimeLabels() {
               position: 'absolute',
               top: `${topPercent}%`,
               left: '8px',
-              transform: i === 0 ? 'translateY(0)' : 'translateY(-50%)',
+              transform: 'translateY(0)',
             }}
           >
             <Text size="xs" fw={500} c="dimmed">
               {time.toLocaleTimeString('en-US', {
-                hour: '2-digit',
+                hour: 'numeric',
                 minute: '2-digit',
-                hour12: false,
+                hour12: true,
               })}
             </Text>
           </Box>

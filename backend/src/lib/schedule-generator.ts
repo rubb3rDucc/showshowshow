@@ -204,7 +204,7 @@ interface GenerateScheduleOptions {
   maxShowsPerTimeSlot?: number;
   includeReruns?: boolean;
   rerunFrequency?: string;
-  rotationType?: 'round_robin' | 'random';
+  rotationType?: 'round_robin' | 'random' | 'round_robin_double';
 }
 
 // Generate schedule from queue or shows
@@ -342,10 +342,12 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
   const timeSlotUsage = new Map<string, number>(); // Track usage per time slot
   let showIndex = 0;
   const episodeIndexes = new Map<string, number>(); // Track episode index per show
+  const episodesScheduledFromCurrentShow = new Map<string, number>(); // Track episodes scheduled from current show in current cycle
 
   // Initialize episode indexes
   showIds.forEach((showId) => {
     episodeIndexes.set(showId, 0);
+    episodesScheduledFromCurrentShow.set(showId, 0);
   });
 
   // Parse start and end times to determine if we cross midnight
@@ -451,28 +453,43 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
       // Get next content in rotation (show or movie)
       let currentContentId: string | undefined;
-      if (rotationType === 'round_robin') {
+      if (rotationType === 'round_robin' || rotationType === 'round_robin_double') {
+        const episodesPerShow = rotationType === 'round_robin_double' ? 2 : 1;
+
         // Try to find next available content in round-robin order
         let attempts = 0;
         while (attempts < showIds.length) {
           const candidateId = showIds[showIndex % showIds.length];
-          showIndex++;
-          attempts++;
-          
+          const scheduledFromCandidate = episodesScheduledFromCurrentShow.get(candidateId) ?? 0;
+
           // Check if this content has available episodes or is a movie
           const episodes = episodesByShow.get(candidateId) ?? [];
           const movies = moviesByShow.get(candidateId) ?? [];
           const episodeIndex = episodeIndexes.get(candidateId) ?? 0;
-          
-          console.log(`[Schedule Generator] Round-robin check: ${candidateId} - episodeIndex=${episodeIndex}, episodes.length=${episodes.length}, movies.length=${movies.length}`);
-          
+
+          console.log(`[Schedule Generator] Round-robin check: ${candidateId} - episodeIndex=${episodeIndex}, episodes.length=${episodes.length}, movies.length=${movies.length}, scheduledFromCandidate=${scheduledFromCandidate}/${episodesPerShow}`);
+
+          // If we've scheduled enough episodes from this show, move to next show
+          if (scheduledFromCandidate >= episodesPerShow) {
+            episodesScheduledFromCurrentShow.set(candidateId, 0); // Reset counter
+            showIndex++;
+            attempts++;
+            continue;
+          }
+
+          // Check if this content has available content
           if (episodeIndex < episodes.length || movies.length > 0) {
             currentContentId = candidateId;
             console.log(`[Schedule Generator] Selected content: ${candidateId}`);
             break;
           }
+
+          // No more content for this show, move to next
+          episodesScheduledFromCurrentShow.set(candidateId, 0); // Reset counter
+          showIndex++;
+          attempts++;
         }
-        
+
         // If we tried all shows and none have content, break out of time slot loop
         if (!currentContentId) {
           console.log(`[Schedule Generator] No more content available - breaking time slot loop`);
@@ -580,6 +597,12 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       // Update indexes
       episodeIndexes.set(currentContentId, episodeIndex + 1);
       timeSlotUsage.set(slotKey, currentUsage + 1);
+
+      // Increment counter for round-robin tracking
+      if (rotationType === 'round_robin' || rotationType === 'round_robin_double') {
+        const currentCount = episodesScheduledFromCurrentShow.get(currentContentId) ?? 0;
+        episodesScheduledFromCurrentShow.set(currentContentId, currentCount + 1);
+      }
     }
 
     // Move to next day (in UTC)

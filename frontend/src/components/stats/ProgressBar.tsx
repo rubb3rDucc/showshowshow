@@ -46,3 +46,4 @@ export function ProgressBar({ title, posterUrl, episodesWatched, totalEpisodes, 
   );
 }
 
+

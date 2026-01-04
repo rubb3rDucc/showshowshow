@@ -10,6 +10,7 @@ import {
   Box,
   Loader,
   Center,
+  Select,
 } from '@mantine/core';
 import {
   IconX,
@@ -28,19 +29,20 @@ interface QueueItemCardProps {
   onToggleEpisodeDescription?: (id: string) => void;
 }
 
-export function QueueItemCard({ 
-  item, 
-  onRemove, 
+export function QueueItemCard({
+  item,
+  onRemove,
   isDragging,
   openEpisodeDescriptionId,
   onToggleEpisodeDescription,
 }: QueueItemCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [showMovieDescription, setShowMovieDescription] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const isShow = item.content_type === 'show';
   const isMovie = item.content_type === 'movie';
 
-  // Fetch episodes only when expanded and it's a show
+  // Fetch all episodes only when expanded and it's a show (for season list)
   // Use content_id if available (supports Jikan), otherwise fall back to tmdb_id
   const { data: episodes, isLoading: episodesLoading } = useQuery({
     queryKey: ['episodes', item.content_id || item.tmdb_id],
@@ -68,6 +70,18 @@ export function QueueItemCard({
     }
   };
 
+  // Group episodes by season
+  const seasonMap = episodes?.reduce((acc, ep) => {
+    if (!acc[ep.season]) {
+      acc[ep.season] = [];
+    }
+    acc[ep.season].push(ep);
+    return acc;
+  }, {} as Record<number, typeof episodes>);
+
+  const seasons = seasonMap ? Object.keys(seasonMap).map(Number).sort((a, b) => a - b) : [];
+  const selectedSeasonEpisodes = selectedSeason && seasonMap ? seasonMap[selectedSeason] : [];
+
   // Calculate total duration
   const totalDuration = isShow && episodes
     ? episodes.reduce((sum, ep) => sum + (ep.duration || 0), 0)
@@ -79,22 +93,11 @@ export function QueueItemCard({
     <Box
       style={{
         backgroundColor: 'white',
-        borderBottom: '1px solid #f3f4f6',
+        borderBottom: '1px solid #e5e7eb',
         paddingTop: '16px',
         paddingBottom: '16px',
         opacity: isDragging ? 0.5 : 1,
-        transition: 'background-color 0.2s',
         cursor: isDragging ? 'grabbing' : 'default',
-      }}
-      onMouseEnter={(e) => {
-        if (!isDragging) {
-          e.currentTarget.style.backgroundColor = '#f9fafb';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isDragging) {
-          e.currentTarget.style.backgroundColor = 'white';
-        }
       }}
     >
       <Stack gap="xs">
@@ -103,8 +106,8 @@ export function QueueItemCard({
           <Box
             style={{
               position: 'relative',
-              width: '50px',
-              height: '75px',
+              width: '40px',
+              height: '60px',
               flexShrink: 0,
               borderRadius: '4px',
               overflow: 'hidden',
@@ -281,11 +284,34 @@ export function QueueItemCard({
                   <Loader size="sm" />
                 </Center>
               ) : episodes && episodes.length > 0 ? (
-                <Stack gap={0}>
-                  {episodes.map((ep) => {
-                    const isEpisodeDescriptionOpen = openEpisodeDescriptionId === ep.id;
-                    return (
-                      <Box key={ep.id}>
+                <Stack gap="sm">
+                  {/* Season Selector */}
+                  <Select
+                    placeholder="Select a season"
+                    value={selectedSeason?.toString() || null}
+                    onChange={(value) => setSelectedSeason(value ? Number(value) : null)}
+                    data={seasons.map((s) => ({
+                      value: s.toString(),
+                      label: `Season ${s} (${seasonMap?.[s]?.length || 0} episodes)`,
+                    }))}
+                    styles={{
+                      input: { fontSize: '14px', fontWeight: 400 },
+                    }}
+                  />
+
+                  {selectedSeason && selectedSeasonEpisodes.length > 0 && (
+                    <Text size="xs" c="dimmed" style={{ fontWeight: 300, marginTop: '-4px', paddingLeft: '2px' }}>
+                      Click episodes to view details
+                    </Text>
+                  )}
+
+                  {/* Episodes for selected season */}
+                  {selectedSeason && selectedSeasonEpisodes.length > 0 && (
+                    <Stack gap={0}>
+                      {selectedSeasonEpisodes.map((ep) => {
+                        const isEpisodeDescriptionOpen = openEpisodeDescriptionId === ep.id;
+                        return (
+                          <Box key={ep.id}>
                         <Box
                           component="button"
                           onClick={() => handleEpisodeClick(ep.id)}
@@ -355,11 +381,13 @@ export function QueueItemCard({
                     );
                   })}
                 </Stack>
-              ) : (
-                <Text size="xs" c="dimmed" ta="center" py="sm">
-                  No episodes available
-                </Text>
               )}
+            </Stack>
+          ) : (
+            <Text size="xs" c="dimmed" ta="center" py="sm">
+              No episodes available
+            </Text>
+          )}
             </Box>
           </Collapse>
         )}

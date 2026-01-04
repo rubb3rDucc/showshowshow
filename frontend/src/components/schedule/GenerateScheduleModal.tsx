@@ -5,10 +5,9 @@ import {
   Button,
   Stack,
   Select,
-  Checkbox,
   Group,
   Text,
-  TextInput,
+  Box,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { toast } from 'sonner';
@@ -21,23 +20,53 @@ interface GenerateScheduleModalProps {
   onSuccess: () => void;
 }
 
-export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateScheduleModalProps) {
+export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModalProps) {
   const queryClient = useQueryClient();
   const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const [startDate, setStartDate] = useState<Date | null>(today);
-  const [endDate, setEndDate] = useState<Date | null>(tomorrow);
-  const [startTime, setStartTime] = useState('20:00'); // 8 PM
-  const [endTime, setEndTime] = useState('23:00'); // 11 PM (better default)
-  const [timeSlotDuration, setTimeSlotDuration] = useState<string>('auto'); // Auto-calculate by default
-  const [rotationType, setRotationType] = useState<'round_robin' | 'random'>('round_robin');
-  const [includeReruns, setIncludeReruns] = useState(false);
+
+  const [scheduleDate, setScheduleDate] = useState<Date | null>(today);
+  const [startTimeBlock, setStartTimeBlock] = useState('20:00'); // Prime time default
+  const [duration, setDuration] = useState('180'); // 3 hours in minutes
+  const [rotationType, setRotationType] = useState<'round_robin' | 'random' | 'round_robin_double'>('round_robin');
+
+  // Network-style time slots
+  const timeBlocks = [
+    { value: '06:00', label: 'Early Morning (6:00 AM)' },
+    { value: '09:00', label: 'Morning (9:00 AM)' },
+    { value: '12:00', label: 'Midday (12:00 PM)' },
+    { value: '15:00', label: 'Afternoon (3:00 PM)' },
+    { value: '17:00', label: 'Early Evening (5:00 PM)' },
+    { value: '20:00', label: 'Prime Time (8:00 PM)' },
+    { value: '23:00', label: 'Late Night (11:00 PM)' },
+  ];
 
   // Get user's timezone info
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const timezoneAbbr = new Date().toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() || 'Local';
+
+  // Calculate end time based on start time + duration
+  const calculateEndTime = (startTime: string, durationMinutes: string): string => {
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = startMinutes + Number(durationMinutes);
+    const endHour = Math.floor(endMinutes / 60) % 24;
+    const endMinute = endMinutes % 60;
+
+    // Format as 12-hour time
+    const period = endHour >= 12 ? 'PM' : 'AM';
+    const displayHour = endHour === 0 ? 12 : endHour > 12 ? endHour - 12 : endHour;
+    return `${displayHour}:${String(endMinute).padStart(2, '0')} ${period}`;
+  };
+
+  const formatStartTime = (time24: string): string => {
+    const [hour, minute] = time24.split(':').map(Number);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
+  };
+
+  const calculatedEndTime = calculateEndTime(startTimeBlock, duration);
+  const formattedStartTime = formatStartTime(startTimeBlock);
 
   const generateMutation = useMutation({
     mutationFn: (params: GenerateScheduleRequest) => generateScheduleFromQueue(params),
@@ -93,7 +122,7 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
         } else {
           description = `❌ Skipped (${skippedCount}): ${skippedList}`;
         }
-        description += '\n💡 Clear existing items or choose a different time range';
+        description += '\n\n💡 To schedule skipped items:\n  • Go to Schedule tab and delete conflicting items, or\n  • Choose a longer duration or different start time';
         
         const conflictMessage = scheduledCount > 0 
           ? `Schedule generated: ${scheduledCount} scheduled, ${skippedCount} skipped`
@@ -109,10 +138,7 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
         // Show success if everything scheduled
         toast.success(data.message || `Schedule generated! ${data.schedule?.length || 0} items created.`);
         onClose();
-        // Small delay before navigation to ensure state updates
-        setTimeout(() => {
-          onSuccess();
-        }, 100);
+        // Stay on current page to show what was scheduled
       }
     },
     onError: (error: Error) => {
@@ -126,21 +152,18 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
   };
 
   const handleGenerate = () => {
-    if (!startDate || !endDate) {
-      toast.error('Please select start and end dates');
+    if (!scheduleDate) {
+      toast.error('Please select a date');
       return;
     }
 
-    // Validate time format (HH:MM in 24-hour format)
-    const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(startTime)) {
-      toast.error('Invalid start time format. Use HH:MM (e.g., 13:00 for 1 PM)');
-      return;
-    }
-    if (!timeRegex.test(endTime)) {
-      toast.error('Invalid end time format. Use HH:MM (e.g., 23:00 for 11 PM)');
-      return;
-    }
+    // Calculate end time based on start time + duration
+    const [startHour, startMinute] = startTimeBlock.split(':').map(Number);
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = startMinutes + Number(duration);
+    const endHour = Math.floor(endMinutes / 60) % 24;
+    const endMinute = endMinutes % 60;
+    const endTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
 
     // Format dates as YYYY-MM-DD (using local date to preserve the calendar date selected)
     const formatDate = (date: Date | null | string): string => {
@@ -177,16 +200,14 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
       return formatted;
     };
 
-    const formattedStartDate = formatDate(startDate);
-    const formattedEndDate = formatDate(endDate);
+    const formattedDate = formatDate(scheduleDate);
 
-    console.log('Schedule generation dates:', {
-      startDate,
-      endDate,
-      formattedStartDate,
-      formattedEndDate,
-      startTime,
+    console.log('Schedule generation params:', {
+      scheduleDate,
+      formattedDate,
+      startTime: startTimeBlock,
       endTime,
+      duration,
     });
 
     // Get user's timezone offset (e.g., "-05:00" for EST, "+00:00" for UTC)
@@ -200,15 +221,12 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
     };
 
     const params: GenerateScheduleRequest = {
-      start_date: formattedStartDate,
-      end_date: formattedEndDate,
-      start_time: startTime,
+      start_date: formattedDate,
+      end_date: formattedDate, // Same date for single-day scheduling
+      start_time: startTimeBlock,
       end_time: endTime,
-      // Only include time_slot_duration if not 'auto'
-      ...(timeSlotDuration !== 'auto' && { time_slot_duration: Number(timeSlotDuration) }),
       timezone_offset: getTimezoneOffset(), // Send user's current timezone
-      rotation_type: rotationType,
-      include_reruns: includeReruns,
+      rotation_type: rotationType as 'round_robin' | 'random',
     };
 
     console.log('Generating schedule with params:', params);
@@ -221,108 +239,143 @@ export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateSc
       onClose={handleClose}
       title="Generate Schedule"
       size="md"
-      closeOnClickOutside={false}
+      closeOnClickOutside={true}
+      styles={{
+        title: {
+          fontSize: '20px',
+          fontWeight: 500,
+          color: '#111827',
+        },
+      }}
     >
-      <Stack gap="md">
-        <Text size="sm" c="dimmed" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>📍</span>
-          <span>All times are in your timezone: <strong>{userTimezone}</strong> ({timezoneAbbr})</span>
+      <Stack gap="lg">
+        {/* Timezone info */}
+        <Text size="sm" c="dimmed" fw={300}>
+          All times are in your timezone: <strong style={{ fontWeight: 500 }}>{userTimezone}</strong> ({timezoneAbbr})
         </Text>
 
-        <Text size="sm" c="dimmed">
-          Create a schedule from your queue. Choose the date range and time slot for your programming block.
-        </Text>
-        <Text size="xs" c="yellow">
-          💡 Tip: A 3-hour block (20:00-23:00) fits ~6-7 episodes
-        </Text>
-
-        {/* Date Range */}
+        {/* Date */}
         <DatePickerInput
-          label="Start Date"
-          placeholder="Pick start date"
-          value={startDate}
+          label="Date"
+          placeholder="Pick a date"
+          value={scheduleDate}
           onChange={(date) => {
-            console.log('Start date changed:', date, typeof date, date?.constructor?.name);
-            setStartDate(date as Date | null);
+            setScheduleDate(date as Date | null);
           }}
           required
-        />
-
-        <DatePickerInput
-          label="End Date"
-          placeholder="Pick end date"
-          value={endDate}
-          onChange={(date) => {
-            console.log('End date changed:', date, typeof date, date?.constructor?.name);
-            setEndDate(date as Date | null);
+          styles={{
+            label: { fontSize: '14px', fontWeight: 500, color: '#111827', marginBottom: '6px' },
           }}
-          minDate={startDate || undefined}
-          required
         />
 
-        {/* Time Slot */}
-        <TextInput
-          label="Start Time"
-          description="24-hour format (e.g., 13:00 for 1 PM, 20:00 for 8 PM)"
-          placeholder="HH:MM"
-          value={startTime}
-          onChange={(e) => setStartTime(e.currentTarget.value)}
-          pattern="[0-2][0-9]:[0-5][0-9]"
-          required
-        />
+        {/* Time Block */}
+        <Stack gap="sm">
+          <Text size="sm" fw={500} c="#111827">
+            Time Block
+          </Text>
+          <Select
+            label="Start time"
+            value={startTimeBlock}
+            onChange={(value) => setStartTimeBlock(value || '20:00')}
+            data={timeBlocks}
+            required
+            styles={{
+              label: { fontSize: '14px', fontWeight: 400, color: '#6b7280', marginBottom: '4px' },
+            }}
+          />
 
-        <TextInput
-          label="End Time"
-          description="24-hour format (e.g., 23:00 for 11 PM)"
-          placeholder="HH:MM"
-          value={endTime}
-          onChange={(e) => setEndTime(e.currentTarget.value)}
-          pattern="[0-2][0-9]:[0-5][0-9]"
-          required
-        />
+          <Select
+            label="How much time do you want to dedicate?"
+            value={duration}
+            onChange={(value) => setDuration(value || '180')}
+            data={[
+              { value: '30', label: '30 minutes' },
+              { value: '60', label: '1 hour' },
+              { value: '90', label: '1.5 hours' },
+              { value: '120', label: '2 hours' },
+              { value: '150', label: '2.5 hours' },
+              { value: '180', label: '3 hours' },
+            ]}
+            required
+            styles={{
+              label: { fontSize: '14px', fontWeight: 400, color: '#6b7280', marginBottom: '4px' },
+            }}
+          />
 
-        {/* Time Slot Duration */}
-        <Select
-          label="Time Slot Duration"
-          description="How often to check for new content to schedule"
-          value={timeSlotDuration}
-          onChange={(value) => setTimeSlotDuration(value || 'auto')}
-          data={[
-            { value: 'auto', label: '🤖 Auto (recommended) - Calculated from content' },
-            { value: '15', label: '15 minutes (anime/short episodes)' },
-            { value: '30', label: '30 minutes (standard TV)' },
-            { value: '60', label: '60 minutes (hourly blocks)' },
-          ]}
-        />
+          {/* Show calculated time range */}
+          <Box
+            style={{
+              backgroundColor: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '4px',
+              padding: '12px 14px',
+              marginTop: '8px',
+            }}
+          >
+            <Group gap="xs" justify="center">
+              <Text size="sm" fw={500} c="#111827">
+                {formattedStartTime}
+              </Text>
+              <Text size="sm" c="#9ca3af">
+                →
+              </Text>
+              <Text size="sm" fw={500} c="#111827">
+                {calculatedEndTime}
+              </Text>
+              <Text size="xs" c="#6b7280" style={{ marginLeft: '8px' }}>
+                ({duration} min)
+              </Text>
+            </Group>
+          </Box>
+        </Stack>
 
-        {/* Rotation Type */}
-        <Select
-          label="Rotation Type"
-          description="How to rotate through your shows"
-          value={rotationType}
-          onChange={(value) => setRotationType(value as 'round_robin' | 'random')}
-          data={[
-            { value: 'round_robin', label: 'Round Robin - Rotate in order' },
-            { value: 'random', label: 'Random - Shuffle randomly' },
-          ]}
-        />
+        {/* Options */}
+        <Stack gap="sm">
+          <Text size="sm" fw={500} c="#111827">
+            Options
+          </Text>
 
-        {/* Include Reruns */}
-        <Checkbox
-          label="Include rewatched content"
-          description="Include episodes/movies you've already watched"
-          checked={includeReruns}
-          onChange={(e) => setIncludeReruns(e.currentTarget.checked)}
-        />
+          <Select
+            label="Show rotation"
+            description="How many episodes to schedule from each show before moving to the next"
+            value={rotationType}
+            onChange={(value) => setRotationType(value as 'round_robin' | 'random' | 'round_robin_double')}
+            data={[
+              { value: 'round_robin', label: 'One episode per show' },
+              { value: 'round_robin_double', label: 'Two episodes per show' },
+              { value: 'random', label: 'Random mix' },
+            ]}
+            styles={{
+              label: { fontSize: '14px', fontWeight: 400, color: '#6b7280', marginBottom: '4px' },
+              description: { fontSize: '12px', color: '#9ca3af', marginTop: '2px' },
+            }}
+          />
+        </Stack>
 
         {/* Actions */}
-        <Group justify="flex-end" mt="md">
-          <Button variant="subtle" onClick={handleClose}>
+        <Group justify="flex-end" mt="md" gap="sm">
+          <Button
+            variant="subtle"
+            color="gray"
+            onClick={handleClose}
+            styles={{
+              root: { fontWeight: 400 },
+            }}
+          >
             Cancel
           </Button>
           <Button
             onClick={handleGenerate}
             loading={generateMutation.isPending}
+            styles={{
+              root: {
+                backgroundColor: '#646cff',
+                fontWeight: 400,
+                '&:hover': {
+                  backgroundColor: '#525aef',
+                },
+              },
+            }}
           >
             Generate Schedule
           </Button>

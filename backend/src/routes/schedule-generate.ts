@@ -33,7 +33,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       max_shows_per_time_slot?: number;
       include_reruns?: boolean;
       rerun_frequency?: string;
-      rotation_type?: 'round_robin' | 'random';
+      rotation_type?: 'round_robin' | 'random' | 'round_robin_double';
     };
 
     if (!start_date || !end_date) {
@@ -187,7 +187,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       max_shows_per_time_slot?: number;
       include_reruns?: boolean;
       rerun_frequency?: string;
-      rotation_type?: 'round_robin' | 'random';
+      rotation_type?: 'round_robin' | 'random' | 'round_robin_double';
     };
 
     if (!show_ids || !Array.isArray(show_ids) || show_ids.length === 0) {

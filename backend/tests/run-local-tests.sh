@@ -46,3 +46,4 @@ echo "2. Review backend/API_REFERENCE.md for API details"
 echo "3. Try the curl commands in backend/CURL_CHEATSHEET.md"
 echo "4. Start building your frontend!"
 
+

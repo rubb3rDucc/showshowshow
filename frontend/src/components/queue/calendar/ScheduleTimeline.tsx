@@ -1,4 +1,5 @@
 import { Text, ScrollArea, Box } from '@mantine/core';
+import { useEffect, useRef } from 'react';
 import { TimeLabels } from './TimeLabels';
 import { TimelineGrid } from './TimelineGrid';
 import { ScheduleBlock } from './ScheduleBlock';
@@ -30,14 +31,26 @@ export function ScheduleTimeline({
   onTimelineMouseLeave,
   onDeleteItem,
 }: ScheduleTimelineProps) {
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
+
   const allItems: ScheduleItemWithType[] = [
     ...savedItems.map(item => ({ ...item, type: 'saved' as const })),
     ...pendingItems.map(item => ({ ...item, type: 'pending' as const })),
   ];
 
+  // Scroll to 6 AM on initial mount
+  useEffect(() => {
+    if (scrollViewportRef.current) {
+      // 6 AM = 6 hours = 360 minutes
+      // Each minute = 2px, plus 12px padding top
+      const scrollPosition = (6 * 60 * 2) + (-8);
+      scrollViewportRef.current.scrollTop = scrollPosition;
+    }
+  }, []);
+
   return (
     <>
-        <ScrollArea h={600}>
+        <ScrollArea h={600} viewportRef={scrollViewportRef}>
         <Box
           style={{
             position: 'relative',
@@ -90,13 +103,12 @@ export function ScheduleTimeline({
                 style={{
                   position: 'absolute',
                   top: `${12 + ((hoveredTime.hour * 60 + hoveredTime.minute) * 2)}px`,
-                  left: '80px',
+                  left: '50px',
                   right: 0,
                   height: '2px',
-                  backgroundColor: '#4A90E2',
+                  backgroundColor: '#646cff',
                   pointerEvents: 'none',
                   zIndex: 5,
-                  boxShadow: '0 0 4px rgba(74, 144, 226, 0.5)',
                 }}
               />
               <Box
@@ -104,13 +116,12 @@ export function ScheduleTimeline({
                   position: 'fixed',
                   top: `${hoveredTime.mouseY}px`,
                   left: `${hoveredTime.mouseX + 15}px`,
-                  backgroundColor: 'rgba(0,0,0,0.9)',
+                  backgroundColor: 'rgba(0,0,0,0.75)',
                   color: 'white',
                   padding: '10px 14px',
                   borderRadius: '6px',
                   pointerEvents: 'none',
                   zIndex: 1000,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                   minWidth: '180px',
                   transform: 'translateY(-50%)',
                 }}
@@ -150,7 +161,7 @@ export function ScheduleTimeline({
                 zIndex: 3,
               }}
             >
-              <Text size="xs">Hover to see available time • Click to schedule</Text>
+              <Text size="xs">Hover to see available time • Click to choose what to schedule</Text>
             </Box>
           )}
         </Box>

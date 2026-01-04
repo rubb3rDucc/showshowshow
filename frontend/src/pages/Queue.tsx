@@ -27,6 +27,7 @@ import {
   Drawer,
   Menu,
   Box,
+  ActionIcon,
   Tabs,
 } from '@mantine/core';
 import { useMediaQuery, useDisclosure } from '@mantine/hooks';
@@ -305,7 +306,7 @@ export function Queue() {
               <Grid.Col
                 span={{
                   base: 12,
-                  md: 12,
+                  md: 7,
                   lg: 8,
                 }}
               >
