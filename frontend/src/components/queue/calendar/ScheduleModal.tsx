@@ -18,7 +18,6 @@ interface ScheduleModalProps {
   onEpisodeToggle: (season: number, episode: number, checked: boolean) => void;
   isEpisodeSelected: (season: number, episode: number) => boolean;
   onQueueItemSelect: (item: QueueItem) => void;
-  onAddToPending: () => void;
   onScheduleNow: () => void;
   onResetSelection: () => void;
   isScheduling: boolean;
@@ -40,7 +39,6 @@ export function ScheduleModal({
   onEpisodeToggle,
   isEpisodeSelected,
   onQueueItemSelect,
-  onAddToPending,
   onScheduleNow,
   onResetSelection,
   isScheduling,
@@ -48,13 +46,30 @@ export function ScheduleModal({
   onSchedulingModeChange,
 }: ScheduleModalProps) {
   const hasMultipleEpisodes = selectedEpisodes.size > 1;
+  const toggleSeasonEpisodes = (seasonEpisodes: Episode[], checked: boolean) => {
+    seasonEpisodes.forEach((ep) => {
+      onEpisodeToggle(ep.season, ep.episode_number, checked);
+    });
+  };
+
+  const getSeasonSelectionState = (seasonEpisodes: Episode[]) => {
+    const selectedCount = seasonEpisodes.filter((ep) =>
+      isEpisodeSelected(ep.season, ep.episode_number)
+    ).length;
+    return {
+      selectedCount,
+      isAllSelected: selectedCount === seasonEpisodes.length,
+      isAnySelected: selectedCount > 0,
+    };
+  };
+
   return (
     <Modal
       opened={opened}
       onClose={onClose}
       title={
         selectedTimeSlot
-          ? `Schedule at ${selectedTimeSlot.display}`
+          ? `Schedule ${selectedTimeSlot.display}`
           : 'Select Queue Item to Schedule'
       }
       centered
@@ -108,42 +123,72 @@ export function ScheduleModal({
                     <Accordion>
                       {Object.entries(episodesBySeason)
                         .sort(([a], [b]) => Number(a) - Number(b))
-                        .map(([seasonNum, seasonEpisodes]) => (
-                          <Accordion.Item key={seasonNum} value={`season-${seasonNum}`}>
-                            <Accordion.Control>
-                              <Text fw={500}>
-                                Season {seasonNum} ({seasonEpisodes.length} episodes)
-                              </Text>
-                            </Accordion.Control>
-                            <Accordion.Panel>
-                              <Stack gap="xs">
-                                {seasonEpisodes.map((ep) => (
-                                  <Checkbox
-                                    key={ep.id}
-                                    label={
-                                      <Text size="sm">
-                                        E{ep.episode_number.toString().padStart(2, '0')} - {ep.title}
-                                        {ep.duration && (
-                                          <Text component="span" c="dimmed" size="xs" ml="xs">
-                                            ({ep.duration} min)
-                                          </Text>
-                                        )}
-                                      </Text>
-                                    }
-                                    checked={isEpisodeSelected(ep.season, ep.episode_number)}
-                                    onChange={(e) =>
-                                      onEpisodeToggle(
-                                        ep.season,
-                                        ep.episode_number,
-                                        e.currentTarget.checked
-                                      )
-                                    }
-                                  />
-                                ))}
-                              </Stack>
-                            </Accordion.Panel>
-                          </Accordion.Item>
-                        ))}
+                        .map(([seasonNum, seasonEpisodes]) => {
+                          const selectionState = getSeasonSelectionState(seasonEpisodes);
+                          return (
+                            <Accordion.Item key={seasonNum} value={`season-${seasonNum}`}>
+                              <Accordion.Control>
+                                <Group justify="space-between" wrap="nowrap">
+                                  <Text fw={500}>
+                                    Season {seasonNum} ({seasonEpisodes.length} episodes)
+                                  </Text>
+                                  <Text size="xs" c="dimmed">
+                                    {selectionState.isAnySelected
+                                      ? `${selectionState.selectedCount} selected`
+                                      : 'None selected'}
+                                  </Text>
+                                </Group>
+                              </Accordion.Control>
+                              <Accordion.Panel>
+                                <Group gap="xs" mb="xs">
+                                  <Button
+                                    size="xs"
+                                    variant="subtle"
+                                    color="gray"
+                                    onClick={() => toggleSeasonEpisodes(seasonEpisodes, true)}
+                                    disabled={selectionState.isAllSelected}
+                                  >
+                                    Select season
+                                  </Button>
+                                  <Button
+                                    size="xs"
+                                    variant="subtle"
+                                    color="gray"
+                                    onClick={() => toggleSeasonEpisodes(seasonEpisodes, false)}
+                                    disabled={!selectionState.isAnySelected}
+                                  >
+                                    Clear
+                                  </Button>
+                                </Group>
+                                <Stack gap="xs">
+                                  {seasonEpisodes.map((ep) => (
+                                    <Checkbox
+                                      key={ep.id}
+                                      label={
+                                        <Text size="sm">
+                                          E{ep.episode_number.toString().padStart(2, '0')} - {ep.title}
+                                          {ep.duration && (
+                                            <Text component="span" c="dimmed" size="xs" ml="xs">
+                                              ({ep.duration} min)
+                                            </Text>
+                                          )}
+                                        </Text>
+                                      }
+                                      checked={isEpisodeSelected(ep.season, ep.episode_number)}
+                                      onChange={(e) =>
+                                        onEpisodeToggle(
+                                          ep.season,
+                                          ep.episode_number,
+                                          e.currentTarget.checked
+                                        )
+                                      }
+                                    />
+                                  ))}
+                                </Stack>
+                              </Accordion.Panel>
+                            </Accordion.Item>
+                          );
+                        })}
                     </Accordion>
                   </ScrollArea>
                 ) : (
@@ -197,16 +242,6 @@ export function ScheduleModal({
                 Cancel
               </Button>
               <Button
-                variant="light"
-                onClick={onAddToPending}
-                disabled={
-                  !selectedQueueItem ||
-                  (selectedQueueItem.content_type === 'show' && selectedEpisodes.size === 0)
-                }
-              >
-                Add to Pending
-              </Button>
-              <Button
                 onClick={onScheduleNow}
                 disabled={
                   !selectedQueueItem ||
@@ -214,7 +249,7 @@ export function ScheduleModal({
                 }
                 loading={isScheduling}
               >
-                Schedule Now
+                Schedule
               </Button>
             </Group>
           </>
@@ -258,4 +293,3 @@ export function ScheduleModal({
     </Modal>
   );
 }
-

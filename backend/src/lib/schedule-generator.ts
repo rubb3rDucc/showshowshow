@@ -132,11 +132,47 @@ export function generateTimeSlots(startTime: string, endTime: string, slotDurati
 }
 
 // Get available episodes for scheduling
+type EpisodeFilterRule = {
+  mode: 'all' | 'include' | 'exclude';
+  seasons?: number[];
+  episodes?: Array<{ season: number; episode: number }>;
+};
+
+function applyEpisodeFilters<T extends { content_id: string; season: number; episode_number: number }>(
+  episodes: T[],
+  episodeFilters?: Record<string, EpisodeFilterRule>
+): T[] {
+  if (!episodeFilters) return episodes;
+
+  return episodes.filter((episode) => {
+    const rule = episodeFilters[episode.content_id];
+    if (!rule || rule.mode === 'all') return true;
+
+    const seasonMatch = rule.seasons?.includes(episode.season) ?? false;
+    const episodeMatch = rule.episodes?.some(
+      (item) => item.season === episode.season && item.episode === episode.episode_number
+    ) ?? false;
+    const hasSelections = (rule.seasons?.length ?? 0) > 0 || (rule.episodes?.length ?? 0) > 0;
+    if (!hasSelections) return true;
+
+    if (rule.mode === 'include') {
+      return seasonMatch || episodeMatch;
+    }
+
+    if (rule.mode === 'exclude') {
+      return !(seasonMatch || episodeMatch);
+    }
+
+    return true;
+  });
+}
+
 async function getAvailableEpisodes(
   userId: string,
   showIds: string[],
   includeReruns: boolean,
-  rerunFrequency: string
+  rerunFrequency: string,
+  episodeFilters?: Record<string, EpisodeFilterRule>
 ) {
   // Get all episodes for the shows
   let query = db
@@ -167,7 +203,7 @@ async function getAvailableEpisodes(
     query = query.where('watch_history.id', 'is', null);
   }
 
-  const episodes = await query.execute();
+  const episodes = applyEpisodeFilters(await query.execute(), episodeFilters);
   console.log(`[Schedule Generator] Found ${episodes.length} episodes for ${showIds.length} shows`);
 
   type EpisodeWithWatch = typeof episodes[0] & { watched_at: Date | null; rewatch_count: number | null };
@@ -205,6 +241,7 @@ interface GenerateScheduleOptions {
   includeReruns?: boolean;
   rerunFrequency?: string;
   rotationType?: 'round_robin' | 'random' | 'round_robin_double';
+  episodeFilters?: Record<string, EpisodeFilterRule>;
 }
 
 // Generate schedule from queue or shows
@@ -259,7 +296,13 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
     if (totalEpisodes > 0) {
       // Get available episodes
-      const availableEpisodes = await getAvailableEpisodes(userId, showIdsOnly, includeReruns, rerunFrequency);
+      const availableEpisodes = await getAvailableEpisodes(
+        userId,
+        showIdsOnly,
+        includeReruns,
+        rerunFrequency,
+        options.episodeFilters
+      );
       console.log(`[Schedule Generator] Available episodes: ${availableEpisodes.length} out of ${totalEpisodes} total`);
 
       // Group episodes by show for rotation and shuffle them for randomization

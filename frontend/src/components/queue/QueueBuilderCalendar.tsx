@@ -53,7 +53,6 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
     handleTimelineMouseLeave,
     handleEpisodeToggle,
     isEpisodeSelected,
-    addToPending,
     handleScheduleItem,
     handleSaveAll,
     handleRemovePending,
@@ -215,11 +214,6 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
         onEpisodeToggle={handleEpisodeToggle}
         isEpisodeSelected={isEpisodeSelected}
         onQueueItemSelect={setSelectedQueueItem}
-        onAddToPending={() => {
-          if (selectedQueueItem) {
-            addToPending(selectedQueueItem);
-          }
-        }}
         onScheduleNow={() => {
           if (selectedQueueItem) {
             handleScheduleItem(selectedQueueItem);

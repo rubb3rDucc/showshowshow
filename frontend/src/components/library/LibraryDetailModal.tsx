@@ -96,7 +96,7 @@ const NotesSection = ({
                     key={num}
                     onClick={() => onScoreChange(num)}
                     className={`
-        ${score && score >= num
+                        ${score && score >= num
                         ? 'text-amber-500'
                         : 'text-gray-300'
                       }
@@ -183,7 +183,7 @@ export function LibraryDetailModal({
   useEffect(() => {
     if (item) {
       onStatusChange(item.status as LibraryStatus);
-      onScoreChange(item.score || 1);
+      onScoreChange(item.score || 0);
       onNotesChange(item.notes || '');
       // setStatus(item.status as LibraryStatus);
       // setNotes(item.notes || '');

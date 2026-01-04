@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { IconCheck } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { ScheduleCardItem, QueueCardItem } from './scheduleCardAdapters';
 import { markAsWatched, unmarkAsWatched } from '../../api/schedule';
 import { normalizeRating } from '../../utils/rating';
-import { QuietDesign } from '../../styles/quiet-design-system';
 
 interface ScheduleCardProps {
   scheduleItem: ScheduleCardItem;
   queueItem?: QueueCardItem;
   rowNumber: number;
+  contentId?: string;
+  isRerun?: boolean;
   season?: number | null;
   episode?: number | null;
   episodeTitle?: string | null;
@@ -22,23 +24,43 @@ export function ScheduleCard({
   season,
   episode,
   episodeTitle,
+  contentId,
+  isRerun,
   watched = false,
 }: ScheduleCardProps) {
   const queryClient = useQueryClient();
   const [isWatched, setIsWatched] = useState(watched);
 
+  useEffect(() => {
+    setIsWatched(watched);
+  }, [watched]);
+
   const watchedMutation = useMutation({
-    mutationFn: () => isWatched ? unmarkAsWatched(scheduleItem.id) : markAsWatched(scheduleItem.id),
-    onMutate: () => {
+    mutationFn: (nextWatched: boolean) =>
+      nextWatched ? markAsWatched(scheduleItem.id) : unmarkAsWatched(scheduleItem.id),
+    onMutate: (nextWatched: boolean) => {
       // Optimistic update
-      setIsWatched(!isWatched);
+      setIsWatched(nextWatched);
+      return { prevWatched: isWatched };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedule'] });
+    onSuccess: (data, nextWatched) => {
+      queryClient.invalidateQueries({ queryKey: ['schedule'], exact: false });
+      if (contentId) {
+        queryClient.invalidateQueries({ queryKey: ['episode-statuses', contentId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['library'], exact: false });
+      const timestamp = data?.watched_at ? new Date(data.watched_at).toLocaleString() : new Date().toLocaleString();
+      const actionTitle = queueItem?.title || scheduleItem.title;
+      toast.success(
+        nextWatched
+          ? `Watched ${actionTitle} at ${timestamp}`
+          : `Unwatched ${actionTitle} at ${timestamp}`
+      );
     },
-    onError: () => {
+    onError: (_error, _vars, context) => {
       // Revert on error
-      setIsWatched(isWatched);
+      setIsWatched(context?.prevWatched ?? watched);
+      toast.error('Failed to update watch status');
     },
   });
 
@@ -62,7 +84,7 @@ export function ScheduleCard({
   const rating = normalizeRating(queueItem?.rating);
 
   const handleToggleWatched = () => {
-    watchedMutation.mutate();
+    watchedMutation.mutate(!isWatched);
   };
 
   return (
@@ -74,23 +96,26 @@ export function ScheduleCard({
         ${isWatched ? 'grayscale' : ''}
         border-gray-200 hover:border-blue-500
       `}
-      style={{
-        borderWidth: QuietDesign.borders.width.default,
-        borderRadius: QuietDesign.borders.radius.card,
-        padding: QuietDesign.spacing.cardPadding,
-      }}
     >
       {/* Mobile Layout (< md) */}
       <div className="md:hidden flex flex-col gap-3">
         {/* Time (Dominant) */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           <div className="text-3xl font-bold text-gray-900 leading-none">
             {startTime}
           </div>
-          <div className="text-3xl font-normal text-gray-400 leading-none">—</div>
+          <div className="text-3xl font-normal text-gray-400 leading-none" style={{ margin: '0 2px' }}>—</div>
           <div className="text-3xl font-bold text-gray-900 leading-none">
             {endTime}
           </div>
+          {isWatched && (
+            <span
+              className="text-xs text-gray-500 uppercase tracking-wide"
+              style={{ letterSpacing: '0.08em' }}
+            >
+              Watched
+            </span>
+          )}
         </div>
 
         {/* Content Info */}
@@ -114,6 +139,12 @@ export function ScheduleCard({
             )}
             <span>•</span>
             <span>{durationMinutes} min</span>
+            {!isWatched && isRerun && (
+              <>
+                <span>•</span>
+                <span>Rerun</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -127,34 +158,19 @@ export function ScheduleCard({
               style={{
                 width: '32px',
                 height: '48px',
-                borderRadius: QuietDesign.borders.radius.poster,
+                borderRadius: '6px',
               }}
             />
           )}
           <button
             onClick={handleToggleWatched}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all"
-            style={{
-              fontSize: QuietDesign.typography.sizes.metadata,
-              transition: QuietDesign.transitions.fast,
-              backgroundColor: isWatched ? QuietDesign.colors.accent : 'white',
-              borderColor: isWatched ? QuietDesign.colors.accent : QuietDesign.colors.gray[300],
-              color: isWatched ? 'white' : QuietDesign.colors.gray[600],
-            }}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs transition-colors ${
+              isWatched
+                ? 'bg-gray-900 border-gray-900 text-white'
+                : 'bg-white border-gray-300 text-gray-600 hover:border-blue-500 hover:text-blue-600'
+            }`}
             aria-label={isWatched ? `Mark as unwatched: ${title}` : `Mark as watched: ${title}`}
             aria-checked={isWatched}
-            onMouseEnter={(e) => {
-              if (!isWatched) {
-                e.currentTarget.style.borderColor = QuietDesign.colors.accent;
-                e.currentTarget.style.color = QuietDesign.colors.accent;
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isWatched) {
-                e.currentTarget.style.borderColor = QuietDesign.colors.gray[300];
-                e.currentTarget.style.color = QuietDesign.colors.gray[600];
-              }
-            }}
           >
             {isWatched && <IconCheck size={14} style={{ color: 'white' }} />}
             <span className="font-normal">
@@ -175,8 +191,8 @@ export function ScheduleCard({
             {startTime}
           </div>
           <div
-            className="font-normal text-gray-400 my-1 leading-none"
-            style={{ fontSize: '28px' }}
+            className="font-normal text-gray-400 leading-none"
+            style={{ fontSize: '28px', margin: '0' }}
           >
             —
           </div>
@@ -186,32 +202,25 @@ export function ScheduleCard({
           >
             {endTime}
           </div>
+          {isWatched && (
+            <div className="text-xs text-gray-500 uppercase tracking-wide mt-1.5">
+              Watched
+            </div>
+          )}
         </div>
 
         {/* Column 2: Content Info */}
         <div className="flex flex-col justify-center">
-          <h2
-            className="font-medium text-gray-900 leading-tight mb-1"
-            style={{
-              fontSize: QuietDesign.typography.sizes.title,
-              lineHeight: QuietDesign.typography.lineHeights.compact,
-            }}
-          >
+          <h2 className="text-lg font-medium text-gray-900 leading-tight mb-1">
             {title}
           </h2>
           {queueItem?.type === 'show' && season !== null && episode !== null && (
-            <div
-              className="text-gray-500 mb-1"
-              style={{ fontSize: QuietDesign.typography.sizes.body }}
-            >
+            <div className="text-sm text-gray-500 mb-1">
               S{String(season).padStart(2, '0')}E{String(episode).padStart(2, '0')}
               {episodeTitle && ` • ${episodeTitle}`}
             </div>
           )}
-          <div
-            className="flex items-center gap-2 text-gray-400"
-            style={{ fontSize: QuietDesign.typography.sizes.metadata }}
-          >
+          <div className="flex items-center gap-2 text-xs text-gray-400">
             <span>{queueItem?.type === 'movie' ? 'Movie' : 'TV Show'}</span>
             {rating && (
               <>
@@ -221,6 +230,12 @@ export function ScheduleCard({
             )}
             <span>•</span>
             <span>{durationMinutes} min</span>
+            {!isWatched && isRerun && (
+              <>
+                <span>•</span>
+                <span>Rerun</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -232,9 +247,9 @@ export function ScheduleCard({
               alt=""
               className={`object-cover ${isWatched ? 'grayscale' : ''}`}
               style={{
-                width: QuietDesign.poster.card.width,
-                height: QuietDesign.poster.card.height,
-                borderRadius: QuietDesign.borders.radius.poster,
+                width: '56px',
+                height: '80px',
+                borderRadius: '6px',
               }}
             />
           )}
@@ -244,28 +259,13 @@ export function ScheduleCard({
         <div className="flex items-center justify-center">
           <button
             onClick={handleToggleWatched}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all"
-            style={{
-              fontSize: QuietDesign.typography.sizes.metadata,
-              transition: QuietDesign.transitions.fast,
-              backgroundColor: isWatched ? QuietDesign.colors.accent : 'white',
-              borderColor: isWatched ? QuietDesign.colors.accent : QuietDesign.colors.gray[300],
-              color: isWatched ? 'white' : QuietDesign.colors.gray[600],
-            }}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs transition-colors ${
+              isWatched
+                ? 'bg-gray-900 border-gray-900 text-white'
+                : 'bg-white border-gray-300 text-gray-600 hover:border-blue-500 hover:text-blue-600'
+            }`}
             aria-label={isWatched ? `Mark as unwatched: ${title}` : `Mark as watched: ${title}`}
             aria-checked={isWatched}
-            onMouseEnter={(e) => {
-              if (!isWatched) {
-                e.currentTarget.style.borderColor = QuietDesign.colors.accent;
-                e.currentTarget.style.color = QuietDesign.colors.accent;
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isWatched) {
-                e.currentTarget.style.borderColor = QuietDesign.colors.gray[300];
-                e.currentTarget.style.color = QuietDesign.colors.gray[600];
-              }
-            }}
           >
             {isWatched && <IconCheck size={14} style={{ color: 'white' }} />}
             <span className="font-normal whitespace-nowrap">

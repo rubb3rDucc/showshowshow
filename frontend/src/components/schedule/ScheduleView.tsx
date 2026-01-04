@@ -243,9 +243,12 @@ export function ScheduleView() {
                       scheduleItem={scheduleCardItem}
                       queueItem={queueCardItem}
                       rowNumber={index + 1}
+                      contentId={item.content_id}
+                      isRerun={item.is_rerun}
                       season={item.season}
                       episode={item.episode}
                       episodeTitle={item.episode_title || null}
+                      watched={item.watched}
                     />
                   );
                 })}
@@ -263,5 +266,3 @@ export function ScheduleView() {
     </Stack>
   );
 }
-
-
