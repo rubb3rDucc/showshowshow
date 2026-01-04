@@ -1,4 +1,4 @@
-import { Text, Button } from '@mantine/core'
+import { Button } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import {
   Calendar as CalendarIcon,

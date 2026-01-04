@@ -5,10 +5,8 @@ import {
   Button,
   Stack,
   Select,
-  Checkbox,
   Group,
   Text,
-  TextInput,
   Box,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
@@ -22,7 +20,7 @@ interface GenerateScheduleModalProps {
   onSuccess: () => void;
 }
 
-export function GenerateScheduleModal({ opened, onClose, onSuccess }: GenerateScheduleModalProps) {
+export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModalProps) {
   const queryClient = useQueryClient();
   const today = new Date();
 
