@@ -106,7 +106,7 @@ export function ScheduleTimeline({
                   left: '50px',
                   right: 0,
                   height: '2px',
-                  backgroundColor: '#646cff',
+                  backgroundColor: '#14b8a6',
                   pointerEvents: 'none',
                   zIndex: 5,
                 }}

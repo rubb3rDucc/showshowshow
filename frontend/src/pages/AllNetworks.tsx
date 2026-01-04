@@ -131,7 +131,7 @@ export function AllNetworks() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
         <Center py={60}>
           <Loader size="lg" />
         </Center>
@@ -140,7 +140,7 @@ export function AllNetworks() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
       <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
         {/* Back button and header */}
         <div className="mb-8">
@@ -157,10 +157,10 @@ export function AllNetworks() {
             <div className="flex items-center gap-4 mb-2">
               <Tv size={32} strokeWidth={2.5} className="text-gray-700" />
               <div>
-                <h1 className="text-3xl font-black uppercase tracking-wider">
+                <h1 className="text-3xl font-bold tracking-tight">
                   All Networks
                 </h1>
-                <p className="text-sm text-gray-600 font-mono">
+                <p className="text-sm text-[rgb(var(--color-text-secondary))]">
                   {localNetworks?.length || 0} networks available
                 </p>
               </div>
@@ -170,8 +170,8 @@ export function AllNetworks() {
                 variant={isEditMode ? "filled" : "outline"}
                 onClick={() => setIsEditMode(!isEditMode)}
                 className={isEditMode 
-                  ? "bg-black text-white border-2 border-black font-black uppercase" 
-                  : "border-2 border-gray-900 font-black uppercase"
+                  ? "bg-teal-600 hover:bg-teal-700 text-white border-0 font-semibold" 
+                  : "border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-semibold"
                 }
                 size="sm"
               >
@@ -181,7 +181,7 @@ export function AllNetworks() {
                 variant="outline"
                 leftSection={<Settings size={16} />}
                 onClick={() => setLocation('/networks/manage')}
-                className="border-2 border-gray-900 font-black uppercase"
+                className="border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-semibold"
                 size="sm"
               >
                 Manage
@@ -235,8 +235,8 @@ export function AllNetworks() {
             </div>
           )
         ) : (
-          <div className="bg-white border-2 border-gray-900 p-12 text-center">
-            <p className="font-bold text-gray-600">No networks available</p>
+          <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-12 text-center">
+            <p className="font-bold text-[rgb(var(--color-text-secondary))]">No networks available</p>
           </div>
         )}
       </Container>

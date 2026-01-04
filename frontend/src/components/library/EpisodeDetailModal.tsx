@@ -34,7 +34,7 @@ export function EpisodeDetailModal({
       opened={opened}
       onClose={onClose}
       title={
-        <Text fw={700} size="lg" tt="uppercase">
+        <Text fw={700} size="lg">
           Episode Details
         </Text>
       }
@@ -45,7 +45,7 @@ export function EpisodeDetailModal({
     >
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold tracking-tight text-[rgb(var(--color-text-primary))] mb-2">
             {episodeTitle}
           </h2>
 
@@ -73,8 +73,8 @@ export function EpisodeDetailModal({
           </Group>
         </div>
 
-        <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-          <Text size="sm" c="dimmed" fw={600} tt="uppercase" mb="xs">
+        <div className="bg-[rgb(var(--color-bg-page))] p-4 rounded-md border border-gray-100">
+          <Text size="sm" c="dimmed" fw={600} mb="xs">
             Synopsis
           </Text>
           <Text className="leading-relaxed text-gray-700">
@@ -85,7 +85,7 @@ export function EpisodeDetailModal({
         <div className="flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-900 text-white font-bold rounded hover:bg-gray-800 transition-colors text-sm uppercase tracking-wide"
+            className="px-4 py-2 bg-gray-900 text-white font-bold rounded hover:bg-gray-800 transition-colors text-sm tracking-wide"
           >
             Close
           </button>

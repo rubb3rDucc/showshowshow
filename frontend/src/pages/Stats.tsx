@@ -70,14 +70,14 @@ export function Stats() {
   const insights = detailedStats?.insights;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
       <Container size="xl" className="py-4 md:py-8 lg:py-12 px-2 md:px-4">
         {/* Top Bar */}
         <div className="flex justify-between items-center mb-6 md:mb-8">
           <Button
             size="sm"
             variant="subtle"
-            className="text-gray-600 hover:text-gray-900"
+            className="font-semibold text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))]"
             onClick={() => setLocation('/library')}
           >
             ← Back to Library
@@ -91,11 +91,8 @@ export function Stats() {
         {showsInProgress.length > 0 && (
           <div className="mt-8">
             <div className="flex items-center gap-3 mb-4">
-              <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-black tracking-widest">
-                PROGRESS
-              </div>
-              <TrendingUp size={20} strokeWidth={2.5} className="text-gray-700" />
-              <h2 className="text-xl font-black uppercase tracking-wider">
+              <TrendingUp size={20} className="text-[rgb(var(--color-text-secondary))]" />
+              <h2 className="text-xl font-semibold text-[rgb(var(--color-text-primary))] tracking-tight">
                 Shows in Progress
               </h2>
             </div>
@@ -129,15 +126,12 @@ export function Stats() {
         {recentActivity.length > 0 && (
           <div className="mt-8">
             <div className="flex items-center gap-3 mb-4">
-              <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-black tracking-widest">
-                ACTIVITY
-              </div>
-              <Calendar size={20} strokeWidth={2.5} className="text-gray-700" />
-              <h2 className="text-xl font-black uppercase tracking-wider">
+              <Calendar size={20} className="text-[rgb(var(--color-text-secondary))]" />
+              <h2 className="text-xl font-semibold text-[rgb(var(--color-text-primary))] tracking-tight">
                 Recent Activity
               </h2>
             </div>
-            <div className="bg-white border-2 border-gray-900 p-4">
+            <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm dark:shadow-gray-950/50 p-4">
               {recentActivity.map((activity) => (
                 <ActivityItem
                   key={activity.id}
@@ -154,7 +148,7 @@ export function Stats() {
 
         {/* Empty State */}
         {showsInProgress.length === 0 && recentActivity.length === 0 && (
-          <div className="mt-8 bg-white border-2 border-gray-900 p-8 text-center">
+          <div className="mt-8 bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-8 text-center">
             <TrendingUp size={48} strokeWidth={2} className="mx-auto mb-4 text-gray-700" />
             <Text size="xl" fw={700} className="mb-2">
               Start Watching to See Stats
@@ -164,7 +158,7 @@ export function Stats() {
             </Text>
             <Button
               size="md"
-              className="bg-black text-white border-2 border-black font-black uppercase tracking-wider"
+              className="bg-teal-600 hover:bg-teal-700 text-white border-0 font-semibold tracking-tight"
               onClick={() => setLocation('/library')}
             >
               Go to Library

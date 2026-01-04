@@ -177,9 +177,9 @@ export function PersonDetail() {
   if (error) {
     return (
       <Container size="xl" className="py-8">
-        <div className="bg-white border-2 border-gray-900 p-12 text-center">
+        <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-12 text-center">
           <p className="font-bold text-red-600 mb-2">Error loading person</p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-[rgb(var(--color-text-secondary))]">
             {error instanceof Error ? error.message : 'Unknown error occurred'}
           </p>
         </div>
@@ -190,15 +190,15 @@ export function PersonDetail() {
   if (!person) {
     return (
       <Container size="xl" className="py-8">
-        <div className="bg-white border-2 border-gray-900 p-12 text-center">
-          <p className="font-bold text-gray-600">Person not found</p>
+        <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-12 text-center">
+          <p className="font-bold text-[rgb(var(--color-text-secondary))]">Person not found</p>
         </div>
       </Container>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[rgb(var(--color-bg-elevated))]">
       <Container size="xl" className="py-4 sm:py-8 px-4 sm:px-6">
         {/* Back button */}
         <div className="mb-4 sm:mb-6">
@@ -206,7 +206,7 @@ export function PersonDetail() {
             variant="outline"
             leftSection={<ArrowLeft size={16} />}
             onClick={() => window.history.back()}
-            className="border-2 border-gray-900 font-black uppercase hover:bg-gray-100"
+            className="border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-semibold hover:bg-[rgb(var(--color-bg-elevated))]"
             size="sm"
           >
             Back
@@ -214,7 +214,7 @@ export function PersonDetail() {
         </div>
 
         {/* Person Info */}
-        <div className="bg-white border-4 border-gray-900 p-4 sm:p-6 mb-6 sm:mb-8">
+        <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
             {/* Profile Photo */}
             {person.profile_url && person.profile_url.trim() !== '' && (
@@ -222,25 +222,25 @@ export function PersonDetail() {
                 <img
                   src={person.profile_url}
                   alt={person.name}
-                  className="w-32 h-48 sm:w-40 sm:h-56 md:w-48 md:h-64 object-cover border-2 border-gray-900"
+                  className="w-32 h-48 sm:w-40 sm:h-56 md:w-48 md:h-64 object-cover border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm"
                 />
               </div>
             )}
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-wider mb-2 break-words">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-2 break-words">
                 {person.name}
               </h1>
               
               {person.known_for_department && (
-                <p className="text-sm text-gray-600 font-mono font-bold mb-4">
+                <p className="text-sm text-[rgb(var(--color-text-secondary))] font-bold mb-4">
                   Known for: {person.known_for_department}
                 </p>
               )}
 
               {person.birthday && (
-                <p className="text-sm text-gray-600 font-mono mb-2">
+                <p className="text-sm text-[rgb(var(--color-text-secondary))] mb-2">
                   Born: {person.birthday}
                   {person.place_of_birth && ` in ${person.place_of_birth}`}
                 </p>
@@ -279,17 +279,17 @@ export function PersonDetail() {
         </div>
 
         {/* Filmography */}
-        <div className="bg-white border-4 border-gray-900 p-4 sm:p-6">
-          <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wider mb-4 sm:mb-6">
+        <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-4 sm:p-6">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-4 sm:mb-6">
             Filmography
           </h2>
 
           <Tabs value={activeTab || defaultTab} onChange={setActiveTab}>
-            <Tabs.List className="border-b-2 border-gray-900 mb-6">
+            <Tabs.List className="border-b border-[rgb(var(--color-border-default))] mb-6">
               {hasCast && (
                 <Tabs.Tab 
                   value="acting" 
-                  className="font-black uppercase text-sm"
+                  className="font-semibold text-sm"
                 >
                   Acting ({deduplicatedCast.length})
                 </Tabs.Tab>
@@ -298,7 +298,7 @@ export function PersonDetail() {
                 <Tabs.Tab 
                   key={dept}
                   value={dept.toLowerCase()} 
-                  className="font-black uppercase text-sm"
+                  className="font-semibold text-sm"
                 >
                   {dept} ({deduplicatedCrewByDepartment[dept]?.length || 0})
                 </Tabs.Tab>
@@ -318,16 +318,16 @@ export function PersonDetail() {
                         <img 
                           src={item.poster_url && item.poster_url.trim() !== '' ? item.poster_url : `https://image.tmdb.org/t/p/w500${item.poster_path}`}
                           alt={item.title || item.name}
-                          className="w-full h-auto object-cover border-2 border-gray-900 group-hover:border-4 transition-all"
+                          className="w-full h-auto object-cover border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm hover:shadow-md transition-all"
                         />
                       ) : (
-                        <div className="w-full aspect-[2/3] bg-gray-200 border-2 border-gray-900 flex items-center justify-center">
-                          <span className="text-xs font-black text-gray-600 text-center px-2">
+                        <div className="w-full aspect-[2/3] bg-gray-200 border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm flex items-center justify-center">
+                          <span className="text-xs font-semibold text-[rgb(var(--color-text-secondary))] text-center px-2">
                             NO IMAGE
                           </span>
                         </div>
                       )}
-                      <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-bold truncate group-hover:text-gray-600 transition-colors">
+                      <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-semibold truncate group-hover:text-[rgb(var(--color-accent))] transition-colors">
                         {item.title || item.name}
                       </p>
                     </div>
@@ -340,25 +340,25 @@ export function PersonDetail() {
               <Tabs.Panel key={dept} value={dept.toLowerCase()}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
                   {deduplicatedCrewByDepartment[dept]?.map((item: PersonFilmographyItem) => (
-                    <div 
+                    <div
                       key={`${item.id}-${item.title || item.name}`}
                       className="cursor-pointer group"
                       onClick={() => handleContentClick(item)}
                     >
                       {(item.poster_url && item.poster_url.trim() !== '') || item.poster_path ? (
-                        <img 
+                        <img
                           src={item.poster_url && item.poster_url.trim() !== '' ? item.poster_url : `https://image.tmdb.org/t/p/w500${item.poster_path}`}
                           alt={item.title || item.name}
-                          className="w-full h-auto object-cover border-2 border-gray-900 group-hover:border-4 transition-all"
+                          className="w-full h-auto object-cover border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm hover:shadow-md transition-all"
                         />
                       ) : (
-                        <div className="w-full aspect-[2/3] bg-gray-200 border-2 border-gray-900 flex items-center justify-center">
-                          <span className="text-xs font-black text-gray-600 text-center px-2">
+                        <div className="w-full aspect-[2/3] bg-gray-200 border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm flex items-center justify-center">
+                          <span className="text-xs font-semibold text-[rgb(var(--color-text-secondary))] text-center px-2">
                             NO IMAGE
                           </span>
                         </div>
                       )}
-                      <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-bold truncate group-hover:text-gray-600 transition-colors">
+                      <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-semibold truncate group-hover:text-[rgb(var(--color-accent))] transition-colors">
                         {item.title || item.name}
                       </p>
                     </div>

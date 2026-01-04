@@ -320,7 +320,7 @@ export function Search() {
   const resultsCount = effectivePaginationMetadata?.total_results || data?.total_results || 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-[rgb(var(--color-bg-page))] pb-20">
       <Container size="xl" className="py-4 md:py-8 lg:py-12 px-2 md:px-4">
         {/* Back Button */}
         <Button
@@ -329,7 +329,7 @@ export function Search() {
           size="sm"
           leftSection={<ArrowLeft size={16} />}
           onClick={() => setLocation('/queue')}
-          className="mb-4 md:mb-6 font-light hover:bg-gray-100"
+          className="mb-4 md:mb-6 font-light hover:bg-[rgb(var(--color-bg-elevated))]"
         >
           Back to Queue
         </Button>
@@ -340,14 +340,14 @@ export function Search() {
             size="xs"
             c="dimmed"
             fw={500}
-            className="uppercase tracking-widest mb-1"
+            className="tracking-tight mb-1"
           >
             Search Media
           </Text>
           <Text
             size="3xl"
             fw={300}
-            className="text-gray-900 tracking-tight mb-4"
+            className="text-[rgb(var(--color-text-primary))] tracking-tight mb-4"
           >
             Find Shows & Movies
           </Text>
@@ -360,15 +360,15 @@ export function Search() {
               size="sm"
               rightSection={filtersOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               onClick={() => setFiltersOpen(!filtersOpen)}
-              className="font-mono text-xs uppercase tracking-wider mb-2"
+              className="mb-2"
             >
               {filtersOpen ? 'Hide Filters' : 'Show Filters'}
             </Button>
             
             <Collapse in={filtersOpen}>
-              <Box className="bg-white border-2 border-gray-900 p-4 space-y-4">
+              <Box className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-4 space-y-4">
                 <Group justify="space-between" align="center">
-                  <Text size="sm" className="font-mono font-black uppercase tracking-wider">
+                  <Text size="sm" className="font-semibold tracking-tight">
                     Include Adult Content
                   </Text>
                   <Switch
@@ -382,17 +382,17 @@ export function Search() {
                 </Group>
                 
                 {/* Jikan API Settings Group */}
-                <Box className="border-t-2 border-gray-300 pt-4 space-y-4">
-                  <Text size="xs" className="font-mono font-black uppercase tracking-wider text-gray-600 mb-2">
+                <Box className="border-t-2 border-[rgb(var(--color-border-default))] pt-4 space-y-4">
+                  <Text size="xs" className="font-semibold tracking-tight text-[rgb(var(--color-text-secondary))] mb-2">
                     JIKAN API SETTINGS
                   </Text>
                   <Group justify="space-between" align="center">
                     <div>
-                      <Text size="sm" className="font-mono font-black uppercase tracking-wider">
+                      <Text size="sm" className="font-semibold tracking-tight">
                         Anime Only (Jikan)
                       </Text>
                       {animeOnly && (
-                        <Text size="xs" c="blue" className="font-mono mt-1">
+                        <Text size="xs" c="blue" className="mt-1">
                           🔍 Searching MyAnimeList
                         </Text>
                       )}
@@ -408,7 +408,7 @@ export function Search() {
                     />
                   </Group>
                   <Box>
-                    <Text size="sm" className="font-mono font-black uppercase tracking-wider mb-2">
+                    <Text size="sm" className="font-semibold tracking-tight mb-2">
                       Title Display
                     </Text>
                     <Radio.Group
@@ -419,7 +419,7 @@ export function Search() {
                         <Radio
                           value="english"
                           label={
-                            <Text size="xs" className="font-mono">
+                            <Text size="xs" className="font-normal">
                               English
                             </Text>
                           }
@@ -427,7 +427,7 @@ export function Search() {
                         <Radio
                           value="japanese"
                           label={
-                            <Text size="xs" className="font-mono">
+                            <Text size="xs" className="font-normal">
                               Japanese
                             </Text>
                           }
@@ -435,7 +435,7 @@ export function Search() {
                         <Radio
                           value="romanji"
                           label={
-                            <Text size="xs" className="font-mono">
+                            <Text size="xs" className="font-normal">
                               Romanji
                             </Text>
                           }
@@ -449,17 +449,17 @@ export function Search() {
           </Box>
 
           {/* Search Bar */}
-          <div className="bg-white border-2 border-gray-900 font-mono">
+          <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm">
             <TextInput
-              placeholder="SEARCH TITLES..."
+              placeholder="Search titles..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              leftSection={<SearchIcon size={16} className="text-gray-900" />}
+              leftSection={<SearchIcon size={16} className="text-[rgb(var(--color-text-primary))]" />}
               rightSection={isFetching ? <Loader size="sm" /> : null}
               size="md"
               classNames={{
                 input:
-                  'border-0 font-mono font-black uppercase tracking-wider placeholder:font-black',
+                  'border-0 font-normal placeholder:font-normal',
               }}
             />
           </div>
@@ -470,7 +470,7 @@ export function Search() {
           <Center py={60}>
             <Stack align="center" gap="md">
               <Loader size="lg" />
-              <Text c="dimmed" className="font-mono">Searching...</Text>
+              <Text c="dimmed" className="font-normal">Searching...</Text>
             </Stack>
           </Center>
         )}
@@ -478,7 +478,7 @@ export function Search() {
         {/* Error State */}
         {error && (
           <div className="mb-4 p-4 bg-red-50 border-2 border-red-900">
-            <Text className="font-mono font-black text-red-900">
+            <Text className="font-semibold text-red-900">
               {animeOnly && error.message?.includes('rate limit')
                 ? 'Jikan API rate limit reached. Please wait a moment.'
                 : 'ERROR: Failed to search. Please try again.'}
@@ -491,7 +491,7 @@ export function Search() {
           <div className="mb-4">
             <Text
               size="sm"
-              className="font-mono font-black uppercase tracking-wider"
+              className="font-semibold tracking-tight"
             >
               FOUND {resultsCount} RESULTS
               {effectivePaginationMetadata.total_pages > 1 && ` (PAGE ${page} OF ${effectivePaginationMetadata.total_pages})`}
@@ -530,10 +530,10 @@ export function Search() {
         {searchQuery && !isLoading && !isPlaceholderData && isDataForCurrentPage && data && data.results.length === 0 && searchResults.length === 0 && (
           <Center py={60}>
             <Stack align="center" gap="sm">
-              <Text size="lg" fw={500} c="dimmed" className="font-mono">
-                NO RESULTS FOUND
+              <Text size="lg" fw={500} c="dimmed" className="font-normal">
+                No Results Found
               </Text>
-              <Text size="sm" c="dimmed" className="font-mono">
+              <Text size="sm" c="dimmed" className="font-normal">
                 Try a different search term
               </Text>
             </Stack>
@@ -558,10 +558,10 @@ export function Search() {
         {!searchQuery && !isLoading && (
           <Center py={60}>
             <Stack align="center" gap="sm">
-              <Text size="lg" fw={500} c="dimmed" className="font-mono">
-                START SEARCHING
+              <Text size="lg" fw={500} c="dimmed" className="font-normal">
+                Start Searching
               </Text>
-              <Text size="sm" c="dimmed" className="font-mono">
+              <Text size="sm" c="dimmed" className="font-normal">
                 Enter a show or movie title above
               </Text>
             </Stack>

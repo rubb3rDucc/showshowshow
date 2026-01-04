@@ -17,8 +17,8 @@ interface ContentCarouselProps<T extends ContentItem = ContentItem> {
 export function ContentCarousel<T extends ContentItem = ContentItem>({ items, onItemClick }: ContentCarouselProps<T>) {
   if (!items || items.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <p className="text-sm font-mono">No content available</p>
+      <div className="text-center py-8 text-[rgb(var(--color-text-tertiary))]">
+        <p className="text-sm">No content available</p>
       </div>
     );
   }

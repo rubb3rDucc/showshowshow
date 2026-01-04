@@ -101,16 +101,16 @@ export function ScheduleCard({
       <div className="md:hidden flex flex-col gap-3">
         {/* Time (Dominant) */}
         <div className="flex items-center">
-          <div className="text-3xl font-bold text-gray-900 leading-none">
+          <div className="text-3xl font-bold text-[rgb(var(--color-text-primary))] leading-none">
             {startTime}
           </div>
           <div className="text-3xl font-normal text-gray-400 leading-none" style={{ margin: '0 2px' }}>—</div>
-          <div className="text-3xl font-bold text-gray-900 leading-none">
+          <div className="text-3xl font-bold text-[rgb(var(--color-text-primary))] leading-none">
             {endTime}
           </div>
           {isWatched && (
             <span
-              className="text-xs text-gray-500 uppercase tracking-wide"
+              className="text-xs text-[rgb(var(--color-text-tertiary))] tracking-wide"
               style={{ letterSpacing: '0.08em' }}
             >
               Watched
@@ -120,11 +120,11 @@ export function ScheduleCard({
 
         {/* Content Info */}
         <div>
-          <h2 className="text-lg font-medium text-gray-900 leading-tight mb-1">
+          <h2 className="text-lg font-medium text-[rgb(var(--color-text-primary))] leading-tight mb-1">
             {title}
           </h2>
           {queueItem?.type === 'show' && season !== null && episode !== null && (
-            <div className="text-sm text-gray-500 mb-1">
+            <div className="text-sm text-[rgb(var(--color-text-tertiary))] mb-1">
               S{String(season).padStart(2, '0')}E{String(episode).padStart(2, '0')}
               {episodeTitle && ` • ${episodeTitle}`}
             </div>
@@ -185,7 +185,7 @@ export function ScheduleCard({
         {/* Column 1: Time (Dominant) */}
         <div className="flex flex-col justify-center">
           <div
-            className="font-bold text-gray-900 leading-none"
+            className="font-bold text-[rgb(var(--color-text-primary))] leading-none"
             style={{ fontSize: '28px' }}
           >
             {startTime}
@@ -197,13 +197,13 @@ export function ScheduleCard({
             —
           </div>
           <div
-            className="font-bold text-gray-900 leading-none"
+            className="font-bold text-[rgb(var(--color-text-primary))] leading-none"
             style={{ fontSize: '28px' }}
           >
             {endTime}
           </div>
           {isWatched && (
-            <div className="text-xs text-gray-500 uppercase tracking-wide mt-1.5">
+            <div className="text-xs text-[rgb(var(--color-text-tertiary))] tracking-wide mt-1.5">
               Watched
             </div>
           )}
@@ -211,11 +211,11 @@ export function ScheduleCard({
 
         {/* Column 2: Content Info */}
         <div className="flex flex-col justify-center">
-          <h2 className="text-lg font-medium text-gray-900 leading-tight mb-1">
+          <h2 className="text-lg font-medium text-[rgb(var(--color-text-primary))] leading-tight mb-1">
             {title}
           </h2>
           {queueItem?.type === 'show' && season !== null && episode !== null && (
-            <div className="text-sm text-gray-500 mb-1">
+            <div className="text-sm text-[rgb(var(--color-text-tertiary))] mb-1">
               S{String(season).padStart(2, '0')}E{String(episode).padStart(2, '0')}
               {episodeTitle && ` • ${episodeTitle}`}
             </div>

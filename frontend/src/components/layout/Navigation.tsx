@@ -27,13 +27,13 @@ export function Navigation() {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b">
+    <nav className="bg-[rgb(var(--color-bg-surface))] shadow-sm border-b border-[rgb(var(--color-border-subtle))]">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo/Brand */}
           <div className="flex-shrink-0">
             <Link href="/">
-              <span className="text-xl font-bold text-gray-900 cursor-pointer">
+              <span className="text-xl font-bold text-[rgb(var(--color-text-primary))] cursor-pointer">
                 ShowShowShow
               </span>
             </Link>
@@ -44,10 +44,10 @@ export function Navigation() {
             {navItems.map((item) => (
               <Link key={item.path} href={item.path}>
                 <span
-                  className={`px-3 py-2 rounded-md text-sm font-medium cursor-pointer ${
+                  className={`px-3 py-2 rounded-md text-sm font-semibold cursor-pointer ${
                     location === item.path
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-[rgb(var(--color-accent))] text-white'
+                      : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))]'
                   }`}
                 >
                   {item.label}
@@ -61,8 +61,7 @@ export function Navigation() {
             <Button
               onClick={logout}
               variant='filled'
-              // variant="gradient"
-              // gradient={{ from: 'violet', to: 'orange', deg: 90 }}
+              className="font-semibold"
             >
               Logout
             </Button>
@@ -91,26 +90,25 @@ export function Navigation() {
           {navItems.map((item) => (
             <Link key={item.path} href={item.path} onClick={handleNavClick}>
               <div
-                className={`px-4 py-3 rounded-md text-base font-medium cursor-pointer transition-colors ${
+                className={`px-4 py-3 rounded-md text-base font-semibold cursor-pointer transition-colors ${
                   location === item.path
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-[rgb(var(--color-accent))] text-white'
+                    : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))]'
                 }`}
               >
                 {item.label}
               </div>
             </Link>
           ))}
-          
+
           <Divider />
-          
+
           <Button
             onClick={handleLogout}
-            // variant="gradient"
             variant='filled'
-            // gradient={{ from: 'violet', to: 'orange', deg: 90 }}
             fullWidth
             leftSection={<IconLogout size={16} />}
+            className="font-semibold"
           >
             Logout
           </Button>

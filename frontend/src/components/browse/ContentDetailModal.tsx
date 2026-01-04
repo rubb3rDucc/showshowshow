@@ -69,19 +69,19 @@ export function ContentDetailModal({
       padding={0}
       withCloseButton={false}
       classNames={{
-        content: 'border-4 border-gray-900 font-mono bg-gray-50 max-w-[95vw] sm:max-w-xl',
+        content: 'border-4 border-gray-900 bg-gray-50 max-w-[95vw] sm:max-w-xl',
         body: 'p-0',
       }}
     >
       {/* Header with actions (desktop) */}
-      <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center border-b-4 border-gray-900">
-        <h2 className="text-sm sm:text-base md:text-lg font-black uppercase tracking-tight truncate pr-2 flex-1">
+      <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center border-b-2 border-[rgb(var(--color-border-default))]">
+        <h2 className="truncate pr-2 flex-1">
           {content.title}
         </h2>
         {/* Desktop actions in header */}
         <div className="hidden sm:flex gap-2 ml-4">
           <Button
-            className="bg-white text-black border-2 border-white font-black uppercase hover:bg-gray-100"
+            className="bg-[rgb(var(--color-bg-surface))] text-black border-2 border-white font-semibold hover:bg-[rgb(var(--color-bg-elevated))]"
             onClick={onAddToLibrary}
             leftSection={<Plus size={14} />}
             loading={isAddingToLibrary}
@@ -91,7 +91,7 @@ export function ContentDetailModal({
           </Button>
           <Button
             variant="outline"
-            className="border-2 border-white text-white font-black uppercase hover:bg-gray-800"
+            className="border-2 border-white text-white font-semibold hover:bg-gray-800"
             onClick={onAddToQueue}
             leftSection={<ListPlus size={14} />}
             loading={isAddingToQueue}
@@ -117,7 +117,7 @@ export function ContentDetailModal({
               <img
                 src={content.poster_url}
                 alt={content.title}
-                className="w-24 h-36 sm:w-32 sm:h-48 object-cover border-2 border-gray-900"
+                className="w-24 h-36 sm:w-32 sm:h-48 object-cover border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm"
               />
             </div>
           )}
@@ -125,7 +125,7 @@ export function ContentDetailModal({
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="mb-4">
-              <div className="text-sm text-gray-600 font-mono mb-3">
+              <div className="text-sm text-[rgb(var(--color-text-secondary))] mb-3">
                 {year && <span className="font-bold">{year}</span>}
                 {directors.length > 0 && (
                   <>
@@ -160,13 +160,13 @@ export function ContentDetailModal({
           <Tabs.List className="border-b-2 border-gray-900 mb-4">
             <Tabs.Tab 
               value="cast" 
-              className="font-black uppercase text-xs"
+              className="font-semibold text-xs"
             >
               Cast
             </Tabs.Tab>
             <Tabs.Tab 
               value="crew" 
-              className="font-black uppercase text-xs"
+              className="font-semibold text-xs"
             >
               Crew
             </Tabs.Tab>
@@ -182,31 +182,31 @@ export function ContentDetailModal({
                 {credits.cast.slice(0, 30).map((actor) => (
                   <div
                     key={actor.id}
-                    className="flex items-center gap-2 sm:gap-3 p-2 border-2 border-gray-900 hover:bg-gray-100 cursor-pointer transition-colors"
+                    className="flex items-center gap-2 sm:gap-3 p-2 border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm hover:bg-[rgb(var(--color-bg-elevated))] cursor-pointer transition-colors"
                     onClick={() => handlePersonClick(actor.id)}
                   >
                     {actor.profile_url && actor.profile_url.trim() !== '' ? (
                       <img
                         src={actor.profile_url}
                         alt={actor.name}
-                        className="w-10 h-10 sm:w-12 sm:h-12 object-cover border-2 border-gray-900 flex-shrink-0"
+                        className="w-10 h-10 sm:w-12 sm:h-12 object-cover border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 border-2 border-gray-900 flex items-center justify-center flex-shrink-0">
-                        <User size={18} className="text-gray-600 sm:w-5 sm:h-5" />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm flex items-center justify-center flex-shrink-0">
+                        <User size={18} className="text-[rgb(var(--color-text-secondary))] sm:w-5 sm:h-5" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-xs sm:text-sm truncate">{actor.name}</p>
                       {actor.character && (
-                        <p className="text-xs text-gray-600 truncate">{actor.character}</p>
+                        <p className="text-xs text-[rgb(var(--color-text-secondary))] truncate">{actor.character}</p>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 py-4">No cast information available</p>
+              <p className="text-sm text-[rgb(var(--color-text-tertiary))] py-4">No cast information available</p>
             )}
           </Tabs.Panel>
 
@@ -219,30 +219,30 @@ export function ContentDetailModal({
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {Object.entries(crewByDepartment).map(([dept, members]) => (
                   <div key={dept}>
-                    <h3 className="text-xs font-black uppercase text-gray-500 mb-2 sticky top-0 bg-gray-50 py-1">
+                    <h3 className="text-xs font-semibold text-[rgb(var(--color-text-tertiary))] mb-2 sticky top-0 bg-[rgb(var(--color-bg-page))] py-1">
                       {dept}
                     </h3>
                     <div className="space-y-2">
                       {members.map((member) => (
                         <div
                           key={`${member.id}-${member.job}`}
-                          className="flex items-center gap-3 p-2 border-2 border-gray-900 hover:bg-gray-100 cursor-pointer transition-colors"
+                          className="flex items-center gap-3 p-2 border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm hover:bg-[rgb(var(--color-bg-elevated))] cursor-pointer transition-colors"
                           onClick={() => handlePersonClick(member.id)}
                         >
                           {member.profile_url && member.profile_url.trim() !== '' ? (
                             <img
                               src={member.profile_url}
                               alt={member.name}
-                              className="w-10 h-10 sm:w-12 sm:h-12 object-cover border-2 border-gray-900 flex-shrink-0"
+                              className="w-10 h-10 sm:w-12 sm:h-12 object-cover border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 border-2 border-gray-900 flex items-center justify-center flex-shrink-0">
-                              <User size={18} className="text-gray-600 sm:w-5 sm:h-5" />
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm flex items-center justify-center flex-shrink-0">
+                              <User size={18} className="text-[rgb(var(--color-text-secondary))] sm:w-5 sm:h-5" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-xs sm:text-sm truncate">{member.name}</p>
-                            <p className="text-xs text-gray-600 truncate">{member.job}</p>
+                            <p className="text-xs text-[rgb(var(--color-text-secondary))] truncate">{member.job}</p>
                           </div>
                         </div>
                       ))}
@@ -251,17 +251,17 @@ export function ContentDetailModal({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 py-4">No crew information available</p>
+              <p className="text-sm text-[rgb(var(--color-text-tertiary))] py-4">No crew information available</p>
             )}
           </Tabs.Panel>
         </Tabs>
       </div>
 
       {/* Sticky action bar at bottom (mobile only) */}
-      <div className="sticky bottom-0 bg-white border-t-4 border-gray-900 p-4 sm:hidden">
+      <div className="sticky bottom-0 bg-[rgb(var(--color-bg-surface))] border-t-4 border-gray-900 p-4 sm:hidden">
         <div className="flex gap-2">
           <Button
-            className="bg-black text-white border-2 border-black font-black uppercase hover:bg-gray-900 flex-1"
+            className="bg-teal-600 hover:bg-teal-700 text-white border-0 font-semibold hover:bg-gray-900 flex-1"
             onClick={onAddToLibrary}
             leftSection={<Plus size={16} />}
             loading={isAddingToLibrary}
@@ -271,7 +271,7 @@ export function ContentDetailModal({
           </Button>
           <Button
             variant="outline"
-            className="border-2 border-black font-black uppercase hover:bg-gray-100 flex-1"
+            className="border-2 border-black font-semibold hover:bg-[rgb(var(--color-bg-elevated))] flex-1"
             onClick={onAddToQueue}
             leftSection={<ListPlus size={16} />}
             loading={isAddingToQueue}

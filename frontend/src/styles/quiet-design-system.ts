@@ -11,7 +11,7 @@
 export const QuietDesign = {
   colors: {
     // Single accent color - use ONLY for meaningful states
-    accent: '#646cff',
+    accent: '#14b8a6', // Teal - modern, fresh
 
     // Grayscale palette
     gray: {
@@ -96,6 +96,51 @@ export const QuietDesign = {
     size: '24px',
     iconSize: '14px',
   },
+
+  // Status colors (Library-style)
+  status: {
+    watching: {
+      bg: 'bg-blue-500/90',
+      text: 'text-white',
+      border: 'rgba(59, 130, 246, 0.3)',
+      borderHover: 'rgba(59, 130, 246, 0.6)',
+    },
+    completed: {
+      bg: 'bg-green-500/90',
+      text: 'text-white',
+      border: 'rgba(34, 197, 94, 0.3)',
+      borderHover: 'rgba(34, 197, 94, 0.6)',
+    },
+    dropped: {
+      bg: 'bg-red-500/90',
+      text: 'text-white',
+      border: 'rgba(239, 68, 68, 0.3)',
+      borderHover: 'rgba(239, 68, 68, 0.6)',
+    },
+    planToWatch: {
+      bg: 'bg-gray-500/90',
+      text: 'text-white',
+      border: 'rgba(107, 114, 128, 0.3)',
+      borderHover: 'rgba(107, 114, 128, 0.6)',
+    },
+  },
+
+  // Shadow presets
+  shadows: {
+    base: 'shadow-sm',
+    hover: 'hover:shadow-xl',
+    lg: 'shadow-lg',
+  },
+
+  // Transform/interaction patterns
+  interactions: {
+    cardLift: 'transform hover:-translate-y-1',
+    imageScale: 'group-hover:scale-110',
+    transition: {
+      fast: 'transition-all duration-300 ease-out',
+      slow: 'transition-all duration-500 ease-out',
+    },
+  },
 } as const;
 
 // Export individual sections for convenience
@@ -106,3 +151,6 @@ export const borders = QuietDesign.borders;
 export const transitions = QuietDesign.transitions;
 export const poster = QuietDesign.poster;
 export const checkbox = QuietDesign.checkbox;
+export const status = QuietDesign.status;
+export const shadows = QuietDesign.shadows;
+export const interactions = QuietDesign.interactions;

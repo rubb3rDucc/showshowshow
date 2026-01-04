@@ -59,53 +59,53 @@ export function Settings() {
       <Stack gap="xl">
 
         {/* Account Information */}
-        <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Card shadow="sm" padding="lg" radius="md" withBorder className="bg-[rgb(var(--color-bg-surface))] border-[rgb(var(--color-border-default))] dark:shadow-gray-950/50">
           <Stack gap="md">
             <Group justify="space-between" align="center">
               <div>
-                <Text size="lg" fw={600} className="mb-1">
+                <Text size="lg" fw={600} className="mb-1 text-[rgb(var(--color-text-primary))]">
                   Account Information
                 </Text>
-                <Text size="sm" c="dimmed">
+                <Text size="sm" c="dimmed" className="text-[rgb(var(--color-text-secondary))]">
                   Your account details
                 </Text>
               </div>
-              <IconUser size={24} className="text-gray-400" />
+              <IconUser size={24} className="text-[rgb(var(--color-text-tertiary))]" />
             </Group>
 
             <Divider />
 
             <Stack gap="sm">
               <div>
-                <Text size="sm" fw={500} className="mb-1">
+                <Text size="sm" fw={500} className="mb-1 text-[rgb(var(--color-text-secondary))]">
                   Email Address
                 </Text>
-                <Text size="md">{displayUser?.email || 'Not available'}</Text>
+                <Text size="md" className="text-[rgb(var(--color-text-primary))]">{displayUser?.email || 'Not available'}</Text>
               </div>
 
               <div>
-                <Text size="sm" fw={500} className="mb-1">
+                <Text size="sm" fw={500} className="mb-1 text-[rgb(var(--color-text-secondary))]">
                   Member Since
                 </Text>
-                <Text size="md">{formatDate(displayUser?.created_at)}</Text>
+                <Text size="md" className="text-[rgb(var(--color-text-primary))]">{formatDate(displayUser?.created_at)}</Text>
               </div>
             </Stack>
           </Stack>
         </Card>
 
         {/* Account Management */}
-        <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Card shadow="sm" padding="lg" radius="md" withBorder className="bg-[rgb(var(--color-bg-surface))] border-[rgb(var(--color-border-default))] dark:shadow-gray-950/50">
           <Stack gap="md">
             <Group justify="space-between" align="center">
               <div>
-                <Text size="lg" fw={600} className="mb-1">
+                <Text size="lg" fw={600} className="mb-1 text-[rgb(var(--color-text-primary))]">
                   Account Management
                 </Text>
-                <Text size="sm" c="dimmed">
+                <Text size="sm" c="dimmed" className="text-[rgb(var(--color-text-secondary))]">
                   Update your email or password
                 </Text>
               </div>
-              <IconLock size={24} className="text-gray-400" />
+              <IconLock size={24} className="text-[rgb(var(--color-text-tertiary))]" />
             </Group>
 
             <Divider />

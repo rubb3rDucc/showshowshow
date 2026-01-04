@@ -71,21 +71,21 @@ export function NetworkSearch({ onSearch, onClear }: NetworkSearchProps) {
           leftSection={<Search size={16} />}
           className="flex-1"
           classNames={{
-            input: 'border-2 border-gray-900 font-mono',
+            input: 'border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm',
           }}
           autoFocus={isMobile && searchModalOpen}
         />
         <div className="flex gap-2">
           <Button
             variant="outline"
-            className="border-2 border-gray-900 font-black uppercase"
+            className="border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-semibold"
             onClick={() => setShowFilters(!showFilters)}
             leftSection={<SlidersHorizontal size={16} />}
           >
             Filters
           </Button>
           <Button
-            className="bg-black text-white border-2 border-black font-black uppercase hover:bg-gray-900"
+            className="bg-teal-600 hover:bg-teal-700 text-white border-0 font-semibold hover:bg-gray-900"
             onClick={handleSearch}
           >
             Search
@@ -103,7 +103,7 @@ export function NetworkSearch({ onSearch, onClear }: NetworkSearchProps) {
       </div>
 
       {showFilters && (
-        <div className="pt-3 border-t-2 border-gray-200">
+        <div className="pt-3 border-t-2 border-[rgb(var(--color-border-subtle))]">
           <Group gap="md">
             <Select
               label="Sort By"
@@ -117,7 +117,7 @@ export function NetworkSearch({ onSearch, onClear }: NetworkSearchProps) {
               ]}
               className="flex-1"
               classNames={{
-                input: 'border-2 border-gray-900 font-mono',
+                input: 'border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm',
               }}
             />
             <Select
@@ -135,7 +135,7 @@ export function NetworkSearch({ onSearch, onClear }: NetworkSearchProps) {
               clearable
               className="flex-1"
               classNames={{
-                input: 'border-2 border-gray-900 font-mono',
+                input: 'border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm',
               }}
             />
             <Select
@@ -153,7 +153,7 @@ export function NetworkSearch({ onSearch, onClear }: NetworkSearchProps) {
               clearable
               className="flex-1"
               classNames={{
-                input: 'border-2 border-gray-900 font-mono',
+                input: 'border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm',
               }}
             />
           </Group>
@@ -168,7 +168,7 @@ export function NetworkSearch({ onSearch, onClear }: NetworkSearchProps) {
       <>
         <div className="mb-6">
           <Button
-            className="bg-black text-white border-2 border-black font-black uppercase hover:bg-gray-900 w-full"
+            className="bg-teal-600 hover:bg-teal-700 text-white border-0 font-semibold hover:bg-gray-900 w-full"
             onClick={() => setSearchModalOpen(true)}
             leftSection={<Search size={16} />}
           >
@@ -184,12 +184,12 @@ export function NetworkSearch({ onSearch, onClear }: NetworkSearchProps) {
           padding={0}
           withCloseButton={false}
           classNames={{
-            content: 'border-4 border-gray-900 font-mono',
+            content: 'border-4 border-gray-900',
             body: 'p-0',
           }}
         >
-          <div className="bg-black text-white p-4 flex justify-between items-center border-b-4 border-gray-900">
-            <h2 className="text-lg font-black uppercase tracking-tight">
+          <div className="bg-black text-white p-4 flex justify-between items-center border-b-2 border-[rgb(var(--color-border-default))]">
+            <h2 className="text-lg font-bold tracking-tight">
               Search Shows
             </h2>
             <button
@@ -209,7 +209,7 @@ export function NetworkSearch({ onSearch, onClear }: NetworkSearchProps) {
 
   // Desktop: Show regular search bar
   return (
-    <div className="bg-white border-2 border-gray-900 p-4 mb-6">
+    <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-4 mb-6">
       {searchForm}
     </div>
   );

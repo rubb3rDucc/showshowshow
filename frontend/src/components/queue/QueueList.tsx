@@ -31,7 +31,7 @@ export function QueueList({
           border: '1px solid #e5e7eb',
           borderRadius: '8px',
           overflow: 'hidden',
-          backgroundColor: 'white',
+          backgroundColor: 'rgb(var(--color-bg-surface))',
         }}
       >
         {items.map((item) => (

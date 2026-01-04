@@ -258,7 +258,7 @@ export function ScheduleView() {
         })}
       
       {/* Timezone Info */}
-      <div className="mt-8 text-center border-t border-gray-200 pt-6">
+      <div className="mt-8 text-center border-t border-[rgb(var(--color-border-subtle))] pt-6">
         <Text size="xs" c="dimmed">
           Timezone: {userTimezone}
         </Text>

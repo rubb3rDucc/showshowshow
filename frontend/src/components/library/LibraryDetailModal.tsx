@@ -17,22 +17,22 @@ interface LibraryDetailModalProps {
 const STATUS_OPTIONS: { value: LibraryStatus; label: string; color: string }[] = [
   {
     value: 'watching',
-    label: 'WATCHING',
+    label: 'Watching',
     color: 'bg-blue-500',
   },
   {
     value: 'completed',
-    label: 'COMPLETED',
+    label: 'Completed',
     color: 'bg-green-500',
   },
   {
     value: 'dropped',
-    label: 'DROPPED',
+    label: 'Dropped',
     color: 'bg-red-500',
   },
   {
     value: 'plan_to_watch',
-    label: 'PLAN TO WATCH',
+    label: 'Plan to Watch',
     color: 'bg-gray-500',
   },
 ];
@@ -55,12 +55,12 @@ const NotesSection = ({
   onScoreChange,
 }: NotesSectionProps) => {
   return (
-    <div className="border-b border-gray-200 bg-white w-full">
+    <div className="border-b border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-surface))] w-full">
       <div className="w-full flex items-center justify-between p-2 md:p-4">
 
         <div className="flex items-center gap-3">
-          <FileText size={18} className="text-gray-600" />
-          <span className="font-medium text-gray-900">Notes</span>
+          <FileText size={18} className="text-[rgb(var(--color-text-secondary))]" />
+          <span className="font-semibold text-[rgb(var(--color-text-primary))]">Notes</span>
         </div>
       </div>
 
@@ -70,23 +70,22 @@ const NotesSection = ({
 
           {/* Score Selector */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-2">
+            <label className="block text-xs font-semibold text-[rgb(var(--color-text-secondary))] mb-2">
               Score
             </label>
             <div className="flex flex-wrap gap-1">
-              {/* // Star rating instead of number grid */}
+              {/* Star rating with 44x44 touch targets for mobile */}
               <div className="flex items-center gap-1 overflow-x-auto">
                 <button
                   onClick={() => onScoreChange(null)}
                   className={`
-                    w-8 h-8 text-sm border border-gray-300 font-medium
+                    min-w-[44px] min-h-[44px] text-sm border border-[rgb(var(--color-border-default))] font-semibold rounded-md
                     transition-all flex items-center justify-center
                     ${score === null
-                      ? 'bg-gray-900 text-white border-gray-900'
-                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                      ? 'bg-[rgb(var(--color-accent))] text-white border-[rgb(var(--color-accent))]'
+                      : 'bg-[rgb(var(--color-bg-surface))] text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))]'
                     }
                     `}
-                  style={{ borderRadius: 0 }}
                   aria-label="No score"
                 >
                   —
@@ -96,14 +95,16 @@ const NotesSection = ({
                     key={num}
                     onClick={() => onScoreChange(num)}
                     className={`
+                      min-w-[44px] min-h-[44px] flex items-center justify-center
                         ${score && score >= num
                         ? 'text-amber-500'
-                        : 'text-gray-300'
+                        : 'text-gray-300 dark:text-gray-600'
                       }
         hover:text-amber-400 transition-colors
       `}
+                    aria-label={`Rate ${num} stars`}
                   >
-                    <Star size={12} fill={score && score >= num ? 'currentColor' : 'none'} />
+                    <Star size={20} fill={score && score >= num ? 'currentColor' : 'none'} />
                   </button>
                 ))}
               </div>
@@ -113,7 +114,7 @@ const NotesSection = ({
 
         {/* Notes */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-2">
+          <label className="block text-xs font-semibold text-[rgb(var(--color-text-secondary))] mb-2">
             Notes
           </label>
           <Textarea
@@ -124,16 +125,16 @@ const NotesSection = ({
             minRows={4}
             maxLength={250}
             classNames={{
-              input: 'border border-gray-300 focus:border-gray-900 bg-white font-medium',
+              input: 'border border-[rgb(var(--color-border-default))] focus:border-[rgb(var(--color-accent))] bg-[rgb(var(--color-bg-surface))] text-[rgb(var(--color-text-primary))] font-normal placeholder:text-[rgb(var(--color-text-tertiary))]',
             }}
             styles={{
               input: {
-                borderRadius: 0,
+                borderRadius: '0.5rem',
               },
             }}
           />
           <div className="text-right mt-1">
-            <span className="text-xs font-medium text-gray-400">
+            <span className="text-xs font-normal text-[rgb(var(--color-text-tertiary))]">
               {notes.length}/250
             </span>
           </div>
@@ -275,7 +276,7 @@ export function LibraryDetailModal({
     const totalEpisodes = item.progress?.totalEpisodes || 0;
 
     return (
-      <div className="bg-white p-4 sm:p-6 md:p-8 border-b border-gray-200">
+      <div className="bg-[rgb(var(--color-bg-surface))] p-4 sm:p-6 md:p-8 border-b border-[rgb(var(--color-border-subtle))]">
         <div className="flex justify-between items-start gap-3 sm:gap-4">
           <div className="flex gap-3 sm:gap-4 items-start flex-1 min-w-0">
             {/* Poster - Responsive sizing */}
@@ -294,7 +295,7 @@ export function LibraryDetailModal({
             </div>
 
             <div className="flex flex-col gap-2 flex-1 min-w-0">
-              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight break-words">
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-[rgb(var(--color-text-primary))] leading-tight break-words">
                 {item.content.title}
               </h1>
 
@@ -342,7 +343,7 @@ export function LibraryDetailModal({
                     size="sm"
                     variant="outline"
                     color="black"
-                    className="border-2 border-gray-900 font-medium"
+                    className="border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-medium"
                     leftSection={<CheckCircle size={14} />}
                     onClick={handleMarkShowWatched}
                   >
@@ -367,7 +368,7 @@ export function LibraryDetailModal({
 
                 {item.content.contentType === 'show' && item.progress && (
                   <div>
-                    <p className="text-xs text-gray-500">{`${item.progress.percentage}%`}</p>
+                    <p className="text-xs text-[rgb(var(--color-text-tertiary))]">{`${item.progress.percentage}%`}</p>
                   </div>
                 )}
               </div> */}
@@ -393,7 +394,7 @@ export function LibraryDetailModal({
               </div> */}
 
               {/* Add quick status selector in header */}
-              <span className="text-xs text-gray-500">Status:</span>
+              <span className="text-xs text-[rgb(var(--color-text-tertiary))]">Status:</span>
               <div className="flex items-center gap-2 mt-2 overflow-x-auto">
                 <div className="flex gap-1">
                   {STATUS_OPTIONS.map((option) => (
@@ -442,7 +443,7 @@ export function LibraryDetailModal({
                   variant="subtle"
                   color="gray"
                   size="md"
-                  className="text-gray-600 hover:bg-gray-100"
+                  className="text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))]"
                   aria-label="Show actions"
                   styles={{
                     root: {
@@ -455,7 +456,7 @@ export function LibraryDetailModal({
               </Menu.Target>
 
               <Menu.Dropdown
-                className="border border-gray-200"
+                className="border border-[rgb(var(--color-border-subtle))]"
                 style={{
                   borderRadius: 0,
                 }}
@@ -511,7 +512,7 @@ export function LibraryDetailModal({
 
   // Render content directly (not as a component to avoid render-time creation)
   const renderContent = () => (
-    <div className="bg-white flex flex-col w-full">
+    <div className="bg-[rgb(var(--color-bg-surface))] flex flex-col w-full">
 
 
       {/* Show Card Header */}

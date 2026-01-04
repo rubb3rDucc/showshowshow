@@ -157,7 +157,7 @@ export function Library() {
   };
 
   const handleNavigateToSearch = () => {
-    setLocation('/search');
+    setLocation('/');
   };
 
   if (isLoadingLibrary) {
@@ -169,23 +169,23 @@ export function Library() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-20">
+    <div className="min-h-screen bg-[rgb(var(--color-bg-page))] pb-20">
       <Container size="xl" className="py-6 md:py-10 lg:py-12 px-4 md:px-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">My Library</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-[rgb(var(--color-text-primary))]">My Library</h1>
           <div className="flex items-center gap-3">
             <Button
               size="sm"
               variant="subtle"
-              className="text-gray-600 hover:text-gray-900"
+              className="text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] font-semibold"
               onClick={() => setLocation('/stats')}
             >
               View Stats
             </Button>
             <Button
               size="sm"
-              className="bg-gray-900 text-white hover:bg-gray-800 font-medium"
+              className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold shadow-sm hover:shadow-lg"
               radius="md"
               leftSection={<Plus size={16} />}
               onClick={handleNavigateToSearch}
@@ -211,7 +211,7 @@ export function Library() {
         <div className="mb-6">
           <Text
             size="sm"
-            className="text-gray-600 font-medium"
+            className="text-[rgb(var(--color-text-secondary))] font-semibold"
           >
             {filteredLibrary.length} {filteredLibrary.length === 1 ? 'title' : 'titles'}
           </Text>
@@ -233,19 +233,19 @@ export function Library() {
             ))}
           </div>
         ) : (
-          <div className="bg-gray-50 rounded-lg p-12 text-center border border-gray-200">
+          <div className="bg-[rgb(var(--color-bg-surface))] rounded-lg p-12 text-center border border-[rgb(var(--color-border-default))] shadow-sm dark:shadow-gray-950/50">
               <div className="text-6xl mb-4"></div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-[rgb(var(--color-text-primary))] mb-2">
               No items found
             </h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-[rgb(var(--color-text-secondary))] mb-6">
               {searchQuery || filterStatus !== 'all' || filterType !== 'all'
                 ? 'Try adjusting your filters'
                 : 'Start building your library'}
             </p>
             <Button
               size="md"
-              className="bg-gray-900 text-white hover:bg-gray-800 font-medium"
+              className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold shadow-sm hover:shadow-lg"
               radius="md"
               leftSection={<Plus size={16} />}
               onClick={handleNavigateToSearch}

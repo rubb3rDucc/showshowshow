@@ -144,7 +144,7 @@ export function ManageNetworks() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
         <Center py={60}>
           <Loader size="lg" />
         </Center>
@@ -153,7 +153,7 @@ export function ManageNetworks() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
       <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
         {/* Header */}
         <div className="mb-8">
@@ -169,10 +169,10 @@ export function ManageNetworks() {
           <div className="flex items-center gap-4 mb-2">
             <Tv size={32} strokeWidth={2.5} className="text-gray-700" />
             <div>
-              <h1 className="text-3xl font-black uppercase tracking-wider">
+              <h1 className="text-3xl font-bold tracking-tight">
                 Manage Networks
               </h1>
-              <p className="text-sm text-gray-600 font-mono">
+              <p className="text-sm text-[rgb(var(--color-text-secondary))]">
                 Search and add networks from TMDB
               </p>
             </div>
@@ -180,8 +180,8 @@ export function ManageNetworks() {
         </div>
 
         {/* Search Section */}
-        <div className="bg-white border-2 border-gray-900 p-6 mb-8">
-          <h2 className="text-xl font-black uppercase tracking-wider mb-4 flex items-center justify-between">
+        <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-6 mb-8">
+          <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center justify-between">
             <span>Search for Networks</span>
             {searchQuery && (
               <Button
@@ -203,11 +203,11 @@ export function ManageNetworks() {
               rightSection={isSearching ? <Loader size={16} /> : null}
               className="flex-1"
               classNames={{
-                input: 'border-2 border-gray-900 font-mono',
+                input: 'border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm',
               }}
             />
           </div>
-          <p className="text-xs text-gray-500 font-mono">
+          <p className="text-xs text-[rgb(var(--color-text-tertiary))]">
             {searchQuery.length > 0 && searchQuery.length < 2 
               ? `Type ${2 - searchQuery.length} more character to search...`
               : searchQuery.length >= 2
@@ -223,14 +223,14 @@ export function ManageNetworks() {
           {/* Search Results */}
           {hasSearched && searchResults.length > 0 && (
             <div className="mt-6">
-              <h3 className="text-sm font-black uppercase tracking-wider mb-3 text-gray-600">
+              <h3 className="mb-3 text-[rgb(var(--color-text-secondary))]">
                 Search Results
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {searchResults.map((network) => (
                   <div
                     key={network.tmdb_id}
-                    className="bg-gray-50 border-2 border-gray-900 p-4 flex flex-col items-center gap-3"
+                    className="bg-[rgb(var(--color-bg-page))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-4 flex flex-col items-center gap-3"
                   >
                     {network.logo_url ? (
                       <img
@@ -247,13 +247,13 @@ export function ManageNetworks() {
                       {network.name}
                     </p>
                     {network.origin_country && (
-                      <p className="text-[10px] text-gray-500 font-mono">
+                      <p className="text-[10px] text-[rgb(var(--color-text-tertiary))]">
                         {network.origin_country}
                       </p>
                     )}
                     <Button
                       size="xs"
-                      className="w-full bg-black text-white border-2 border-black font-black uppercase text-[10px] hover:bg-gray-900"
+                      className="w-full bg-teal-600 hover:bg-teal-700 text-white border-0 font-semibold text-[10px] hover:bg-gray-900"
                       leftSection={<Plus size={12} />}
                       onClick={() => handleAddNetwork(network.tmdb_id, network.is_provider)}
                       disabled={isNetworkAdded(network.tmdb_id) || addNetworkMutation.isPending}
@@ -268,8 +268,8 @@ export function ManageNetworks() {
         </div>
 
         {/* Current Networks */}
-        <div className="bg-white border-2 border-gray-900 p-6">
-          <h2 className="text-xl font-black uppercase tracking-wider mb-4">
+        <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-6">
+          <h2 className="text-xl font-bold tracking-tight mb-4">
             Your Networks ({existingNetworks?.length || 0})
           </h2>
           {existingNetworks && existingNetworks.length > 0 ? (
@@ -277,7 +277,7 @@ export function ManageNetworks() {
               {existingNetworks.map((network) => (
                 <div
                   key={network.id}
-                  className="bg-gray-50 border-2 border-gray-900 p-4 flex flex-col items-center gap-3 group relative"
+                  className="bg-[rgb(var(--color-bg-page))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-4 flex flex-col items-center gap-3 group relative"
                 >
                   {network.logo_url ? (
                     <img
@@ -297,7 +297,7 @@ export function ManageNetworks() {
                     size="xs"
                     variant="outline"
                     color="red"
-                    className="w-full border-2 font-black uppercase text-[10px]"
+                    className="w-full border-2 font-semibold text-[10px]"
                     leftSection={<Trash2 size={12} />}
                     onClick={() => handleDeleteClick(network.id, network.name)}
                   >
@@ -307,8 +307,8 @@ export function ManageNetworks() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              <p className="font-mono">No networks added yet. Search above to add some!</p>
+            <div className="text-center py-12 text-[rgb(var(--color-text-tertiary))]">
+              <p className="font-normal">No networks added yet. Search above to add some!</p>
             </div>
           )}
         </div>
@@ -328,7 +328,7 @@ export function ManageNetworks() {
               <Text className="font-bold mb-2">
                 Are you sure you want to remove "{networkToDelete?.name}"?
               </Text>
-              <Text size="sm" className="text-gray-600">
+              <Text size="sm" className="text-[rgb(var(--color-text-secondary))]">
                 This will remove the network from your collection. Content from this network will remain in your library.
               </Text>
             </div>
@@ -337,7 +337,7 @@ export function ManageNetworks() {
             <Button
               variant="outline"
               onClick={() => setDeleteModalOpen(false)}
-              className="border-2 border-gray-900 font-bold"
+              className="border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-bold"
             >
               Cancel
             </Button>

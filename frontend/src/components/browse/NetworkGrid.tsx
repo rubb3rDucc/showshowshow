@@ -31,7 +31,7 @@ export function NetworkGrid({ onNetworkClick, onSeeAllNetworks, limit = 12 }: Ne
   // Skeleton component for loading cards
   const NetworkCardSkeleton = () => (
     <div className="flex-shrink-0 w-32 animate-pulse">
-      <div className="bg-gray-200 border-2 border-gray-300 aspect-square rounded" />
+      <div className="bg-gray-200 border-2 border-[rgb(var(--color-border-default))] aspect-square rounded" />
     </div>
   );
 
@@ -79,17 +79,17 @@ export function NetworkGrid({ onNetworkClick, onSeeAllNetworks, limit = 12 }: Ne
           icon={<Tv size={20} strokeWidth={2.5} />}
           onSeeAll={onSeeAllNetworks}
         />
-        <div className="bg-gray-100 border-2 border-gray-900 p-8 text-center">
+        <div className="bg-[rgb(var(--color-bg-elevated))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-8 text-center">
           <Tv size={48} className="mx-auto mb-4 text-gray-400" />
           <Text className="font-bold text-lg mb-2">No networks yet</Text>
-          <Text className="text-sm text-gray-600 font-mono mb-4">
+          <Text className="text-sm text-[rgb(var(--color-text-secondary))] mb-4">
             Add networks to start browsing shows
           </Text>
           {onSeeAllNetworks && (
           <Button
               variant="outline"
               onClick={onSeeAllNetworks}
-              className="border-2 border-gray-900 font-black uppercase"
+              className="border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-semibold"
             >
               Add Networks
           </Button>

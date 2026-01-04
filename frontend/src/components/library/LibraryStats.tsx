@@ -70,7 +70,7 @@ export function LibraryStats({ stats, alwaysExpanded = false }: LibraryStatsProp
           {STAT_CARDS.map((card) => (
             <div
               key={card.key}
-              className="bg-white border-2 border-gray-900 overflow-hidden"
+              className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm overflow-hidden"
             >
               {/* Colored Top Strip */}
               <div className={`h-4 ${card.color}`} />
@@ -78,18 +78,18 @@ export function LibraryStats({ stats, alwaysExpanded = false }: LibraryStatsProp
               <div className="p-4 md:p-6">
                 {/* Code Badge */}
                 <div className="flex justify-between items-start mb-3">
-                  <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-black tracking-widest">
+                  <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-semibold tracking-tight">
                     {card.code}
                   </div>
                 </div>
 
                 {/* Number - Large */}
-                <div className="text-5xl md:text-6xl font-black leading-none mb-2 tracking-tighter text-gray-900">
+                <div className="text-5xl md:text-6xl font-semibold leading-none mb-2 tracking-tighter text-[rgb(var(--color-text-primary))]">
                   {stats[card.key as keyof LibraryStatsType]}
                 </div>
 
                 {/* Label */}
-                <div className="text-xs md:text-sm font-black uppercase tracking-wider leading-tight text-gray-900 mb-3">
+                <div className="text-xs md:leading-tight text-[rgb(var(--color-text-primary))] mb-3">
                   {card.label}
                 </div>
 
@@ -122,13 +122,13 @@ export function LibraryStats({ stats, alwaysExpanded = false }: LibraryStatsProp
       {/* Collapsible Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full bg-white border-2 border-gray-900 p-4 flex items-center justify-between hover:bg-gray-50 transition-colors mb-3"
+        className="w-full bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-4 flex items-center justify-between hover:bg-[rgb(var(--color-bg-page))] transition-colors mb-3"
       >
         <div className="flex items-center gap-3">
-          <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-black tracking-widest">
+          <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-semibold tracking-tight">
             STATS
           </div>
-          <span className="text-sm font-black uppercase tracking-wider">
+          <span className="text-sm font-semibold tracking-tight">
             Library Statistics
           </span>
         </div>
@@ -145,7 +145,7 @@ export function LibraryStats({ stats, alwaysExpanded = false }: LibraryStatsProp
           {STAT_CARDS.map((card) => (
             <div
               key={card.key}
-              className="bg-white border-2 border-gray-900 overflow-hidden"
+              className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm overflow-hidden"
             >
               {/* Colored Top Strip */}
               <div className={`h-4 ${card.color}`} />
@@ -153,18 +153,18 @@ export function LibraryStats({ stats, alwaysExpanded = false }: LibraryStatsProp
               <div className="p-4 md:p-6">
                 {/* Code Badge */}
                 <div className="flex justify-between items-start mb-3">
-                  <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-black tracking-widest">
+                  <div className="bg-gray-900 text-white px-2 py-1 text-[10px] font-semibold tracking-tight">
                     {card.code}
                   </div>
                 </div>
 
                 {/* Number - Large */}
-                <div className="text-5xl md:text-6xl font-black leading-none mb-2 tracking-tighter text-gray-900">
+                <div className="text-5xl md:text-6xl font-semibold leading-none mb-2 tracking-tighter text-[rgb(var(--color-text-primary))]">
                   {stats[card.key as keyof LibraryStatsType]}
                 </div>
 
                 {/* Label */}
-                <div className="text-xs md:text-sm font-black uppercase tracking-wider leading-tight text-gray-900 mb-3">
+                <div className="text-xs md:leading-tight text-[rgb(var(--color-text-primary))] mb-3">
                   {card.label}
                 </div>
 

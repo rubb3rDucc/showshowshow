@@ -20,6 +20,98 @@ import { getQueue, getEpisodesByContentId } from '../../api/content';
 import { generateScheduleFromQueue } from '../../api/schedule';
 import type { Episode, GenerateScheduleRequest, QueueItem } from '../../types/api';
 
+interface SeasonSectionProps {
+  seasonNum: number;
+  seasonEpisodes: Episode[];
+  allSeasonChecked: boolean;
+  someSeasonChecked: boolean;
+  filter: { mode: 'all' | 'include' | 'exclude'; episodes: string[] };
+  showContentId: string;
+  onToggleSeason: (contentId: string, seasonEpisodes: Episode[], checked: boolean) => void;
+  onToggleEpisode: (contentId: string, season: number, episode: number, checked: boolean) => void;
+}
+
+function SeasonSection({
+  seasonNum,
+  seasonEpisodes,
+  allSeasonChecked,
+  someSeasonChecked,
+  filter,
+  showContentId,
+  onToggleSeason,
+  onToggleEpisode,
+}: SeasonSectionProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <Box>
+      <Button
+        variant="subtle"
+        size="md"
+        onClick={() => setIsExpanded(!isExpanded)}
+        leftSection={isExpanded ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+        styles={{
+          root: {
+            fontWeight: 500,
+            padding: '8px 12px',
+            minHeight: '44px',
+            width: '100%',
+            justifyContent: 'flex-start',
+          }
+        }}
+      >
+        <Group justify="space-between" style={{ flex: 1 }}>
+          <Text size="sm">Season {seasonNum}</Text>
+          <Text size="xs" c="dimmed">
+            {allSeasonChecked ? `All selected (${seasonEpisodes.length})` : someSeasonChecked ? `${filter.episodes.filter(key => seasonEpisodes.some(ep => key === `${ep.season}-${ep.episode_number}`)).length} selected` : `${seasonEpisodes.length} episodes`}
+          </Text>
+        </Group>
+      </Button>
+      <Collapse in={isExpanded}>
+        <Box ml="md" mt="xs">
+          <Button
+            variant="subtle"
+            size="sm"
+            onClick={() => onToggleSeason(showContentId, seasonEpisodes, !allSeasonChecked)}
+            styles={{
+              root: {
+                fontWeight: 400,
+                fontSize: '13px',
+                minHeight: '36px',
+                padding: '8px 12px',
+              }
+            }}
+            mb="xs"
+          >
+            {allSeasonChecked ? 'Deselect all' : someSeasonChecked ? 'Select all' : 'Select all'}
+          </Button>
+          <Stack gap={4}>
+            {seasonEpisodes.map((ep) => {
+              const key = `${ep.season}-${ep.episode_number}`;
+              return (
+                <Checkbox
+                  key={ep.id}
+                  size="sm"
+                  label={`${ep.episode_number}. ${ep.title}`}
+                  checked={filter.episodes.includes(key)}
+                  onChange={(e) =>
+                    onToggleEpisode(showContentId, ep.season, ep.episode_number, e.currentTarget.checked)
+                  }
+                  styles={{
+                    root: { minHeight: '44px', display: 'flex', alignItems: 'center' },
+                    label: { fontSize: '14px', cursor: 'pointer' },
+                    input: { cursor: 'pointer' },
+                  }}
+                />
+              );
+            })}
+          </Stack>
+        </Box>
+      </Collapse>
+    </Box>
+  );
+}
+
 interface GenerateScheduleModalProps {
   opened: boolean;
   onClose: () => void;
@@ -129,47 +221,17 @@ function ShowEpisodeFilter({
                   const someSeasonChecked = seasonKeys.some((key) => filter.episodes.includes(key));
 
                   return (
-                    <Box key={seasonNum}>
-                      <Group justify="space-between" mb="xs">
-                        <Text size="sm" fw={500}>Season {seasonNum}</Text>
-                        <Button
-                          variant="subtle"
-                          size="sm"
-                          onClick={() => onToggleSeason(show.content_id, seasonEpisodes, !allSeasonChecked)}
-                          styles={{
-                            root: {
-                              fontWeight: 400,
-                              fontSize: '13px',
-                              minHeight: '36px',
-                              padding: '8px 12px',
-                            }
-                          }}
-                        >
-                          {allSeasonChecked ? 'Deselect all' : someSeasonChecked ? 'Select all' : 'Select all'}
-                        </Button>
-                      </Group>
-                      <Stack gap={4}>
-                        {seasonEpisodes.map((ep) => {
-                          const key = `${ep.season}-${ep.episode_number}`;
-                          return (
-                            <Checkbox
-                              key={ep.id}
-                              size="sm"
-                              label={`${ep.episode_number}. ${ep.title}`}
-                              checked={filter.episodes.includes(key)}
-                              onChange={(e) =>
-                                onToggleEpisode(show.content_id, ep.season, ep.episode_number, e.currentTarget.checked)
-                              }
-                              styles={{
-                                root: { minHeight: '44px', display: 'flex', alignItems: 'center' },
-                                label: { fontSize: '14px', cursor: 'pointer' },
-                                input: { cursor: 'pointer' },
-                              }}
-                            />
-                          );
-                        })}
-                      </Stack>
-                    </Box>
+                    <SeasonSection
+                      key={seasonNum}
+                      seasonNum={Number(seasonNum)}
+                      seasonEpisodes={seasonEpisodes}
+                      allSeasonChecked={allSeasonChecked}
+                      someSeasonChecked={someSeasonChecked}
+                      filter={filter}
+                      showContentId={show.content_id}
+                      onToggleSeason={onToggleSeason}
+                      onToggleEpisode={onToggleEpisode}
+                    />
                   );
                 })}
             </Stack>
@@ -294,9 +356,12 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
   const calculatedEndTime = calculateEndTime(startTimeBlock, duration);
   const formattedStartTime = formatStartTime(useCustomTimeRange ? customStartTime : startTimeBlock);
   const formattedEndTime = formatStartTime(useCustomTimeRange ? customEndTime : calculatedEndTime);
-  const formattedDate = scheduleDate instanceof Date
-    ? scheduleDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-    : 'Select Date';
+
+  // Format date for modal title - recalculate whenever scheduleDate changes
+  const formattedDate = useMemo(() => {
+    if (!scheduleDate || !(scheduleDate instanceof Date)) return 'Select Date';
+    return scheduleDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }, [scheduleDate]);
 
   const generateMutation = useMutation({
     mutationFn: (params: GenerateScheduleRequest) => generateScheduleFromQueue(params),
@@ -632,21 +697,36 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
             Options
           </Text>
 
-          <Select
-            label="Show rotation"
-            description="How many episodes to schedule from each show before moving to the next"
+          <Radio.Group
+            label="Selection Mode"
+            description="How to select episodes from your lineup"
             value={rotationType}
-            onChange={(value) => setRotationType(value as 'round_robin' | 'random' | 'round_robin_double')}
-            data={[
-              { value: 'round_robin', label: 'One episode per show' },
-              { value: 'round_robin_double', label: 'Two episodes per show' },
-              { value: 'random', label: 'Random order' },
-            ]}
-            styles={{
-              label: { fontSize: '14px', fontWeight: 400, color: '#6b7280', marginBottom: '4px' },
-              description: { fontSize: '12px', color: '#9ca3af', marginTop: '2px' },
-            }}
-          />
+            onChange={(value) => setRotationType(value as 'round_robin' | 'random')}
+            size="sm"
+          >
+            <Stack gap="xs" mt="xs">
+              <Radio
+                value="round_robin"
+                label="Sequential - Play shows in lineup order"
+                description="Cycles through your lineup in order, one episode at a time"
+                styles={{
+                  root: { minHeight: '44px', display: 'flex', alignItems: 'flex-start', paddingTop: '8px' },
+                  label: { fontSize: '14px', cursor: 'pointer', fontWeight: 500 },
+                  description: { fontSize: '12px', color: '#9ca3af', marginTop: '2px' },
+                }}
+              />
+              <Radio
+                value="random"
+                label="Random - Shuffle all episodes"
+                description="Randomly selects episodes from any show in your lineup"
+                styles={{
+                  root: { minHeight: '44px', display: 'flex', alignItems: 'flex-start', paddingTop: '8px' },
+                  label: { fontSize: '14px', cursor: 'pointer', fontWeight: 500 },
+                  description: { fontSize: '12px', color: '#9ca3af', marginTop: '2px' },
+                }}
+              />
+            </Stack>
+          </Radio.Group>
         </Stack>
 
         {/* Episode Filters - Collapsible */}
@@ -718,12 +798,12 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
             loading={generateMutation.isPending}
             styles={{
               root: {
-                backgroundColor: '#646cff',
+                backgroundColor: '#14b8a6',
                 fontWeight: 400,
                 minHeight: '44px',
                 padding: '12px 20px',
                 '&:hover': {
-                  backgroundColor: '#525aef',
+                  backgroundColor: '#0d9488',
                 },
               },
             }}
