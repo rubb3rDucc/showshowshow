@@ -49,28 +49,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-[data-theme='dark'] {
-  /* Dark Mode Colors */
-  --color-bg-page: 3 7 18; /* gray-950 */
-  --color-bg-surface: 17 24 39; /* gray-900 */
-  --color-bg-elevated: 31 41 55; /* gray-800 */
-
-  --color-text-primary: 243 244 246; /* gray-100 */
-  --color-text-secondary: 156 163 175; /* gray-400 */
-  --color-text-tertiary: 107 114 128; /* gray-500 */
-
-  --color-border-default: 55 65 81; /* gray-700 */
-  --color-border-subtle: 31 41 55; /* gray-800 */
-
-  --color-accent: 20 184 166; /* #14b8a6 - teal (same) */
-
-  /* Status Colors (slightly desaturated for dark mode) */
-  --color-status-watching: 96 165 250; /* blue-400 */
-  --color-status-completed: 74 222 128; /* green-400 */
-  --color-status-dropped: 248 113 113; /* red-400 */
-  --color-status-planned: 156 163 175; /* gray-400 */
-}
-
 body {
   margin: 0;
   min-width: 320px;

@@ -1,12 +1,12 @@
 import { db } from '../db/index.js';
-import { authenticate } from '../plugins/auth.js';
+import { authenticateClerk } from '../plugins/clerk-auth.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import { getImageUrl, discoverShowsByNetwork, searchNetworks, getNetworkDetails } from '../lib/tmdb.js';
 import type { FastifyInstance } from 'fastify';
 
 export const networkRoutes = async (fastify: FastifyInstance) => {
   // Get all featured networks
-  fastify.get('/api/networks', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/networks', { preHandler: authenticateClerk }, async (request, reply) => {
     const networks = await db
       .selectFrom('networks')
       .selectAll()
@@ -21,7 +21,7 @@ export const networkRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get network details
-  fastify.get('/api/networks/:id', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/networks/:id', { preHandler: authenticateClerk }, async (request, reply) => {
     const { id } = request.params as { id: string };
     
     const network = await db
@@ -41,7 +41,7 @@ export const networkRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get shows from a specific network
-  fastify.get('/api/networks/:id/content', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/networks/:id/content', { preHandler: authenticateClerk }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const { page = 1 } = request.query as { page?: number };
     
@@ -95,7 +95,7 @@ export const networkRoutes = async (fastify: FastifyInstance) => {
 
   // Search for networks in TMDB
   // Searches both TV networks and streaming providers
-  fastify.get('/api/networks/search', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/networks/search', { preHandler: authenticateClerk }, async (request, reply) => {
     const { q, page = 1 } = request.query as { q?: string; page?: number };
     
     if (!q || q.trim().length === 0) {
@@ -188,7 +188,7 @@ export const networkRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Add a new network to the database
-  fastify.post('/api/networks', { preHandler: authenticate }, async (request, reply) => {
+  fastify.post('/api/networks', { preHandler: authenticateClerk }, async (request, reply) => {
     const { tmdb_network_id, is_provider } = request.body as { tmdb_network_id: number; is_provider?: boolean };
     
     if (!tmdb_network_id) {
@@ -248,7 +248,7 @@ export const networkRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Delete a network from the database
-  fastify.delete('/api/networks/:id', { preHandler: authenticate }, async (request, reply) => {
+  fastify.delete('/api/networks/:id', { preHandler: authenticateClerk }, async (request, reply) => {
     const { id } = request.params as { id: string };
     
     const network = await db
@@ -271,7 +271,7 @@ export const networkRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Reorder networks
-  fastify.patch('/api/networks/reorder', { preHandler: authenticate }, async (request, reply) => {
+  fastify.patch('/api/networks/reorder', { preHandler: authenticateClerk }, async (request, reply) => {
     const { network_ids } = request.body as { network_ids: string[] };
     
     if (!network_ids || !Array.isArray(network_ids)) {

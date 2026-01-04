@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useAuthStore } from '../../stores/authStore';
+import { useClerk } from '@clerk/clerk-react';
 import { Button, Burger, Drawer, Stack, Divider } from "@mantine/core";
 import { IconLogout } from '@tabler/icons-react';
 
 export function Navigation() {
   const [location] = useLocation();
-  const { logout } = useAuthStore();
+  const { signOut } = useClerk();
   const [mobileMenuOpened, setMobileMenuOpened] = useState(false);
 
   const navItems = [
@@ -23,7 +23,7 @@ export function Navigation() {
 
   const handleLogout = () => {
     setMobileMenuOpened(false);
-    logout();
+    signOut();
   };
 
   return (
@@ -59,7 +59,7 @@ export function Navigation() {
           {/* Desktop User Menu */}
           <div className="hidden md:flex items-center space-x-4">
             <Button
-              onClick={logout}
+              onClick={() => signOut()}
               variant='filled'
               className="font-semibold"
             >

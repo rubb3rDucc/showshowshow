@@ -1,6 +1,13 @@
 // API client with authentication
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+// Global token getter - will be set by App component
+let globalGetToken: (() => Promise<string | null>) | null = null;
+
+export function setGlobalTokenGetter(getter: () => Promise<string | null>) {
+  globalGetToken = getter;
+}
+
 export class ApiError extends Error {
   statusCode: number;
   code: string;
@@ -15,15 +22,20 @@ export class ApiError extends Error {
 
 export async function apiCall<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
+  token?: string
 ): Promise<T> {
-  const token = localStorage.getItem('token');
+  // Get token from Clerk if not provided
+  let authToken = token;
+  if (!authToken && globalGetToken) {
+    authToken = (await globalGetToken()) || undefined;
+  }
 
   // Don't set Content-Type for requests without a body (GET, DELETE)
   const hasBody = options?.body !== undefined;
   const headers: HeadersInit = {
     ...(hasBody && { 'Content-Type': 'application/json' }),
-    ...(token && { Authorization: `Bearer ${token}` }),
+    ...(authToken && { Authorization: `Bearer ${authToken}` }),
     ...(options?.headers as Record<string, string>),
   };
 

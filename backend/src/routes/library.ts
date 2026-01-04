@@ -1,12 +1,12 @@
 import { db } from '../db/index.js';
-import { authenticate } from '../plugins/auth.js';
+import { authenticateClerk } from '../plugins/clerk-auth.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import type { FastifyInstance } from 'fastify';
 import { sql } from 'kysely';
 
 export const libraryRoutes = async (fastify: FastifyInstance) => {
   // Get user's library items
-  fastify.get('/api/library', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/library', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -94,7 +94,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get library statistics
-  fastify.get('/api/library/stats', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/library/stats', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -130,7 +130,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get detailed library statistics
-  fastify.get('/api/library/stats/detailed', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/library/stats/detailed', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -248,7 +248,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get a single library item by ID
-  fastify.get('/api/library/:id', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/library/:id', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -314,7 +314,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Check if content is in library
-  fastify.get('/api/library/check/:contentId', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/library/check/:contentId', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -383,7 +383,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Add content to library
-  fastify.post('/api/library', { preHandler: authenticate }, async (request, reply) => {
+  fastify.post('/api/library', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -518,7 +518,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Update library item
-  fastify.patch('/api/library/:id', { preHandler: authenticate }, async (request, reply) => {
+  fastify.patch('/api/library/:id', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -683,7 +683,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Remove item from library
-  fastify.delete('/api/library/:id', { preHandler: authenticate }, async (request, reply) => {
+  fastify.delete('/api/library/:id', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -732,7 +732,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get episode statuses for a content item
-  fastify.get('/api/library/:contentId/episodes', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/library/:contentId/episodes', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -758,7 +758,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Mark an episode as watched/unwatched/skipped
-  fastify.post('/api/library/:contentId/episodes/mark', { preHandler: authenticate }, async (request, reply) => {
+  fastify.post('/api/library/:contentId/episodes/mark', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -906,7 +906,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Mark all episodes in a season
-  fastify.post('/api/library/:contentId/episodes/mark-season', { preHandler: authenticate }, async (request, reply) => {
+  fastify.post('/api/library/:contentId/episodes/mark-season', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -1021,7 +1021,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Mark all episodes as watched/unwatched
-  fastify.post('/api/library/:contentId/episodes/mark-all', { preHandler: authenticate }, async (request, reply) => {
+  fastify.post('/api/library/:contentId/episodes/mark-all', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
