@@ -15,7 +15,7 @@
 }
 
 html {
-  scroll-padding-top: 0px;
+  scroll-padding-top: 700px;
 }
 
 * {
@@ -30,7 +30,7 @@ body {
     radial-gradient(circle at 80% 12%, #f0f3ff 0%, transparent 55%),
     linear-gradient(180deg, #f7f8ff 0%, #eff2fb 100%);
   min-height: 100vh;
-  scroll-padding-top: 0px;
+  scroll-padding-top: 700px;
 }
 
 a {
@@ -235,7 +235,7 @@ a {
 
 .hero-meta {
   display: flex;
-  gap: 18px;
+  gap: 10px;
   flex-wrap: wrap;
   font-size: 0.95rem;
   color: var(--soft-ink);
@@ -244,15 +244,61 @@ a {
 .hero-media {
   background: #ffffff;
   border-radius: 24px;
-  padding: 18px;
+  padding: 8px;
   box-shadow: var(--shadow);
   position: relative;
 }
 
 .hero-media img {
   width: 100%;
-  border-radius: 20px;
+  border-radius: 18px;
   display: block;
+  transition: opacity 0.2s ease;
+}
+
+.hero-media img.is-fading {
+  opacity: 0;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 14, 21, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 30;
+}
+
+.lightbox.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lightbox img {
+  max-width: min(900px, 92vw);
+  max-height: 84vh;
+  border-radius: 18px;
+  box-shadow: 0 30px 80px rgba(13, 14, 21, 0.4);
+  background: #ffffff;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  border: none;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+  font-family: "Sora", sans-serif;
+  font-size: 0.9rem;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
 }
 
 .floating-tag {
@@ -269,7 +315,7 @@ a {
 
 .section {
   margin: 80px 0;
-  scroll-margin-top: 0px;
+  scroll-margin-top: 700px;
 }
 
 .section h2 {

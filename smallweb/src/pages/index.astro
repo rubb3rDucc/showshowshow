@@ -1,11 +1,18 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import '../styles/home.css';
+import Layout from "../layouts/Layout.astro";
+import "../styles/home.css";
 
-const title = 'ShowShowShow - Build lineups for TV, anime, and movies';
-const description = 'Schedule episodes and movies in real time blocks. Mix manual planning with auto scheduling, apply season filters, and keep watch history synced.';
-const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.com';
-const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
+const title = "ShowShowShow - Build lineups for TV, anime, and movies";
+const description =
+  "Schedule episodes and movies in real time blocks. Mix manual planning with auto scheduling, apply season filters, and keep watch history synced.";
+const appUrl = import.meta.env.PUBLIC_APP_URL || "https://app.showshowshow.com";
+const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:3000";
+const heroImages = [
+  { src: "../../public/images/nwesc.png", alt: "Schedule builder preview" },
+  // { src: "../../public/images/new_library.png", alt: "Library preview" },
+  { src: "../../public/images/new_schedule_view.png", alt: "Stats preview" },
+  { src: "../../public/images/new_svhe.png", alt: "Stats preview" },
+];
 ---
 
 <Layout title={title} description={description}>
@@ -13,7 +20,12 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
     <div class="content">
       <header class="nav">
         <a class="brand" href="/">ShowShowShow</a>
-        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="nav-menu"
+        >
           <span>Menu</span>
           <span aria-hidden="true">☰</span>
         </button>
@@ -27,8 +39,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
           </div>
           <div class="nav-section">
             <div class="nav-cta">
-             <!-- <a class="btn ghost" href={appUrl}>Open app</a> -->
-             <!-- <a class="btn primary" href="#waitlist">Get early access</a> -->
+              <!-- <a class="btn ghost" href={appUrl}>Open app</a> -->
+              <!-- <a class="btn primary" href="#waitlist">Get early access</a> -->
             </div>
           </div>
         </div>
@@ -38,52 +50,91 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
         <section class="hero">
           <div class="reveal" style="animation-delay: 0.05s;">
             <p class="eyebrow">Lineups for real life</p>
-            <h1>Schedule what you want to watch, not what an algorithm pushes.</h1>
+            <h1>
+              Schedule what you want to watch, not what an algorithm pushes.
+            </h1>
             <p class="lead">
-              Build a lineup, drop episodes into time blocks, or let the planner fill your night.
-              Track reruns, mark watched from the schedule, and keep your library always in sync.
+              Build a lineup, drop episodes into time blocks, or let the planner
+              fill your night. Track reruns, mark watched from the schedule, and
+              keep your library always in sync.
             </p>
             <div class="hero-actions">
               <a class="btn primary" href="#waitlist">Join the early list</a>
               <a class="btn ghost" href="#features">See how it works</a>
             </div>
             <div class="hero-meta">
-              <span class="pill">Manual + auto scheduling</span>
-              <span class="pill">Season and episode filters</span>
-              <span class="pill">Watch history + reruns</span>
+              <!-- <span class="pill">Manual + auto scheduling</span> -->
+              <!-- <span class="pill">Season and episode filters</span> -->
+              <!-- <span class="pill">Watch history + reruns</span> -->
             </div>
           </div>
           <div class="hero-media reveal" style="animation-delay: 0.15s;">
-            <img src="/images/schedule1.png" alt="Schedule view preview" loading="lazy" />
-            <div class="floating-tag">Schedule blocks, auto cues, reruns flagged</div>
+            <img
+              id="hero-carousel"
+              src={heroImages[0].src}
+              alt={heroImages[0].alt}
+              loading="lazy"
+              data-images={JSON.stringify(heroImages.map((image) => image.src))}
+              data-alts={JSON.stringify(heroImages.map((image) => image.alt))}
+            />
+            <!--<div clas>s="floating-tag">
+              Schedule blocks, auto cues, reruns flagged
+            </div>-->
           </div>
         </section>
+        <div id="hero-lightbox" class="lightbox" aria-hidden="true">
+          <button type="button" class="lightbox-close" aria-label="Close image">
+            Close
+          </button>
+          <img id="hero-lightbox-image" src="" alt="" />
+        </div>
 
-        <section id="features" class="section reveal" style="animation-delay: 0.05s;">
+        <section
+          id="features"
+          class="section reveal"
+          style="animation-delay: 0.05s;"
+        >
           <h2>Designed for intentional watching.</h2>
           <p>
-            Most apps optimize for endless scrolling. ShowShowShow is built for planning: a clean
-            calendar, a clear queue, and a library that updates as you watch.
+            Most apps optimize for endless scrolling. ShowShowShow is built for
+            planning: a clean calendar, a clear queue, and a library that
+            updates as you watch.
           </p>
           <div class="card-grid">
             <div class="card">
               <h3>Lineup-first planning</h3>
-              <p>Create a watch lineup and drag episodes into real time blocks. Everything stays visible.</p>
+              <p>
+                Create a watch lineup and drag episodes into real time blocks.
+                Everything stays visible.
+              </p>
             </div>
             <div class="card">
-              <h3>Smart auto scheduling</h3>
-              <p>Fill time blocks with round-robin or random picks while respecting your filters.</p>
+              <h3>Auto scheduling</h3>
+              <p>
+                Fill time blocks with round-robin or random picks while
+                respecting your filters.
+              </p>
             </div>
             <div class="card">
               <h3>Library always synced</h3>
-              <p>Mark watched items once and your library, schedule, and stats stay aligned.</p>
+              <p>
+                Mark watched items once and your library, schedule, and stats
+                stay aligned.
+              </p>
             </div>
           </div>
         </section>
 
-        <section id="pricing" class="section reveal" style="animation-delay: 0.1s;">
+        <section
+          id="pricing"
+          class="section reveal"
+          style="animation-delay: 0.1s;"
+        >
           <h2>Simple tiers, no surprises.</h2>
-          <p>Start free, then unlock deeper automation and history tools when you are ready.</p>
+          <p>
+            Core planning stays free. Supporter unlocks deeper scheduling
+            controls and insights.
+          </p>
           <div class="pricing">
             <div class="price-card">
               <div>
@@ -92,45 +143,59 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
                 <p>Core planning for casual watching.</p>
               </div>
               <div class="feature-list">
-                <span>50 item media library</span>
-                <span>Lineup builder + manual scheduling</span>
-                <span>Watch history tracking</span>
+                <span>Limited library size (50 items)</span>
+                <span>Manual scheduling</span>
+                <span>Watch history + library sync</span>
+                <span>Simple viewing statistics</span>
               </div>
-              <a class="btn ghost" href="#waitlist">Get started</a>
             </div>
             <div class="price-card highlight">
               <div>
-                <h3>Studio</h3>
-                <div class="price">$5<span style="font-size: 1rem;">/mo</span></div>
+                <h3>Supporter</h3>
+                <div class="price">
+                  $5<span style="font-size: 1rem;">/mo</span>
+                </div>
                 <p>Advanced scheduling and deeper insights.</p>
               </div>
               <div class="feature-list">
-                <span>Season and episode filters</span>
-                <span>Rerun tracking and smart reminders</span>
-                <span>Extended schedule history</span>
+                <span>Unlimited Library</span>
+                <span>Automated schedule generation and conflict handling</span>
+                <span>Enhanced statistics and insights</span>
+                <span>Saved filter presets</span>
               </div>
-              <a class="btn primary" href="#waitlist">Join the waitlist</a>
             </div>
           </div>
         </section>
 
-        <section id="waitlist" class="section reveal" style="animation-delay: 0.05s;">
+        <section
+          id="waitlist"
+          class="section reveal"
+          style="animation-delay: 0.05s;"
+        >
           <div class="waitlist">
             <div>
               <h2>Be first in line for the beta.</h2>
               <p>
-                Get early access and updates as the planning assistant evolves. We will only email for
-                major milestones.
+                Get early access and updates as the planning assistant evolves.
+                We will only email for major milestones.
               </p>
             </div>
             <form id="waitlist-form" data-api-url={apiUrl}>
-              <input type="email" name="email" placeholder="you@email.com" required />
+              <input
+                type="email"
+                name="email"
+                placeholder="you@email.com"
+                required
+              />
               <button type="submit">Join waitlist</button>
             </form>
           </div>
-          <p style="margin-top: 12px; color: var(--soft-ink); font-size: 0.9rem;">
-            Launch pricing will be $5/month. Early supporters get the first month free.
-          </p>
+          <!-- <p
+            style="margin-top: 12px; color: var(--soft-ink); font-size: 0.9rem;"
+          >
+            Launch pricing will be $5/month. Early supporters get the first
+            month free.
+          </p> -->
         </section>
       </main>
 
@@ -147,45 +212,104 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:3000';
 </Layout>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const navToggle = document.querySelector('.nav-toggle');
-    const navMenu = document.querySelector('.nav-menu');
+  document.addEventListener("DOMContentLoaded", () => {
+    const navToggle = document.querySelector(".nav-toggle");
+    const navMenu = document.querySelector(".nav-menu");
     if (navToggle && navMenu) {
-      navToggle.addEventListener('click', () => {
-        const isOpen = navMenu.classList.toggle('is-open');
-        navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      navToggle.addEventListener("click", () => {
+        const isOpen = navMenu.classList.toggle("is-open");
+        navToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
       });
     }
 
-    const form = document.getElementById('waitlist-form');
+    const heroImage = document.getElementById("hero-carousel");
+    const lightbox = document.getElementById("hero-lightbox");
+    const lightboxImage = document.getElementById("hero-lightbox-image");
+    if (heroImage instanceof HTMLImageElement) {
+      const images = JSON.parse(heroImage.dataset.images || "[]");
+      const alts = JSON.parse(heroImage.dataset.alts || "[]");
+      if (images.length > 1) {
+        let index = 0;
+        setInterval(() => {
+          index = (index + 1) % images.length;
+          heroImage.classList.add("is-fading");
+          setTimeout(() => {
+            heroImage.src = images[index];
+            if (alts[index]) {
+              heroImage.alt = alts[index];
+            }
+            heroImage.classList.remove("is-fading");
+          }, 250);
+        }, 5000);
+      }
+    }
+
+    if (
+      heroImage instanceof HTMLImageElement &&
+      lightbox instanceof HTMLElement &&
+      lightboxImage instanceof HTMLImageElement
+    ) {
+      heroImage.addEventListener("click", () => {
+        lightboxImage.src = heroImage.src;
+        lightboxImage.alt = heroImage.alt;
+        lightbox.classList.add("is-open");
+        lightbox.setAttribute("aria-hidden", "false");
+      });
+    }
+
+    if (lightbox instanceof HTMLElement && lightboxImage instanceof HTMLImageElement) {
+      lightbox.addEventListener("click", (event) => {
+        const target = event.target;
+        if (
+          target === lightbox ||
+          (target instanceof HTMLElement && target.classList.contains("lightbox-close"))
+        ) {
+          lightbox.classList.remove("is-open");
+          lightbox.setAttribute("aria-hidden", "true");
+          lightboxImage.src = "";
+        }
+      });
+    }
+
+    const form = document.getElementById("waitlist-form");
     if (!form) return;
-    form.addEventListener('submit', async (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const emailInput = form.querySelector('input[name="email"]');
       const submitButton = form.querySelector('button[type="submit"]');
-      if (!(emailInput instanceof HTMLInputElement) || !(submitButton instanceof HTMLButtonElement)) {
+      if (
+        !(emailInput instanceof HTMLInputElement) ||
+        !(submitButton instanceof HTMLButtonElement)
+      ) {
         return;
       }
       submitButton.disabled = true;
       const originalText = submitButton.textContent;
-      submitButton.textContent = 'Joining...';
+      submitButton.textContent = "Joining...";
       try {
-        const apiUrl = form.getAttribute('data-api-url') || 'http://localhost:3000';
+        const apiUrl =
+          form.getAttribute("data-api-url") || "http://localhost:3000";
         const response = await fetch(`${apiUrl}/api/waitlist`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailInput.value, source: 'landing_page' }),
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: emailInput.value,
+            source: "landing_page",
+          }),
         });
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(data.error || data.message || 'Something went wrong');
+          throw new Error(data.error || data.message || "Something went wrong");
         }
         form.innerHTML = `<span style="font-family: Bricolage Grotesque, sans-serif;">${data.message}</span>`;
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Network error. Please try again.';
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Network error. Please try again.";
         alert(`Error: ${message}`);
         submitButton.disabled = false;
-        submitButton.textContent = originalText || 'Join waitlist';
+        submitButton.textContent = originalText || "Join waitlist";
       }
     });
   });
