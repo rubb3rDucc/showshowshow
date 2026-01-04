@@ -80,8 +80,8 @@ export async function generateScheduleFromQueue(
  */
 export async function markAsWatched(
   scheduleItemId: string
-): Promise<{ success: boolean; watched_at: string }> {
-  return apiCall<{ success: boolean; watched_at: string }>(`/api/schedule/${scheduleItemId}/watched`, {
+): Promise<{ success: boolean; watched_at: string | null }> {
+  return apiCall<{ success: boolean; watched_at: string | null }>(`/api/schedule/${scheduleItemId}/watched`, {
     method: 'POST',
   });
 }
@@ -91,8 +91,8 @@ export async function markAsWatched(
  */
 export async function unmarkAsWatched(
   scheduleItemId: string
-): Promise<{ success: boolean; watched_at: null }> {
-  return apiCall<{ success: boolean; watched_at: null }>(`/api/schedule/${scheduleItemId}/watched`, {
+): Promise<{ success: boolean; watched_at: string | null }> {
+  return apiCall<{ success: boolean; watched_at: string | null }>(`/api/schedule/${scheduleItemId}/watched`, {
     method: 'DELETE',
   });
 }
