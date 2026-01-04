@@ -53,7 +53,7 @@ export function ScheduleHeader({
   return (
     <div className="mb-8">
       {/* Date Navigation Bar */}
-      <div className="flex items-center justify-between bg-white border border-gray-200 p-2 shadow-sm">
+      <div className="flex items-center justify-between bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-subtle))] p-2 shadow-sm">
         <Button
           variant="subtle"
           color="gray"

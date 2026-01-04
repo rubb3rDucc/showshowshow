@@ -18,72 +18,18 @@ interface SearchResultCardProps {
   isAddingToLibrary?: boolean
 }
 
-// Pastel color schemes matching schedule page
-const COLOR_SCHEMES = [
-  {
-    bg: 'bg-yellow-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-pink-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-cyan-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-purple-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-blue-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-orange-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-green-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-rose-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-indigo-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-  {
-    bg: 'bg-teal-200',
-    text: 'text-gray-900',
-    border: 'border-gray-900',
-  },
-]
-
 const STATUS_BADGE_COLORS: Record<LibraryStatus, string> = {
-  watching: 'bg-blue-500',
-  completed: 'bg-green-500',
-  dropped: 'bg-red-500',
-  plan_to_watch: 'bg-gray-500',
+  watching: 'bg-blue-500/90',
+  completed: 'bg-green-500/90',
+  dropped: 'bg-red-500/90',
+  plan_to_watch: 'bg-gray-500/90',
 }
 
 const STATUS_LABELS: Record<LibraryStatus, string> = {
-  watching: 'WATCHING',
-  completed: 'COMPLETED',
-  dropped: 'DROPPED',
-  plan_to_watch: 'PLAN TO WATCH',
+  watching: 'Watching',
+  completed: 'Completed',
+  dropped: 'Dropped',
+  plan_to_watch: 'Plan to Watch',
 }
 
 export function SearchResultCard({
@@ -98,12 +44,8 @@ export function SearchResultCard({
   isAddingToLibrary = false,
 }: SearchResultCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const colorIndex =
-    parseInt(String(item.tmdb_id).replace(/\D/g, '') || '0') % COLOR_SCHEMES.length
-  const colors = COLOR_SCHEMES[colorIndex]
-  
+
   // Determine which title to display based on preference
-  // Fallback order: preferred -> english -> japanese -> romanji -> title
   const displayTitle = (() => {
     switch (titlePreference) {
       case 'japanese':
@@ -115,21 +57,11 @@ export function SearchResultCard({
         return item.title_english || item.title || item.title_japanese
     }
   })()
-  
+
   return (
-    <div
-      className={`
-        ${colors.bg} ${colors.text}
-        border-2 ${colors.border}
-        font-mono
-        flex flex-col
-        h-full
-      `}
-    >
+    <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm dark:shadow-gray-950/50 hover:shadow-xl dark:hover:shadow-gray-950/80 hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col h-full">
       {/* Poster Image */}
-      <div
-        className={`relative w-full aspect-[2/3] border-b-2 ${colors.border} overflow-hidden bg-gray-100`}
-      >
+      <div className="relative w-full aspect-[2/3] overflow-hidden rounded-t-lg bg-[rgb(var(--color-bg-elevated))] dark:bg-gray-800">
         {item.poster_url ? (
           <img
             src={item.poster_url}
@@ -137,7 +69,7 @@ export function SearchResultCard({
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-xs font-black">
+          <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-[rgb(var(--color-text-tertiary))]">
             NO IMAGE
           </div>
         )}
@@ -146,25 +78,27 @@ export function SearchResultCard({
       {/* Content Section */}
       <div className="p-3 flex flex-col gap-2 flex-1">
         {/* Title */}
-        <h3 className="text-base md:text-lg font-black uppercase leading-tight tracking-tight line-clamp-2">
+        <h3 className="text-base md:text-lg font-semibold leading-tight text-[rgb(var(--color-text-primary))] line-clamp-2">
           {displayTitle}
         </h3>
 
-        {/* Type Badge, Year, and Rating - White on Black */}
+        {/* Type Badge, Year, and Rating */}
         <div className="flex gap-2 items-center flex-wrap">
           <Badge
-           className=" text-white border-black font-black uppercase tracking-wider text-[10px]"
-                size="xs"
-                color='black'
+            className="font-semibold text-xs"
+            size="sm"
+            variant="light"
+            color="gray"
           >
-            {item.content_type === 'movie' ? 'FILM' : 'SERIES'}
+            {item.content_type === 'movie' ? 'Film' : 'Series'}
           </Badge>
           {/* Year Badge */}
           {item.release_date && (
             <Badge
-              className="text-white border-black font-black uppercase tracking-wider text-[10px]"
-              size="xs"
-              color="black"
+              className="font-semibold text-xs"
+              size="sm"
+              variant="light"
+              color="gray"
             >
               {new Date(item.release_date).getFullYear()}
             </Badge>
@@ -172,9 +106,10 @@ export function SearchResultCard({
           {/* Rating Badge */}
           {normalizeRating(item.rating) && (
             <Badge
-              className="text-white border-black font-black uppercase tracking-wider text-[10px]"
-              size="xs"
-              color="black"
+              className="font-semibold text-xs"
+              size="sm"
+              variant="light"
+              color="gray"
             >
               {normalizeRating(item.rating)}
             </Badge>
@@ -182,9 +117,9 @@ export function SearchResultCard({
           {/* Library Status Badge */}
           {isInLibrary && libraryStatus && (
             <Badge
-              className={`${STATUS_BADGE_COLORS[libraryStatus]} text-white border-black font-black uppercase tracking-widest text-[10px]`}
-              size="xs"
-              radius="xs"
+              className={`${STATUS_BADGE_COLORS[libraryStatus]} text-white font-semibold text-xs shadow-sm`}
+              size="sm"
+              radius="md"
             >
               {STATUS_LABELS[libraryStatus]}
             </Badge>
@@ -194,70 +129,46 @@ export function SearchResultCard({
         {/* Description with Expand/Collapse */}
         {item.overview && (
           <div className="space-y-1">
-            <p
-              className={`text-xs leading-relaxed opacity-80 font-mono transition-all duration-300 ${isExpanded ? '' : 'line-clamp-3'}`}
-            >
+            <p className={`text-xs leading-relaxed text-[rgb(var(--color-text-secondary))] transition-all duration-300 ${isExpanded ? '' : 'line-clamp-3'}`}>
               {item.overview}
             </p>
-            {/* <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              type="button"
-              className="
-                text-[10px] font-black uppercase tracking-widest
-                flex items-center gap-1
-
-
-                transition-opacity
-                cursor-pointer
-                underline
-                w-full
-                text-left
-                py-1
-                mt-1
-              "
-            > */}
             <Button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className=" text-white border-black font-black uppercase tracking-wider text-[10px]"
-                size="sm"
-                color='black'
-                variant='outline'
-            
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="font-semibold text-xs"
+              size="xs"
+              variant='subtle'
+              color='gray'
             >
               {isExpanded ? (
                 <>
-                  READ LESS
-                  <ChevronUp size={10} strokeWidth={3} />
+                  Read Less
+                  <ChevronUp size={12} />
                 </>
               ) : (
                 <>
-                  READ MORE
-                  <ChevronDown size={10} strokeWidth={3} />
+                  Read More
+                  <ChevronDown size={12} />
                 </>
               )}
             </Button>
-            {/* </button> */}
           </div>
         )}
 
         {/* Action Buttons */}
         <div className="mt-auto space-y-2">
           {/* Add to Queue Button */}
-        <Button
-          fullWidth
-          size="sm"
-          color="black"
-          className={`
-              font-black uppercase tracking-wider text-[10px]
-            ${isInQueue ? `bg-transparent ${colors.text} border-2 ${colors.border}` : 'bg-black text-white border-2 border-black'}
-          `}
-          radius="xs"
-          leftSection={isInQueue ? <Check size={14} /> : <Plus size={14} />}
-          onClick={() => !isInQueue && onAddToQueue(item)}
-          disabled={isInQueue || isLoading}
-          loading={isLoading}
-        >
-            {isInQueue ? 'IN QUEUE' : 'ADD TO QUEUE'}
+          <Button
+            fullWidth
+            size="sm"
+            className={`font-semibold ${isInQueue ? '' : 'shadow-sm hover:shadow-lg'}`}
+            variant={isInQueue ? 'light' : 'filled'}
+            color={isInQueue ? 'gray' : 'blue'}
+            leftSection={isInQueue ? <Check size={14} /> : <Plus size={14} />}
+            onClick={() => !isInQueue && onAddToQueue(item)}
+            disabled={isInQueue || isLoading}
+            loading={isLoading}
+          >
+            {isInQueue ? 'In Queue' : 'Add to Queue'}
           </Button>
 
           {/* Add to Library Button */}
@@ -265,28 +176,19 @@ export function SearchResultCard({
             <Button
               fullWidth
               size="sm"
-              className={`
-                font-black uppercase tracking-wider text-[10px]
-                ${isInLibrary 
-                  ? `bg-transparent ${colors.text} border-2 ${colors.border}` 
-                  : 'bg-gray-700 text-white border-2 border-gray-700 hover:bg-gray-800'
-                }
-              `}
-              radius="xs"
+              className={`font-semibold ${isInLibrary ? '' : 'shadow-sm hover:shadow-lg'}`}
+              variant={isInLibrary ? 'light' : 'filled'}
+              color={isInLibrary ? 'gray' : 'violet'}
               leftSection={isInLibrary ? <Check size={14} /> : <BookOpen size={14} />}
               onClick={() => !isInLibrary && onAddToLibrary(item)}
               disabled={isInLibrary || isAddingToLibrary}
               loading={isAddingToLibrary}
             >
-              {isInLibrary ? 'IN LIBRARY' : 'ADD TO LIBRARY'}
-        </Button>
+              {isInLibrary ? 'In Library' : 'Add to Library'}
+            </Button>
           )}
         </div>
       </div>
-
-      {/* Bottom Border Accent */}
-      <div className={`h-1 ${colors.border} bg-current opacity-20`} />
     </div>
   )
 }
-

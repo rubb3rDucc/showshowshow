@@ -329,7 +329,7 @@ export function NetworkSectionGrid() {
     console.error('Missing required params:', { networkId, section });
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
         <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
           <Button
             variant="subtle"
@@ -340,7 +340,7 @@ export function NetworkSectionGrid() {
             Back to Browse
           </Button>
           <Center py={60}>
-            <Text className="text-gray-600 font-mono">Invalid network or section</Text>
+            <Text className="text-[rgb(var(--color-text-secondary))]">Invalid network or section</Text>
           </Center>
         </Container>
       </div>
@@ -366,7 +366,7 @@ export function NetworkSectionGrid() {
   // Skeleton component for loading cards
   const ContentCardSkeleton = () => (
     <div className="animate-pulse">
-      <div className="w-full aspect-[2/3] bg-gray-200 border-2 border-gray-300 rounded" />
+      <div className="w-full aspect-[2/3] bg-gray-200 border-2 border-[rgb(var(--color-border-default))] rounded" />
       <div className="mt-2 h-4 bg-gray-200 rounded w-3/4" />
       <div className="mt-1 h-3 bg-gray-200 rounded w-1/2" />
     </div>
@@ -374,7 +374,7 @@ export function NetworkSectionGrid() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
         <Center py={60}>
           <Loader size="lg" />
         </Center>
@@ -384,7 +384,7 @@ export function NetworkSectionGrid() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
         <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
           <Button
             variant="subtle"
@@ -410,7 +410,7 @@ export function NetworkSectionGrid() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
       <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
         {/* Back button and header */}
         <div className="mb-8">
@@ -428,14 +428,14 @@ export function NetworkSectionGrid() {
               <img
                 src={network.logo_url}
                 alt={network.name}
-                className="h-8 sm:h-10 md:h-12 w-auto object-contain"
+                className="max-h-8 sm:max-h-10 md:max-h-12 w-auto object-contain"
               />
             )}
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-wider break-words">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight break-words">
                 {getSectionTitle()}
               </h1>
-              <p className="text-xs sm:text-sm text-gray-600 font-mono">
+              <p className="text-xs sm:text-sm text-[rgb(var(--color-text-secondary))]">
                 {network?.name} • {filteredContent.length}
                 {data?.total_results ? ` of ${data.total_results}` : ''}
                 {hasNextPage ? ' (more available)' : ''} shows
@@ -459,11 +459,11 @@ export function NetworkSectionGrid() {
                     <LazyImage 
                       src={item.poster_url}
                       alt={item.title}
-                        className="w-full aspect-[2/3] object-cover border-2 border-gray-900 group-hover:border-4 transition-all group-hover:scale-105 group-hover:shadow-lg"
+                        className="w-full aspect-[2/3] object-cover border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm group-hover:border-4 transition-all group-hover:scale-105 group-hover:shadow-lg"
                     />
                   ) : (
-                      <div className="w-full aspect-[2/3] bg-gray-200 border-2 border-gray-900 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <span className="text-xs font-black text-gray-600 text-center px-2">
+                      <div className="w-full aspect-[2/3] bg-gray-200 border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <span className="text-xs font-semibold text-[rgb(var(--color-text-secondary))] text-center px-2">
                         NO IMAGE
                       </span>
                     </div>
@@ -481,11 +481,11 @@ export function NetworkSectionGrid() {
                       </div>
                     </div>
                   </div>
-                  <p className="mt-2 text-sm font-bold truncate group-hover:text-gray-600 transition-colors">
+                  <p className="mt-2 text-sm font-bold truncate group-hover:text-[rgb(var(--color-text-secondary))] transition-colors">
                     {item.title}
                   </p>
                   {item.vote_average && (
-                    <div className="flex items-center gap-1 text-xs font-mono text-gray-600 mt-1">
+                    <div className="flex items-center gap-1 text-xs text-[rgb(var(--color-text-secondary))] mt-1">
                       <Star size={12} fill="currentColor" />
                       <span>{item.vote_average.toFixed(1)}</span>
                     </div>
@@ -507,7 +507,7 @@ export function NetworkSectionGrid() {
               <Center className="flex-col gap-4">
                 {isFetching && currentPage > 1 ? (
                   // Show loading message when fetching additional pages (skeletons shown in grid)
-                    <Text className="text-sm text-gray-600 font-mono">
+                    <Text className="text-sm text-[rgb(var(--color-text-secondary))]">
                       Loading more shows...
                     </Text>
                 ) : hasNextPage ? (
@@ -516,19 +516,19 @@ export function NetworkSectionGrid() {
                     <Button
                       onClick={handleLoadMore}
                       size="lg"
-                      className="bg-black text-white border-2 border-black font-black uppercase hover:bg-gray-900"
+                      className="bg-teal-600 hover:bg-teal-700 text-white border-0 font-semibold hover:bg-gray-900"
                       disabled={isFetching}
                     >
                       Load More Shows
                     </Button>
-                    <Text className="text-sm text-gray-500 font-mono">
+                    <Text className="text-sm text-[rgb(var(--color-text-tertiary))]">
                       Showing {filteredContent.length} of {data?.total_results || 'many'} shows
                       {hasNextPage && ` • ${(data?.total_results || 0) - filteredContent.length} more available`}
                     </Text>
                   </>
                 ) : (
                   // Show completion message
-                  <Text className="text-sm text-gray-500 font-mono">
+                  <Text className="text-sm text-[rgb(var(--color-text-tertiary))]">
                     That's all {filteredContent.length} shows in this category!
                   </Text>
                 )}
@@ -537,16 +537,16 @@ export function NetworkSectionGrid() {
           </>
         ) : !isLoading ? (
           // Only show "no content" if not loading initial data
-          <div className="bg-white border-2 border-gray-900 p-12 text-center">
+          <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-12 text-center">
             <Tv size={48} className="mx-auto mb-4 text-gray-400" />
             <p className="font-bold text-lg mb-2">No shows found</p>
-            <p className="text-sm text-gray-600 font-mono mb-4">
+            <p className="text-sm text-[rgb(var(--color-text-secondary))] mb-4">
               This section doesn't have any shows matching the criteria.
             </p>
             <Button
               variant="outline"
               onClick={() => setLocation(`/?network=${networkId}`)}
-              className="border-2 border-gray-900 font-black uppercase"
+              className="border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-semibold"
             >
               Browse All {network?.name} Shows
             </Button>

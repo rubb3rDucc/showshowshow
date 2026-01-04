@@ -30,7 +30,7 @@ function getPasswordStrength(password: string): { strength: number; label: strin
   let label = 'Weak';
   let color = 'red';
 
-  // Check for uppercase
+  // Check for
   if (/[A-Z]/.test(password)) strength += 25;
   // Check for lowercase
   if (/[a-z]/.test(password)) strength += 25;

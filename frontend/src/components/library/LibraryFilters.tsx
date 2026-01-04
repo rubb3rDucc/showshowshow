@@ -30,16 +30,16 @@ export function LibraryFilters({
   return (
     <div className="space-y-4 mb-6">
       {/* Search Bar */}
-      <div className="bg-white border-1 border-gray-800 font-mono">
+      <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm dark:shadow-gray-950/50">
         <TextInput
-          placeholder="SEARCH LIBRARY..."
+          placeholder="Search library..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          leftSection={<Search size={16} className="text-gray-900" />}
+          leftSection={<Search size={16} className="text-[rgb(var(--color-text-secondary))]" />}
           size="md"
           classNames={{
             input:
-              'border-0 font-mono font-black uppercase tracking-wider placeholder:font-black',
+              'border-0 font-normal text-[rgb(var(--color-text-primary))] placeholder:text-[rgb(var(--color-text-tertiary))] placeholder:font-normal',
           }}
         />
       </div>
@@ -51,23 +51,23 @@ export function LibraryFilters({
           data={[
             {
               value: 'all',
-              label: 'ALL STATUS',
+              label: 'All Status',
             },
             {
               value: 'watching',
-              label: 'WATCHING',
+              label: 'Watching',
             },
             {
               value: 'completed',
-              label: 'COMPLETED',
+              label: 'Completed',
             },
             {
               value: 'dropped',
-              label: 'DROPPED',
+              label: 'Dropped',
             },
             {
               value: 'plan_to_watch',
-              label: 'PLAN TO WATCH',
+              label: 'Plan to Watch',
             },
           ]}
           value={filterStatus}
@@ -76,7 +76,7 @@ export function LibraryFilters({
           }
           classNames={{
             input:
-              'border-2 border-gray-900 font-mono font-black uppercase text-xs',
+              'border border-[rgb(var(--color-border-default))] rounded-lg font-semibold text-sm shadow-sm dark:shadow-gray-950/50',
           }}
         />
 
@@ -85,22 +85,22 @@ export function LibraryFilters({
           data={[
             {
               value: 'all',
-              label: 'ALL TYPES',
+              label: 'All Types',
             },
             {
               value: 'show',
-              label: 'TV SHOWS',
+              label: 'TV Shows',
             },
             {
               value: 'movie',
-              label: 'MOVIES',
+              label: 'Movies',
             },
           ]}
           value={filterType}
           onChange={(value) => onFilterTypeChange(value as LibraryFilterType)}
           classNames={{
             input:
-              'border-2 border-gray-900 font-mono font-black uppercase text-xs',
+              'border border-[rgb(var(--color-border-default))] rounded-lg font-semibold text-sm shadow-sm dark:shadow-gray-950/50',
           }}
         />
 
@@ -109,26 +109,26 @@ export function LibraryFilters({
           data={[
             {
               value: 'recently_added',
-              label: 'RECENTLY ADDED',
+              label: 'Recently Added',
             },
             {
               value: 'alphabetical',
-              label: 'ALPHABETICAL',
+              label: 'Alphabetical',
             },
             {
               value: 'recently_updated',
-              label: 'RECENTLY UPDATED',
+              label: 'Recently Updated',
             },
             {
               value: 'score',
-              label: 'HIGHEST SCORE',
+              label: 'Highest Score',
             },
           ]}
           value={sortBy}
           onChange={(value) => onSortChange(value as LibrarySortOption)}
           classNames={{
             input:
-              'border-2 border-gray-900 font-mono font-black uppercase text-xs',
+              'border border-[rgb(var(--color-border-default))] rounded-lg font-semibold text-sm shadow-sm dark:shadow-gray-950/50',
           }}
         />
       </div>

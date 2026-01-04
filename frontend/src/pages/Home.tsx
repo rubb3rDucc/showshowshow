@@ -13,7 +13,7 @@ export function Home() {
         <Group justify="space-between" align="center">
           <div>
             <h1 className="text-3xl font-bold mb-2">Your Schedule</h1>
-            <p className="text-gray-600">
+            <p className="text-[rgb(var(--color-text-secondary))]">
               Welcome back, {user?.email}!
             </p>
           </div>

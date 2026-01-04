@@ -9,8 +9,8 @@ export function TimeLabels() {
         top: 0,
         width: '50px',
         height: '100%',
-        borderRight: '1px solid #e0e0e0',
-        backgroundColor: 'white',
+        borderRight: '1px solid rgb(var(--color-border-subtle))',
+        backgroundColor: 'rgb(var(--color-bg-surface))',
         zIndex: 1,
       }}
     >

@@ -92,7 +92,7 @@ export function QueueItemCard({
   return (
     <Box
       style={{
-        backgroundColor: 'white',
+        backgroundColor: 'rgb(var(--color-bg-surface))',
         borderBottom: '1px solid #e5e7eb',
         paddingTop: '16px',
         paddingBottom: '16px',

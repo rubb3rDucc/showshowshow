@@ -129,9 +129,9 @@ export function LibraryCard({
               </span>
             </div>
             {/* Refined progress bar */}
-            <div className="h-0.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+            <div className="h-0.5 bg-[rgb(var(--color-bg-surface))]/20 rounded-full overflow-hidden backdrop-blur-sm">
               <div
-                className="h-full bg-white/90 transition-all duration-500 ease-out"
+                className="h-full bg-[rgb(var(--color-bg-surface))]/90 transition-all duration-500 ease-out"
                 style={{ width: `${item.progress.percentage}%` }}
               />
             </div>
@@ -151,7 +151,7 @@ export function LibraryCard({
         </h3>
 
         {/* Metadata - Better Visual Separation */}
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-[rgb(var(--color-text-tertiary))]">
           {/* Type badge */}
           <span className="px-1.5 py-0.5 rounded 
                            bg-gray-100 text-gray-600 

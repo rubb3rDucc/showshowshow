@@ -328,7 +328,7 @@ export function Browse() {
     });
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
         <Container size="xl" className="py-4 md:py-8 px-2 md:px-4"> 
           {/* Back button and network header */}
           <div className="mb-8">
@@ -346,14 +346,14 @@ export function Browse() {
                 <img
                   src={networkContent.network.logo_url}
                   alt={networkContent.network.name}
-                  className="h-16 w-auto object-contain"
+                  className="max-h-8 sm:max-h-10 md:max-h-12 w-auto object-contain"
                 />
               )}
               <div>
-                <h1 className="text-3xl font-black uppercase tracking-wider">
+                <h1 className="text-3xl font-bold tracking-tight">
                   {networkContent.network.name}
                 </h1>
-                <p className="text-sm text-gray-600 font-mono">
+                <p className="text-sm text-[rgb(var(--color-text-secondary))]">
                   {networkContent.total_results} shows available
                 </p>
               </div>
@@ -367,7 +367,7 @@ export function Browse() {
           {searchFilters && filteredContent && (
             <div className="mb-8">
               <div className="mb-4">
-                <Text className="font-mono text-sm text-gray-600">
+                <Text className="text-sm text-[rgb(var(--color-text-secondary))]">
                   {filteredContent.length} results
                   {searchFilters.query && ` for "${searchFilters.query}"`}
                 </Text>
@@ -383,17 +383,17 @@ export function Browse() {
                       <img
                         src={item.poster_url}
                         alt={item.title}
-                        className="w-full h-auto object-cover border-2 border-gray-900 group-hover:border-4 transition-all"
+                        className="w-full h-auto object-cover border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm group-hover:border-4 transition-all"
                         loading="lazy"
                       />
                     ) : (
-                      <div className="w-full aspect-[2/3] bg-gray-200 border-2 border-gray-900 flex items-center justify-center">
-                        <span className="text-xs font-black text-gray-600 text-center px-2">
+                      <div className="w-full aspect-[2/3] bg-gray-200 border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm flex items-center justify-center">
+                        <span className="text-xs font-semibold text-[rgb(var(--color-text-secondary))] text-center px-2">
                           NO IMAGE
                         </span>
                       </div>
                     )}
-                    <p className="mt-2 text-sm font-bold truncate group-hover:text-gray-600 transition-colors">
+                    <p className="mt-2 text-sm font-bold truncate group-hover:text-[rgb(var(--color-text-secondary))] transition-colors">
                       {item.title}
                     </p>
                   </div>
@@ -573,14 +573,14 @@ export function Browse() {
 
   // Show main browse page with networks
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
       <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-black uppercase tracking-wider mb-2">
+          <h1 className="text-4xl font-bold tracking-tight mb-2">
             Discover Content
           </h1>
-          <p className="text-gray-600 font-mono text-sm">
+          <p className="text-[rgb(var(--color-text-secondary))] text-sm">
             Browse shows by network or search for specific content
           </p>
         </div>
@@ -596,7 +596,7 @@ export function Browse() {
         <div className="text-center">
           <Button
             size="md"
-            className="bg-black text-white border-2 border-black font-black uppercase tracking-wider"
+            className="bg-teal-600 hover:bg-teal-700 text-white border-0 font-semibold tracking-tight"
             radius="xs"
             leftSection={<SearchIcon size={16} />}
             onClick={() => setLocation('/search')}
@@ -606,7 +606,7 @@ export function Browse() {
         </div>
 
         {/* Coming Soon Section */}
-        {/* <div className="mt-12 bg-white border-2 border-gray-900 p-8"> */}
+        {/* <div className="mt-12 bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-8"> */}
         {/* <div className="text-center mb-6">
             {/* <Calendar size={48} strokeWidth={2} className="mx-auto mb-4 text-gray-700" />
             <Text size="xl" fw={700} className="mb-2">

@@ -209,8 +209,18 @@ export function Queue() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'white', paddingBottom: isMobile ? '80px' : 0 }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'rgb(var(--color-bg-page))', paddingBottom: isMobile ? '80px' : 0 }}>
       <Box style={{ paddingTop: isMobile ? '6px' : '12px', paddingBottom: isMobile ? '6px' : '6px', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '100%' }}>
+        {/* Page Header */}
+        <Box mb="lg">
+          <Text size="xs" c="dimmed" fw={500} className="tracking-tight mb-1">
+            Your Lineup
+          </Text>
+          <Text size="2xl" fw={600} className="text-[rgb(var(--color-text-primary))] tracking-tight">
+            Plan & Schedule
+          </Text>
+        </Box>
+
         {/* Page-Level Tabs */}
         <Tabs value={activeTab} onChange={setActiveTab}>
           <Tabs.List mb="lg">
@@ -335,8 +345,8 @@ export function Queue() {
               bottom: 0,
               left: 0,
               right: 0,
-              backgroundColor: 'white',
-              borderTop: '1px solid #e5e7eb',
+              backgroundColor: 'rgb(var(--color-bg-surface))',
+              borderTop: '1px solid rgb(var(--color-border-subtle))',
               padding: '16px',
               zIndex: 40,
             }}
@@ -397,7 +407,7 @@ export function Queue() {
             padding="md"
             styles={{
               header: {
-                borderBottom: '1px solid #e5e7eb',
+                borderBottom: '1px solid rgb(var(--color-border-subtle))',
                 fontWeight: 300,
               },
               body: {

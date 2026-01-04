@@ -8,42 +8,35 @@ interface ProgressBarProps {
 
 export function ProgressBar({ title, posterUrl, episodesWatched, totalEpisodes, percentage }: ProgressBarProps) {
   return (
-    <div className="bg-white border-2 border-gray-900 p-4 flex items-center gap-4">
+    <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm dark:shadow-gray-950/50 p-4 flex items-center gap-4">
       {/* Poster */}
       {posterUrl && (
         <img
           src={posterUrl}
           alt={title}
-          className="w-16 h-24 object-cover border-2 border-gray-900"
+          className="w-16 h-24 object-cover rounded-md border border-[rgb(var(--color-border-default))]"
         />
       )}
-      
+
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <h3 className="font-black text-sm uppercase tracking-wider mb-2 truncate">
+        <h3 className="font-semibold text-sm text-[rgb(var(--color-text-primary))] mb-2 truncate">
           {title}
         </h3>
-        
+
         {/* Progress Bar */}
-        <div className="relative w-full h-6 bg-gray-200 border-2 border-gray-900 mb-2">
+        <div className="relative w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-2">
           <div
-            className="absolute top-0 left-0 h-full bg-green-400 transition-all"
+            className="absolute top-0 left-0 h-full bg-[rgb(var(--color-accent))] transition-all duration-500 ease-out"
             style={{ width: `${percentage}%` }}
           />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-xs font-black uppercase tracking-wider text-gray-900">
-              {percentage}%
-            </span>
-          </div>
         </div>
-        
+
         {/* Episode Count */}
-        <div className="text-xs font-mono font-black uppercase tracking-wider text-gray-600">
-          {episodesWatched} / {totalEpisodes} episodes
+        <div className="text-xs font-normal text-[rgb(var(--color-text-secondary))]">
+          {episodesWatched} / {totalEpisodes} episodes • {percentage}%
         </div>
       </div>
     </div>
   );
 }
-
-

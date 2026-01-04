@@ -49,7 +49,7 @@ function SeasonTabs({ seasons, activeSeason, onSeasonChange }: SeasonTabsProps) 
         </Tabs.List>
       </Tabs>
     </div>
-    // <div className="border-b border-gray-200 overflow-x-auto">
+    // <div className="border-b border-[rgb(var(--color-border-subtle))] overflow-x-auto">
     //   <div className="flex gap-2 min-w-max">
     //     {Array.from({ length: seasons }, (_, i) => i + 1).map((season) => (
     //       <button
@@ -94,7 +94,7 @@ interface EpisodeListProps {
 
 function EpisodeList({ episodes, watchedEpisodes, onToggleWatched, season, isLoading, onViewDetails }: EpisodeListProps) {
   return (
-    <ul className="divide-y divide-gray-200 border border-gray-200 overflow-hidden">
+    <ul className="divide-y divide-gray-200 border border-[rgb(var(--color-border-subtle))] overflow-hidden">
       {episodes.map((episode) => {
         const episodeKey = `s${season}e${episode.episode_number}`;
         const isWatched = watchedEpisodes.has(episodeKey);
@@ -147,20 +147,20 @@ function EpisodeList({ episodes, watchedEpisodes, onToggleWatched, season, isLoa
                   });
                 }
               }}
-              className="flex-1 flex items-center justify-between text-left group-hover:cursor-pointer bg-white min-w-0"
+              className="flex-1 flex items-center justify-between text-left group-hover:cursor-pointer bg-[rgb(var(--color-bg-surface))] min-w-0"
               disabled={!onViewDetails}
             >
               <div className="flex flex-col min-w-0 pr-2">
-                <span className="text-sm md:text-base font-medium text-gray-900 transition-colors truncate">
+                <span className="text-sm md:text-base font-medium text-[rgb(var(--color-text-primary))] transition-colors truncate">
                   {episodeTitle}
                 </span>
-                <span className="text-[10px] md:text-xs font-medium text-gray-500">
+                <span className="text-[10px] md:text-xs font-medium text-[rgb(var(--color-text-tertiary))]">
                   Episode {episode.episode_number}
                 </span>
               </div>
 
               {onViewDetails && (
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 group-hover:text-gray-600 px-2 hidden md:block">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 group-hover:text-[rgb(var(--color-text-secondary))] px-2 hidden md:block">
                   <Info size={18} />
                   <span className="sr-only">View details</span>
                 </div>
@@ -445,7 +445,7 @@ export function EpisodeTracker({
 
   if (isLoadingEpisodes) {
     return (
-      <div className="bg-white">
+      <div className="bg-[rgb(var(--color-bg-surface))]">
         <div className="flex justify-center items-center p-8">
           <Loader size="sm" />
         </div>
@@ -455,7 +455,7 @@ export function EpisodeTracker({
 
   if (seasonEpisodes.length === 0) {
     return (
-      <div className="bg-white">
+      <div className="bg-[rgb(var(--color-bg-surface))]">
         <div className="p-6 md:p-8">
           <Text size="sm" c="dimmed">
             No episodes found for Season {selectedSeason}
@@ -466,13 +466,13 @@ export function EpisodeTracker({
   }
 
   return (
-    <div className="bg-white w-full">
+    <div className="bg-[rgb(var(--color-bg-surface))] w-full">
       {/* Header */}
-      {/* <div className="w-full flex items-center p-4 md:p-4 border-b border-gray-200"> */}
+      {/* <div className="w-full flex items-center p-4 md:p-4 border-b border-[rgb(var(--color-border-subtle))]"> */}
       <div className="w-full flex items-center p-4 md:p-4">
         <div className="flex items-center gap-3">
-          <ListVideo size={18} className="text-gray-600" />
-          <span className="font-medium text-gray-900">Episode tracker</span>
+          <ListVideo size={18} className="text-[rgb(var(--color-text-secondary))]" />
+          <span className="font-medium text-[rgb(var(--color-text-primary))]">Episode tracker</span>
         </div>
       </div>
 
@@ -504,7 +504,7 @@ export function EpisodeTracker({
             <Button
               variant="outline"
               color="dark"
-              className="font-medium border-gray-300 hover:bg-gray-50"
+              className="font-medium border-[rgb(var(--color-border-default))] hover:bg-[rgb(var(--color-bg-page))]"
               styles={{
                 root: {
                   borderRadius: 0,
@@ -518,7 +518,7 @@ export function EpisodeTracker({
             <Button
               variant="outline"
               color="dark"
-              className="font-medium border-gray-300 hover:bg-gray-50"
+              className="font-medium border-[rgb(var(--color-border-default))] hover:bg-[rgb(var(--color-bg-page))]"
               styles={{
                 root: {
                   borderRadius: 0,
@@ -533,7 +533,7 @@ export function EpisodeTracker({
 
           {/* Season Progress - Fixed height to prevent layout shifts */}
           <div 
-            className="bg-gray-50 border border-gray-200 p-6" 
+            className="bg-[rgb(var(--color-bg-page))] border border-[rgb(var(--color-border-subtle))] p-6" 
             style={{ 
               height: '120px',
               display: 'flex',
@@ -543,11 +543,11 @@ export function EpisodeTracker({
           >
             <div className="flex justify-between items-end mb-3" style={{ minHeight: '48px', height: '48px' }}>
               <div style={{ minWidth: '120px', flexShrink: 0 }}>
-                <div className="text-xs font-medium text-gray-500 mb-1">
+                <div className="text-xs font-medium text-[rgb(var(--color-text-tertiary))] mb-1">
                   Season {selectedSeason}
                 </div>
                 <div 
-                  className="text-xl md:text-2xl font-semibold text-gray-900" 
+                  className="text-xl md:text-2xl font-semibold text-[rgb(var(--color-text-primary))]" 
                   style={{ 
                     height: '32px', 
                     lineHeight: '32px',
@@ -559,7 +559,7 @@ export function EpisodeTracker({
                 </div>
               </div>
               <div 
-                className="text-2xl font-semibold text-gray-900" 
+                className="text-2xl font-semibold text-[rgb(var(--color-text-primary))]" 
                 style={{ 
                   minWidth: '60px', 
                   textAlign: 'right',

@@ -43,11 +43,11 @@ export function Register() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+    <div className="flex items-center justify-center min-h-screen bg-[rgb(var(--color-bg-page))]">
+      <div className="w-full max-w-md p-8 space-y-6 bg-[rgb(var(--color-bg-surface))] rounded-lg shadow-md">
         <div>
           <h1 className="text-2xl font-bold text-center">ShowShowShow</h1>
-          <p className="text-center text-gray-600">Create your account</p>
+          <p className="text-center text-[rgb(var(--color-text-secondary))]">Create your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -66,7 +66,7 @@ export function Register() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-[rgb(var(--color-border-default))] rounded-md"
               disabled={isLoading}
             />
           </div>
@@ -80,7 +80,7 @@ export function Register() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-[rgb(var(--color-border-default))] rounded-md"
               disabled={isLoading}
             />
           </div>
@@ -94,7 +94,7 @@ export function Register() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="mt-1 w-full px-3 py-2 border border-[rgb(var(--color-border-default))] rounded-md"
               disabled={isLoading}
             />
           </div>
@@ -108,7 +108,7 @@ export function Register() {
           </button>
         </form>
 
-        <p className="text-sm text-center text-gray-600">
+        <p className="text-sm text-center text-[rgb(var(--color-text-secondary))]">
           Already have an account?{' '}
           <Link href="/login" className="text-blue-600 hover:underline">
             Login

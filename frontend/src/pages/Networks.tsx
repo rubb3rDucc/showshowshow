@@ -249,7 +249,7 @@ export function Networks() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
         <Center py={60}>
           <Loader size="lg" />
         </Center>
@@ -258,7 +258,7 @@ export function Networks() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
       <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
         {/* Header */}
         <div className="mb-8">
@@ -275,10 +275,10 @@ export function Networks() {
             <div className="flex items-center gap-4 mb-2">
               <Tv size={32} strokeWidth={2.5} className="text-gray-700" />
               <div>
-                <h1 className="text-3xl font-black uppercase tracking-wider">
+                <h1 className="text-3xl font-bold tracking-tight">
                   Manage Networks
                 </h1>
-                <p className="text-sm text-gray-600 font-mono">
+                <p className="text-sm text-[rgb(var(--color-text-secondary))]">
                   Reorder the first 12 networks to control what appears on the Browse page
                 </p>
               </div>
@@ -291,13 +291,13 @@ export function Networks() {
           <Tabs.List className="mb-6 border-b-2 border-gray-900">
             <Tabs.Tab 
               value="browse" 
-              className="font-black uppercase data-[active=true]:border-b-4 data-[active=true]:border-gray-900"
+              className="font-semibold data-[active=true]:border-b-4 data-[active=true]:border-gray-900"
             >
               Your Networks ({allNetworks?.length || 0})
             </Tabs.Tab>
             <Tabs.Tab 
               value="add" 
-              className="font-black uppercase data-[active=true]:border-b-4 data-[active=true]:border-gray-900"
+              className="font-semibold data-[active=true]:border-b-4 data-[active=true]:border-gray-900"
             >
               Add Networks
             </Tabs.Tab>
@@ -306,9 +306,9 @@ export function Networks() {
           {/* Browse Tab */}
           <Tabs.Panel value="browse">
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <p className="text-sm text-gray-600 font-mono">
+              <p className="text-sm text-[rgb(var(--color-text-secondary))]">
                 Networks marked{' '}
-                <span className="bg-black text-white px-2 py-1 text-xs font-black inline-block">
+                <span className="bg-black text-white px-2 py-1 text-xs font-semibold inline-block">
                   FEATURED
                 </span>
                 {' '}appear on Browse
@@ -317,8 +317,8 @@ export function Networks() {
                 variant={isEditMode ? "filled" : "outline"}
                 onClick={() => setIsEditMode(!isEditMode)}
                 className={isEditMode 
-                  ? "bg-black text-white border-2 border-black font-black uppercase" 
-                  : "border-2 border-gray-900 font-black uppercase"
+                  ? "bg-teal-600 hover:bg-teal-700 text-white border-0 font-semibold" 
+                  : "border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-semibold"
                 }
                 size="sm"
               >
@@ -343,7 +343,7 @@ export function Networks() {
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                         {localNetworks.slice(0, 12).map((network, index) => (
                           <div key={network.id} className="relative">
-                            <div className="absolute -top-2 -right-2 bg-black text-white text-[10px] font-black px-2 py-1 z-10 border-2 border-white">
+                            <div className="absolute -top-2 -right-2 bg-black text-white text-[10px] font-semibold px-2 py-1 z-10 border-2 border-white">
                               FEATURED
                             </div>
                             <SortableNetworkCard
@@ -357,9 +357,9 @@ export function Networks() {
                       </div>
                       {localNetworks.length > 12 && (
                         <div className="my-8">
-                          <div className="border-t-4 border-gray-300 relative">
-                            <div className="absolute left-0 top-1/2 -translate-y-1/2 bg-gray-50 px-4">
-                              <span className="text-xs font-black uppercase text-gray-500">
+                          <div className="border-t-4 border-[rgb(var(--color-border-default))] relative">
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 bg-[rgb(var(--color-bg-page))] px-4">
+                              <span className="text-xs font-semibold text-[rgb(var(--color-text-tertiary))]">
                                 Additional Networks
                               </span>
                             </div>
@@ -395,7 +395,7 @@ export function Networks() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                     {localNetworks.slice(0, 12).map((network) => (
                       <div key={network.id} className="relative">
-                        <div className="absolute -top-2 -right-2 bg-black text-white text-[10px] font-black px-2 py-1 z-10 border-2 border-white">
+                        <div className="absolute -top-2 -right-2 bg-black text-white text-[10px] font-semibold px-2 py-1 z-10 border-2 border-white">
                           FEATURED
                         </div>
                         <NetworkCard
@@ -407,9 +407,9 @@ export function Networks() {
                   </div>
                   {localNetworks.length > 12 && (
                     <div className="my-8">
-                      <div className="border-t-4 border-gray-300 relative">
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 bg-gray-50 px-4">
-                          <span className="text-xs font-black uppercase text-gray-500">
+                      <div className="border-t-4 border-[rgb(var(--color-border-default))] relative">
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 bg-[rgb(var(--color-bg-page))] px-4">
+                          <span className="text-xs font-semibold text-[rgb(var(--color-text-tertiary))]">
                             Additional Networks
                           </span>
                         </div>
@@ -430,8 +430,8 @@ export function Networks() {
                 </>
               )
             ) : (
-              <div className="bg-white border-2 border-gray-900 p-12 text-center">
-                <p className="font-bold text-gray-600">No networks available</p>
+              <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-12 text-center">
+                <p className="font-bold text-[rgb(var(--color-text-secondary))]">No networks available</p>
               </div>
             )}
           </Tabs.Panel>
@@ -439,8 +439,8 @@ export function Networks() {
           {/* Add Tab */}
           <Tabs.Panel value="add">
             {/* Search Section */}
-            <div className="bg-white border-2 border-gray-900 p-6 mb-8">
-              <h2 className="text-xl font-black uppercase tracking-wider mb-4 flex items-center justify-between">
+            <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-6 mb-8">
+              <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center justify-between">
                 <span>Search for Networks</span>
                 {searchQuery && (
                   <Button
@@ -462,11 +462,11 @@ export function Networks() {
                   rightSection={isSearching ? <Loader size={16} /> : null}
                   className="flex-1"
                   classNames={{
-                    input: 'border-2 border-gray-900 font-mono',
+                    input: 'border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm',
                   }}
                 />
               </div>
-              <p className="text-xs text-gray-500 font-mono">
+              <p className="text-xs text-[rgb(var(--color-text-tertiary))]">
                 {searchQuery.length > 0 && searchQuery.length < 2 
                   ? `Type ${2 - searchQuery.length} more character to search...`
                   : searchQuery.length >= 2
@@ -482,20 +482,20 @@ export function Networks() {
               {/* Search Results */}
               {hasSearched && searchResults.length > 0 && (
                 <div className="mt-6">
-                  <h3 className="text-sm font-black uppercase tracking-wider mb-3 text-gray-600">
+                  <h3 className="mb-3 text-[rgb(var(--color-text-secondary))]">
                     Search Results
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {searchResults.map((network) => (
                       <div
                         key={network.tmdb_id}
-                        className="bg-gray-50 border-2 border-gray-900 p-4 flex flex-col items-center gap-3"
+                        className="bg-[rgb(var(--color-bg-page))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-4 flex flex-col items-center gap-3"
                       >
                         {network.logo_url ? (
                           <img
                             src={network.logo_url}
                             alt={network.name}
-                            className="h-12 w-auto object-contain"
+                            className="max-h-8 sm:max-h-10 md:max-h-12 w-auto object-contain"
                           />
                         ) : (
                           <div className="h-12 flex items-center justify-center">
@@ -506,13 +506,13 @@ export function Networks() {
                           {network.name}
                         </p>
                         {network.origin_country && (
-                          <p className="text-[10px] text-gray-500 font-mono">
+                          <p className="text-[10px] text-[rgb(var(--color-text-tertiary))]">
                             {network.origin_country}
                           </p>
                         )}
                         <Button
                           size="xs"
-                          className="w-full bg-black text-white border-2 border-black font-black uppercase text-[10px] hover:bg-gray-900"
+                          className="w-full bg-teal-600 hover:bg-teal-700 text-white border-0 font-semibold text-[10px] hover:bg-gray-900"
                           leftSection={<Plus size={12} />}
                           onClick={() => handleAddNetwork(network.tmdb_id, network.is_provider)}
                           disabled={isNetworkAdded(network.tmdb_id) || addNetworkMutation.isPending}
@@ -527,8 +527,8 @@ export function Networks() {
             </div>
 
             {/* Current Networks for Deletion */}
-            <div className="bg-white border-2 border-gray-900 p-6">
-              <h2 className="text-xl font-black uppercase tracking-wider mb-4">
+            <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-6">
+              <h2 className="text-xl font-bold tracking-tight mb-4">
                 Your Networks ({allNetworks?.length || 0})
               </h2>
               {allNetworks && allNetworks.length > 0 ? (
@@ -536,13 +536,13 @@ export function Networks() {
                   {allNetworks.map((network) => (
                     <div
                       key={network.id}
-                      className="bg-gray-50 border-2 border-gray-900 p-4 flex flex-col items-center gap-3 group relative"
+                      className="bg-[rgb(var(--color-bg-page))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-4 flex flex-col items-center gap-3 group relative"
                     >
                       {network.logo_url ? (
                         <img
                           src={network.logo_url}
                           alt={network.name}
-                          className="h-12 w-auto object-contain"
+                          className="max-h-8 sm:max-h-10 md:max-h-12 w-auto object-contain"
                         />
                       ) : (
                         <div className="h-12 flex items-center justify-center">
@@ -556,7 +556,7 @@ export function Networks() {
                         size="xs"
                         variant="outline"
                         color="red"
-                        className="w-full border-2 font-black uppercase text-[10px]"
+                        className="w-full border-2 font-semibold text-[10px]"
                         leftSection={<Trash2 size={12} />}
                         onClick={() => handleDeleteClick(network.id, network.name)}
                       >
@@ -566,8 +566,8 @@ export function Networks() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <p className="font-mono">No networks added yet. Search above to add some!</p>
+                <div className="text-center py-12 text-[rgb(var(--color-text-tertiary))]">
+                  <p className="font-normal">No networks added yet. Search above to add some!</p>
                 </div>
               )}
             </div>
@@ -589,7 +589,7 @@ export function Networks() {
               <Text className="font-bold mb-2">
                 Are you sure you want to remove "{networkToDelete?.name}"?
               </Text>
-              <Text size="sm" className="text-gray-600">
+              <Text size="sm" className="text-[rgb(var(--color-text-secondary))]">
                 This will remove the network from your collection. Content from this network will remain in your library.
               </Text>
             </div>
@@ -598,7 +598,7 @@ export function Networks() {
             <Button
               variant="outline"
               onClick={() => setDeleteModalOpen(false)}
-              className="border-2 border-gray-900 font-bold"
+              className="border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-bold"
             >
               Cancel
             </Button>
