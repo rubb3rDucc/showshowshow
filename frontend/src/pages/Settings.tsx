@@ -27,7 +27,7 @@ export function Settings() {
   });
 
   // Format account created date
-  const formatDate = (dateString?: string | number | Date) => {
+  const formatDate = (dateString?: string | number | Date | null) => {
     if (!dateString) return 'Unknown';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
