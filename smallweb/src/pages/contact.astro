@@ -1,56 +1,49 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Header from '../components/Header.astro';
-import '../styles/global.css';
+import '../styles/home.css';
 
 const title = 'Contact - ShowShowShow';
 const description = 'Contact ShowShowShow support';
+const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.com';
 ---
 
 <Layout title={title} description={description}>
-  <div class="min-h-screen bg-brutal-gray text-black font-mono selection:bg-black selection:text-pastel-mint">
-    <Header />
-    
-    <main class="max-w-4xl mx-auto px-4 py-16 md:py-24">
-      <div class="bg-white border-4 border-black p-8 md:p-12 shadow-hard">
-        <h1 class="text-3xl md:text-4xl font-black uppercase mb-6 border-b-4 border-black pb-4">
-          Contact & Support
-        </h1>
-        
-        <div class="space-y-6 text-sm md:text-base leading-relaxed">
-          <div class="bg-pastel-blue border-4 border-black p-4 font-bold">
-            <p class="font-mono text-xs uppercase mb-2">PLACEHOLDER</p>
-            <p>This is a placeholder Contact/Support page. Content and contact form will be added separately.</p>
+  <div class="page">
+    <div class="content">
+      <header class="nav">
+        <a class="brand" href="/">ShowShowShow</a>
+        <div class="nav-menu">
+          <div class="nav-section">
+            <span class="nav-label">Explore</span>
+            <nav class="nav-links">
+              <a href="/">Home</a>
+              <a href="/privacy">Privacy</a>
+              <a href="/terms">Terms</a>
+            </nav>
           </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-            <div class="border-4 border-black p-6 bg-pastel-mint">
-              <h2 class="font-black uppercase mb-3 text-lg">Support</h2>
-              <p class="font-bold text-sm">
-                For technical support and account issues, please use the contact form below (coming soon).
-              </p>
-            </div>
-            
-            <div class="border-4 border-black p-6 bg-pastel-yellow">
-              <h2 class="font-black uppercase mb-3 text-lg">General Inquiries</h2>
-              <p class="font-bold text-sm">
-                For general questions about ShowShowShow, features, or partnerships.
-              </p>
+          <div class="nav-section">
+            <span class="nav-label">Actions</span>
+            <div class="nav-cta">
+              <a class="btn ghost" href={appUrl}>Open app</a>
+              <a class="btn primary" href="/#waitlist">Get early access</a>
             </div>
           </div>
         </div>
-        
-        <div class="mt-8 pt-6 border-t-4 border-black">
-          <a
-            href="/"
-            class="inline-block bg-black text-white px-6 py-3 font-bold uppercase hover:bg-pastel-mint hover:text-black transition-colors border-2 border-black"
-          >
-            ← Back to Home
-          </a>
+      </header>
+
+      <main class="section">
+        <div class="card" style="max-width: 720px; margin: 0 auto;">
+          <h1 style="margin: 0 0 16px; font-family: Sora, sans-serif;">Contact & Support</h1>
+          <p class="lead">Need help or have questions? We’ll add the full contact form here.</p>
+          <p style="color: var(--soft-ink);">
+            For now, email us at <a href="mailto:hello@showshowshow.com">hello@showshowshow.com</a>.
+          </p>
+          <div style="margin-top: 24px;">
+            <a class="btn ghost" href="/">Back to home</a>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 </Layout>
-
 
