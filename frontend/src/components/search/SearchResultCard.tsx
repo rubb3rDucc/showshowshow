@@ -1,5 +1,4 @@
 import { Star, Tv } from 'lucide-react'
-import { Badge } from '@mantine/core'
 import type { SearchResult } from '../../types/api'
 import type { LibraryStatus } from '../../types/library.types'
 import { normalizeRating } from '../../utils/rating'

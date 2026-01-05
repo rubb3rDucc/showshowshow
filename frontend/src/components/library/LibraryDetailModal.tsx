@@ -534,7 +534,7 @@ export function LibraryDetailModal({
         <div className="w-full">
           <EpisodeTracker
             libraryItem={item}
-            onEpisodeUpdate={(season, episode, watched) => {
+            onEpisodeUpdate={(season, episode) => {
               // Update current episode position
               onSave({
                 id: item.id,
