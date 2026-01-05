@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Google Sheets Waitlist</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        input {
+            width: 100%;
+        }
+        button {
+            background: #405ccd;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Google Sheets Waitlist</h1>
+
+    <p>Replace the URL below with your Google Apps Script web app URL:</p>
+
+    <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec" value="">
+
+    <input type="email" id="email" placeholder="test@example.com" required>
+
+    <button onclick="testSubmit()">Test Submit</button>
+
+    <div id="result"></div>
+
+    <script>
+        async function testSubmit() {
+            const scriptUrl = document.getElementById('scriptUrl').value;
+            const email = document.getElementById('email').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!scriptUrl) {
+                alert('Please enter your Google Apps Script URL');
+                return;
+            }
+
+            if (!email) {
+                alert('Please enter an email');
+                return;
+            }
+
+            resultDiv.innerHTML = '<p>Submitting...</p>';
+
+            try {
+                const response = await fetch(scriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors', // Try no-cors mode first
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        source: 'test_page'
+                    })
+                });
+
+                // With no-cors, we can't read the response, but if no error thrown, it likely worked
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = '<p><strong>Request sent!</strong></p><p>Check your Google Sheet to see if the email was added. With no-cors mode, we cannot read the response, but if this message appears without errors, the request was likely successful.</p>';
+
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<p><strong>Error:</strong></p><p>${error.message}</p>`;
+                console.error('Full error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
