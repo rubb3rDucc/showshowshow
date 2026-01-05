@@ -511,7 +511,7 @@ export function Search() {
             title: selectedContent.title_english || selectedContent.title,
             poster_url: selectedContent.poster_url,
             backdrop_url: selectedContent.backdrop_url || null,
-            overview: selectedContent.overview,
+            overview: selectedContent.overview || '',
             first_air_date: selectedContent.release_date,
             vote_average: selectedContent.vote_average,
             content_type: selectedContent.content_type,

@@ -88,7 +88,7 @@ export function SearchResultCard({
         {item.poster_url ? (
           <img
             src={item.poster_url}
-            alt={displayTitle}
+            alt={displayTitle || ''}
             className="w-full h-full object-cover
                        transition-transform duration-500 ease-out
                        group-hover:scale-110"
