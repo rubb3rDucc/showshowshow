@@ -379,21 +379,41 @@ export function Browse() {
                     className="cursor-pointer group"
                     onClick={() => handleContentClick(item)}
                   >
+                    <div
+                      className="relative aspect-[2/3] overflow-hidden rounded-lg
+                                 bg-gray-100
+                                 shadow-sm hover:shadow-xl
+                                 transition-all duration-300 ease-out
+                                 hover:-translate-y-1
+                                 border-2"
+                      style={{
+                        borderColor: 'rgba(107, 114, 128, 0.3)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.6)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.3)';
+                      }}
+                    >
                     {item.poster_url ? (
                       <img
                         src={item.poster_url}
                         alt={item.title}
-                        className="w-full h-auto object-cover border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm group-hover:border-4 transition-all"
+                        className="w-full h-full object-cover
+                                   transition-transform duration-500 ease-out
+                                   group-hover:scale-110"
                         loading="lazy"
                       />
                     ) : (
-                      <div className="w-full aspect-[2/3] bg-gray-200 border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm flex items-center justify-center">
-                        <span className="text-xs font-semibold text-[rgb(var(--color-text-secondary))] text-center px-2">
+                      <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                        <span className="text-xs font-semibold text-gray-400 text-center px-2">
                           NO IMAGE
                         </span>
                       </div>
                     )}
-                    <p className="mt-2 text-sm font-bold truncate group-hover:text-[rgb(var(--color-text-secondary))] transition-colors">
+                    </div>
+                    <p className="mt-2 text-sm font-semibold truncate group-hover:text-gray-700 transition-colors">
                       {item.title}
                     </p>
                   </div>

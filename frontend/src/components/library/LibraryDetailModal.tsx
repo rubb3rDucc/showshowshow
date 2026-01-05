@@ -64,7 +64,7 @@ const NotesSection = ({
         </div>
       </div>
 
-      <div className="p-6 md:p-8 pt-0 space-y-6 w-full">
+      <div className="p-4 md:p-6 pt-0 space-y-3 w-full">
         {/* Metadata Controls */}
         <div className="grid grid-cols-1 md:grid-cols-1 gap-1">
 
@@ -184,11 +184,8 @@ export function LibraryDetailModal({
   useEffect(() => {
     if (item) {
       onStatusChange(item.status as LibraryStatus);
-      onScoreChange(item.score || 0);
+      onScoreChange(item.score || null);
       onNotesChange(item.notes || '');
-      // setStatus(item.status as LibraryStatus);
-      // setNotes(item.notes || '');
-      // setScore(item.score || 0);
 
       lastSavedRef.current = {
         status: item.status,
@@ -233,7 +230,7 @@ export function LibraryDetailModal({
       });
 
       lastSavedRef.current = nextPayload;
-    }, 800); // ← adjust debounce delay here
+    }, 300); // Quick save for better UX
 
     return () => {
       if (autoSaveTimeout.current) {
@@ -538,7 +535,12 @@ export function LibraryDetailModal({
           <EpisodeTracker
             libraryItem={item}
             onEpisodeUpdate={(season, episode, watched) => {
-              console.log('Episode update:', season, episode, watched);
+              // Update current episode position
+              onSave({
+                id: item.id,
+                currentSeason: season,
+                currentEpisode: episode,
+              });
             }}
           />
         </div>

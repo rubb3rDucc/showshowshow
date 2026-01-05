@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Sora:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap");
 
 :root {
   color-scheme: light;
@@ -15,7 +15,7 @@
 }
 
 html {
-  scroll-padding-top: 700px;
+  scroll-padding-top: 80px;
 }
 
 * {
@@ -24,13 +24,13 @@ html {
 
 body {
   margin: 0;
-  font-family: "Fraunces", serif;
+  padding-top: 64px;
+  font-family: "Sora", sans-serif;
   color: var(--ink);
   background: radial-gradient(circle at 18% 20%, #f4f6ff 0%, transparent 55%),
     radial-gradient(circle at 80% 12%, #f0f3ff 0%, transparent 55%),
     linear-gradient(180deg, #f7f8ff 0%, #eff2fb 100%);
   min-height: 100vh;
-  scroll-padding-top: 700px;
 }
 
 a {
@@ -41,7 +41,7 @@ a {
 .page {
   position: relative;
   overflow: hidden;
-  padding: 120px 24px 96px;
+  padding: 0 24px 24px;
 }
 
 .page::before,
@@ -78,24 +78,27 @@ a {
 }
 
 .nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 0;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  transform: none;
   width: 100%;
-  z-index: 10;
-  padding: 16px 32px;
-  border-radius: 0;
-  border: 1px solid rgba(141, 163, 255, 0.18);
-  background: rgba(247, 248, 255, 0.92);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 12px 40px rgba(141, 163, 255, 0.18);
+  z-index: 100;
+  border-bottom: 1px solid rgba(141, 163, 255, 0.18);
+  background: rgba(247, 248, 255, 0.95);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 4px 20px rgba(141, 163, 255, 0.12);
+  padding: 0 32px;
+}
+
+.nav-container {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
 }
 
 .brand {
@@ -105,59 +108,47 @@ a {
   font-size: 1.1rem;
 }
 
-.nav-toggle {
-  display: none;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid var(--border);
-  background: #ffffff;
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-family: "Sora", sans-serif;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
 .nav-menu {
   display: flex;
   align-items: center;
-  gap: 18px;
-}
-
-.nav-section {
-  display: flex;
-  align-items:end;
-  gap: 14px;
-}
-
-.nav-label {
-  font-family: "Sora", sans-serif;
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(21, 21, 20, 0.55);
+  gap: 24px;
 }
 
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 18px;
-  font-size: 0.92rem;
+  gap: 24px;
+  font-size: 0.95rem;
   font-family: "Sora", sans-serif;
 }
 
 .nav-links a {
   color: var(--soft-ink);
+  transition: color 0.2s ease;
+  position: relative;
+}
+
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.2s ease;
 }
 
 .nav-links a:hover {
   color: var(--ink);
 }
 
-.nav-cta {
-  display: flex;
-  gap: 12px;
-  align-items: center;
+.nav-links a:hover::after {
+  width: 100%;
+}
+
+.nav-cta-btn {
+  white-space: nowrap;
 }
 
 .btn {
@@ -199,8 +190,7 @@ a {
   gap: 48px;
   align-items: center;
   margin-bottom: 72px;
-  /* margin-top: 134px; */
-  /* padding-top: 24px; */
+  padding-top: 48px;
 }
 
 .eyebrow {
@@ -231,6 +221,21 @@ a {
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 28px;
+}
+
+.hero-actions .btn.primary {
+  padding: 1.5rem 3rem;
+  font-size: 1.125rem;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 12px 30px rgba(141, 163, 255, 0.35), 0 0 20px rgba(141, 163, 255, 0.25);
+  }
+  50% {
+    box-shadow: 0 12px 30px rgba(141, 163, 255, 0.45), 0 0 25px rgba(141, 163, 255, 0.35);
+  }
 }
 
 .hero-meta {
@@ -311,11 +316,43 @@ a {
   font-family: "Sora", sans-serif;
   font-size: 0.85rem;
   box-shadow: 0 10px 30px rgba(141, 163, 255, 0.2);
+  transition: opacity 0.3s ease;
+}
+
+.carousel-indicators {
+  position: absolute;
+  bottom: 16px;
+  right: 24px;
+  display: flex;
+  gap: 8px;
+  z-index: 2;
+}
+
+.carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.carousel-dot:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: scale(1.2);
+}
+
+.carousel-dot.active {
+  background: #ffffff;
+  width: 24px;
+  border-radius: 4px;
 }
 
 .section {
   margin: 80px 0;
-  scroll-margin-top: 700px;
+  scroll-margin-top: 100px;
 }
 
 .section h2 {
@@ -343,6 +380,16 @@ a {
   padding: 24px;
   border: 1px solid var(--border);
   box-shadow: 0 14px 30px rgba(23, 23, 23, 0.05);
+}
+
+.card-icon {
+  font-size: 3rem;
+  line-height: 1;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .card h3 {
@@ -392,11 +439,30 @@ a {
   flex-direction: column;
   gap: 18px;
   box-shadow: 0 18px 36px rgba(23, 23, 23, 0.08);
+  position: relative;
 }
 
 .price-card.highlight {
   border: 1px solid rgba(141, 163, 255, 0.5);
   box-shadow: 0 20px 40px rgba(141, 163, 255, 0.18);
+  transform: scale(1.02);
+}
+
+.price-card-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  color: #ffffff;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-family: "Sora", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(141, 163, 255, 0.3);
 }
 
 .price {
@@ -456,6 +522,7 @@ a {
 
 footer {
   margin-top: 80px;
+  margin-bottom: 24px;
   padding-top: 24px;
   border-top: 1px solid var(--border);
   display: flex;
@@ -510,77 +577,44 @@ footer {
   }
 }
 
-@media (max-width: 640px) {
-  .page {
-    padding:0px 18px 24px;
-  }
-
+@media (max-width: 768px) {
   .nav {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    transform: none;
-    width: 100%;
-    flex-direction: row;
-    align-items: center;
-    padding: 12px 18px;
-    border-radius: 0;
+    padding: 0 20px;
   }
 
-  .nav-toggle {
-    display: inline-flex;
-    margin-left: auto;
+  .nav-container {
+    padding: 14px 0;
   }
 
-  .nav-menu {
-    display: none;
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 12px;
-    right: 12px;
-    background: #f5f6ff;
-    border: 1px solid rgba(141, 163, 255, 0.18);
-    border-radius: 22px;
-    padding: 18px;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 18px;
-    box-shadow: 0 20px 40px rgba(141, 163, 255, 0.18);
-  }
-
-  .nav-menu.is-open {
-    display: flex;
+  .brand {
+    font-size: 1rem;
   }
 
   .nav-links {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    font-size: 0.95rem;
+    display: none;
   }
 
-  .nav-section {
-    width: 100%;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+  .nav-cta-btn {
+    font-size: 0.9rem;
+    padding: 10px 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 0px 18px 16px;
   }
 
-  .nav-label {
-    font-size: 0.7rem;
+  .section {
+    margin: 48px 0;
   }
 
-  .nav-cta {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 12px;
-    flex-wrap: wrap;
+  .card-grid {
+    gap: 16px;
   }
 
-  .nav-cta .btn {
-    flex: 1 1 100%;
-    justify-content: center;
+  .pricing {
+    gap: 20px;
   }
 
   .hero h1 {
@@ -588,10 +622,64 @@ footer {
   }
 
   .hero {
-    padding-top: 140px;
+    padding-top: 48px;
+  }
+
+  footer {
+    margin-bottom: 16px;
   }
 
   .hero-media {
-    padding: 12px;
+    padding: 6px;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-actions .btn.primary {
+    padding: 1.2rem 2.5rem;
+    font-size: 1rem;
+  }
+
+  .waitlist input {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .waitlist button {
+    min-height: 48px;
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .waitlist form {
+    flex-direction: column;
+  }
+
+  .waitlist input {
+    width: 100%;
+  }
+
+  .carousel-indicators {
+    bottom: 12px;
+    right: 12px;
+  }
+
+  .floating-tag {
+    left: 12px;
+    bottom: -12px;
+    font-size: 0.75rem;
+    padding: 8px 12px;
+  }
+
+  .price-card.highlight {
+    transform: scale(1);
   }
 }

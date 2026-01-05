@@ -9,28 +9,21 @@ const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.com';
 
 <Layout title={title} description={description}>
   <div class="page">
-    <div class="content">
-      <header class="nav">
+    <header class="nav">
+      <div class="nav-container">
         <a class="brand" href="/">ShowShowShow</a>
         <div class="nav-menu">
-          <div class="nav-section">
-            <span class="nav-label">Explore</span>
-            <nav class="nav-links">
-              <a href="/">Home</a>
-              <a href="/terms">Terms</a>
-              <a href="/contact">Contact</a>
-            </nav>
-          </div>
-          <div class="nav-section">
-            <span class="nav-label">Actions</span>
-            <div class="nav-cta">
-              <a class="btn ghost" href={appUrl}>Open app</a>
-              <a class="btn primary" href="/#waitlist">Get early access</a>
-            </div>
-          </div>
+          <nav class="nav-links">
+            <a href="/">Home</a>
+            <a href="/terms">Terms</a>
+            <a href="/contact">Contact</a>
+          </nav>
+          <a class="btn primary nav-cta-btn" href="/#waitlist">Join waitlist</a>
         </div>
-      </header>
+      </div>
+    </header>
 
+    <div class="content">
       <main class="section">
         <div class="card" style="max-width: 720px; margin: 0 auto;">
           <h1 style="margin: 0 0 16px; font-family: Sora, sans-serif;">Privacy Policy</h1>

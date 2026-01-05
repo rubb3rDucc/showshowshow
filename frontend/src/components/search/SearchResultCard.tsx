@@ -1,28 +1,30 @@
-import { useState } from 'react'
-import { Badge, Button } from '@mantine/core'
-import { Plus, Check, ChevronUp, ChevronDown, BookOpen } from 'lucide-react'
+import { Star, Tv } from 'lucide-react'
+import { Badge } from '@mantine/core'
 import type { SearchResult } from '../../types/api'
 import type { LibraryStatus } from '../../types/library.types'
 import { normalizeRating } from '../../utils/rating'
 
 interface SearchResultCardProps {
   item: SearchResult
+  onClick: () => void
   isInQueue?: boolean
-  onAddToQueue: (item: SearchResult) => void
-  isLoading?: boolean
   titlePreference?: 'english' | 'japanese' | 'romanji'
-  // Library props
   isInLibrary?: boolean
   libraryStatus?: LibraryStatus | null
-  onAddToLibrary?: (item: SearchResult) => void
-  isAddingToLibrary?: boolean
 }
 
-const STATUS_BADGE_COLORS: Record<LibraryStatus, string> = {
-  watching: 'bg-blue-500/90',
-  completed: 'bg-green-500/90',
-  dropped: 'bg-red-500/90',
-  plan_to_watch: 'bg-gray-500/90',
+const STATUS_COLORS: Record<LibraryStatus, string> = {
+  watching: 'rgba(59, 130, 246, 0.3)',
+  completed: 'rgba(34, 197, 94, 0.3)',
+  dropped: 'rgba(239, 68, 68, 0.3)',
+  plan_to_watch: 'rgba(107, 114, 128, 0.3)',
+}
+
+const STATUS_HOVER_COLORS: Record<LibraryStatus, string> = {
+  watching: 'rgba(59, 130, 246, 0.6)',
+  completed: 'rgba(34, 197, 94, 0.6)',
+  dropped: 'rgba(239, 68, 68, 0.6)',
+  plan_to_watch: 'rgba(107, 114, 128, 0.6)',
 }
 
 const STATUS_LABELS: Record<LibraryStatus, string> = {
@@ -32,20 +34,21 @@ const STATUS_LABELS: Record<LibraryStatus, string> = {
   plan_to_watch: 'Plan to Watch',
 }
 
+const STATUS_BADGE_COLORS: Record<LibraryStatus, { bg: string; text: string }> = {
+  watching: { bg: 'bg-blue-500/90', text: 'text-white' },
+  completed: { bg: 'bg-green-500/90', text: 'text-white' },
+  dropped: { bg: 'bg-red-500/90', text: 'text-white' },
+  plan_to_watch: { bg: 'bg-gray-500/90', text: 'text-white' },
+}
+
 export function SearchResultCard({
   item,
-  isInQueue,
-  onAddToQueue,
-  isLoading = false,
+  onClick,
   titlePreference = 'english',
   isInLibrary = false,
   libraryStatus = null,
-  onAddToLibrary,
-  isAddingToLibrary = false,
 }: SearchResultCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
-
-  // Determine which title to display based on preference
+  // Determine which title to display
   const displayTitle = (() => {
     switch (titlePreference) {
       case 'japanese':
@@ -58,134 +61,99 @@ export function SearchResultCard({
     }
   })()
 
+  const borderColor = isInLibrary && libraryStatus
+    ? STATUS_COLORS[libraryStatus]
+    : 'rgba(107, 114, 128, 0.3)'
+
+  const hoverBorderColor = isInLibrary && libraryStatus
+    ? STATUS_HOVER_COLORS[libraryStatus]
+    : 'rgba(107, 114, 128, 0.6)'
+
   return (
-    <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm dark:shadow-gray-950/50 hover:shadow-xl dark:hover:shadow-gray-950/80 hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col h-full">
-      {/* Poster Image */}
-      <div className="relative w-full aspect-[2/3] overflow-hidden rounded-t-lg bg-[rgb(var(--color-bg-elevated))] dark:bg-gray-800">
+    <div className="cursor-pointer group" onClick={onClick}>
+      <div
+        className="relative aspect-[2/3] overflow-hidden rounded-lg
+                   bg-gray-100
+                   shadow-sm hover:shadow-xl
+                   transition-all duration-300 ease-out
+                   hover:-translate-y-1
+                   border-2"
+        style={{ borderColor }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = hoverBorderColor
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = borderColor
+        }}
+      >
         {item.poster_url ? (
           <img
             src={item.poster_url}
-            alt={item.title}
-            className="w-full h-full object-cover"
+            alt={displayTitle}
+            className="w-full h-full object-cover
+                       transition-transform duration-500 ease-out
+                       group-hover:scale-110"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-[rgb(var(--color-text-tertiary))]">
-            NO IMAGE
+          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+            <Tv className="w-12 h-12 text-gray-400" />
+          </div>
+        )}
+
+        {/* Library Status Badge - Top Left */}
+        {isInLibrary && libraryStatus && (
+          <div className="absolute top-2 left-2">
+            <div
+              className={`
+                px-2 py-0.5 rounded-md
+                ${STATUS_BADGE_COLORS[libraryStatus].bg}
+                ${STATUS_BADGE_COLORS[libraryStatus].text}
+                backdrop-blur-md
+                text-[10px] font-medium
+                shadow-lg
+              `}
+            >
+              {STATUS_LABELS[libraryStatus]}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Content Section */}
-      <div className="p-3 flex flex-col gap-2 flex-1">
-        {/* Title */}
-        <h3 className="text-base md:text-lg font-semibold leading-tight text-[rgb(var(--color-text-primary))] line-clamp-2">
+      {/* Card Info */}
+      <div className="mt-3 space-y-1.5">
+        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug group-hover:text-gray-700 transition-colors">
           {displayTitle}
         </h3>
 
-        {/* Type Badge, Year, and Rating */}
-        <div className="flex gap-2 items-center flex-wrap">
-          <Badge
-            className="font-semibold text-xs"
-            size="sm"
-            variant="light"
-            color="gray"
-          >
-            {item.content_type === 'movie' ? 'Film' : 'Series'}
-          </Badge>
-          {/* Year Badge */}
+        <div className="flex items-center gap-2 text-xs text-[rgb(var(--color-text-tertiary))]">
+          <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
+            {item.content_type === 'movie' ? 'Film' : 'TV'}
+          </span>
+
           {item.release_date && (
-            <Badge
-              className="font-semibold text-xs"
-              size="sm"
-              variant="light"
-              color="gray"
-            >
-              {new Date(item.release_date).getFullYear()}
-            </Badge>
+            <>
+              <span className="text-gray-300">•</span>
+              <span className="font-medium">
+                {new Date(item.release_date).getFullYear()}
+              </span>
+            </>
           )}
-          {/* Rating Badge */}
+
           {normalizeRating(item.rating) && (
-            <Badge
-              className="font-semibold text-xs"
-              size="sm"
-              variant="light"
-              color="gray"
-            >
-              {normalizeRating(item.rating)}
-            </Badge>
+            <>
+              <span className="text-gray-300">•</span>
+              <span className="font-medium">{normalizeRating(item.rating)}</span>
+            </>
           )}
-          {/* Library Status Badge */}
-          {isInLibrary && libraryStatus && (
-            <Badge
-              className={`${STATUS_BADGE_COLORS[libraryStatus]} text-white font-semibold text-xs shadow-sm`}
-              size="sm"
-              radius="md"
-            >
-              {STATUS_LABELS[libraryStatus]}
-            </Badge>
-          )}
-        </div>
 
-        {/* Description with Expand/Collapse */}
-        {item.overview && (
-          <div className="space-y-1">
-            <p className={`text-xs leading-relaxed text-[rgb(var(--color-text-secondary))] transition-all duration-300 ${isExpanded ? '' : 'line-clamp-3'}`}>
-              {item.overview}
-            </p>
-            <Button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="font-semibold text-xs"
-              size="xs"
-              variant='subtle'
-              color='gray'
-            >
-              {isExpanded ? (
-                <>
-                  Read Less
-                  <ChevronUp size={12} />
-                </>
-              ) : (
-                <>
-                  Read More
-                  <ChevronDown size={12} />
-                </>
-              )}
-            </Button>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="mt-auto space-y-2">
-          {/* Add to Queue Button */}
-          <Button
-            fullWidth
-            size="sm"
-            className={`font-semibold ${isInQueue ? '' : 'shadow-sm hover:shadow-lg'}`}
-            variant={isInQueue ? 'light' : 'filled'}
-            color={isInQueue ? 'gray' : 'blue'}
-            leftSection={isInQueue ? <Check size={14} /> : <Plus size={14} />}
-            onClick={() => !isInQueue && onAddToQueue(item)}
-            disabled={isInQueue || isLoading}
-            loading={isLoading}
-          >
-            {isInQueue ? 'In Queue' : 'Add to Queue'}
-          </Button>
-
-          {/* Add to Library Button */}
-          {onAddToLibrary && (
-            <Button
-              fullWidth
-              size="sm"
-              className={`font-semibold ${isInLibrary ? '' : 'shadow-sm hover:shadow-lg'}`}
-              variant={isInLibrary ? 'light' : 'filled'}
-              color={isInLibrary ? 'gray' : 'violet'}
-              leftSection={isInLibrary ? <Check size={14} /> : <BookOpen size={14} />}
-              onClick={() => !isInLibrary && onAddToLibrary(item)}
-              disabled={isInLibrary || isAddingToLibrary}
-              loading={isAddingToLibrary}
-            >
-              {isInLibrary ? 'In Library' : 'Add to Library'}
-            </Button>
+          {item.vote_average && (
+            <>
+              <span className="text-gray-300">•</span>
+              <div className="flex items-center gap-0.5">
+                <Star size={10} fill="currentColor" className="text-amber-500" />
+                <span className="font-medium">{item.vote_average.toFixed(1)}</span>
+              </div>
+            </>
           )}
         </div>
       </div>
