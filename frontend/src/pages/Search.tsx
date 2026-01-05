@@ -512,9 +512,9 @@ export function Search() {
             poster_url: selectedContent.poster_url,
             backdrop_url: selectedContent.backdrop_url || null,
             overview: selectedContent.overview || '',
-            first_air_date: selectedContent.release_date,
-            vote_average: selectedContent.vote_average,
-            content_type: selectedContent.content_type,
+            first_air_date: selectedContent.release_date || undefined,
+            vote_average: selectedContent.vote_average || undefined,
+            content_type: selectedContent.content_type === 'tv' ? 'show' : 'movie',
           } : null}
           isOpen={modalOpen}
           onClose={() => {
