@@ -67,9 +67,20 @@ export function Library() {
         // Note: cardColor is frontend-only for now, not sent to backend
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['library'] });
+    onSuccess: async (_, variables) => {
+      // Invalidate and refetch library data
+      await queryClient.invalidateQueries({ queryKey: ['library'] });
       queryClient.invalidateQueries({ queryKey: ['library', 'stats'] });
+
+      // Update selectedItem with fresh data if modal is open
+      if (selectedItem && selectedItem.id === variables.id) {
+        const freshLibrary = queryClient.getQueryData<typeof libraryItems>(['library', filterStatus !== 'all' ? filterStatus : undefined, filterType !== 'all' ? filterType : undefined]);
+        const freshItem = freshLibrary?.find(item => libraryItemToUI(item).id === variables.id);
+        if (freshItem) {
+          setSelectedItem(libraryItemToUI(freshItem));
+        }
+      }
+
       toast.success('Library updated');
     },
     onError: (error: Error) => {

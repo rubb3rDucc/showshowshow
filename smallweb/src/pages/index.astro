@@ -5,67 +5,98 @@ import "../styles/home.css";
 const title = "ShowShowShow - Build lineups for TV, anime, and movies";
 const description =
   "Schedule episodes and movies in real time blocks. Mix manual planning with auto scheduling, apply season filters, and keep watch history synced.";
-const appUrl = import.meta.env.PUBLIC_APP_URL || "https://app.showshowshow.com";
 const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:3000";
+const googleSheetsUrl = import.meta.env.PUBLIC_GOOGLE_SHEETS_URL;
 const heroImages = [
-  { src: "../../public/images/nwesc.png", alt: "Schedule builder preview" },
-  // { src: "../../public/images/new_library.png", alt: "Library preview" },
-  { src: "../../public/images/new_schedule_view.png", alt: "Stats preview" },
-  { src: "../../public/images/new_svhe.png", alt: "Stats preview" },
+  // {
+  //   src: "/images/new_1.png",
+  //   alt: "Schedule builder preview",
+  //   caption: "Add. Drop. Done.",
+  // },
+  // {
+  //   src: "/images/new_2.png",
+  //   alt: "Library view preview",
+  //   caption: "All your shows, always synced",
+  // },
+  // {
+  //   src: "/images/new_4.png",
+  //   alt: "Week schedule preview",
+  //   caption: "Your TV guide, your rules",
+  // },
+
+  {
+    src: "/images/new_8.png",
+    alt: "Statistics preview",
+    caption: "Know what you watch",
+  },
+  {
+    src: "/images/new_6.png",
+    alt: "Statistics preview",
+    caption: "Know what you watch",
+  },
+  {
+    src: "/images/new_9.png",
+    alt: "Statistics preview",
+    caption: "Know what you watch",
+  },
+  {
+    src: "/images/new_1.png",
+    alt: "Statistics preview",
+    caption: "Know what you watch",
+  },
+  {
+    src: "/images/new_7.png",
+    alt: "Statistics preview",
+    caption: "Know what you watch",
+  },
+  {
+    src: "/images/new_10.png",
+    alt: "Statistics preview",
+    caption: "Know what you watch",
+  },
+  {
+    src: "/images/new_11.png",
+    alt: "Statistics preview",
+    caption: "Know what you watch",
+  },
 ];
 ---
 
 <Layout title={title} description={description}>
   <div class="page">
-    <div class="content">
-      <header class="nav">
+    <header class="nav">
+      <div class="nav-container">
         <a class="brand" href="/">ShowShowShow</a>
-        <button
-          class="nav-toggle"
-          type="button"
-          aria-expanded="false"
-          aria-controls="nav-menu"
-        >
-          <span>Menu</span>
-          <span aria-hidden="true">☰</span>
-        </button>
-        <div class="nav-menu" id="nav-menu">
-          <div class="nav-section">
-            <nav class="nav-links">
-              <a href="#features">Features</a>
-              <a href="#pricing">Pricing</a>
-              <a href="#waitlist">Waitlist</a>
-            </nav>
-          </div>
-          <div class="nav-section">
-            <div class="nav-cta">
-              <!-- <a class="btn ghost" href={appUrl}>Open app</a> -->
-              <!-- <a class="btn primary" href="#waitlist">Get early access</a> -->
-            </div>
-          </div>
+        <div class="nav-menu">
+          <nav class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+          </nav>
+          <a class="btn primary nav-cta-btn" href="#waitlist">Join waitlist</a>
         </div>
-      </header>
+      </div>
+    </header>
 
+    <div class="content">
       <main>
         <section class="hero">
           <div class="reveal" style="animation-delay: 0.05s;">
-            <p class="eyebrow">Lineups for real life</p>
-            <h1>
-              Schedule what you want to watch, not what an algorithm pushes.
-            </h1>
+            <p class="eyebrow">Your schedule. Your rules.</p>
+            <h1>Stop scrolling. Start watching what you actually want.</h1>
             <p class="lead">
-              Build a lineup, drop episodes into time blocks, or let the planner
-              fill your night. Track reruns, mark watched from the schedule, and
-              keep your library always in sync.
+              Plan your TV nights like you plan dinner. Add episodes into time
+              blocks, auto-fill from your library, or mix both. Track what
+              you've watched, queue up rewatches, and never lose your place.
+              Optimized for desktop and mobile web.
             </p>
             <div class="hero-actions">
               <a class="btn primary" href="#waitlist">Join the early list</a>
               <a class="btn ghost" href="#features">See how it works</a>
             </div>
             <div class="hero-meta">
-              <!-- <span class="pill">Manual + auto scheduling</span> -->
-              <!-- <span class="pill">Season and episode filters</span> -->
-              <!-- <span class="pill">Watch history + reruns</span> -->
+              <span class="pill">Scheduling assistant</span>
+              <span class="pill">Works with your services</span>
+              <span class="pill">Never lose your place</span>
             </div>
           </div>
           <div class="hero-media reveal" style="animation-delay: 0.15s;">
@@ -76,10 +107,24 @@ const heroImages = [
               loading="lazy"
               data-images={JSON.stringify(heroImages.map((image) => image.src))}
               data-alts={JSON.stringify(heroImages.map((image) => image.alt))}
+              data-captions={JSON.stringify(
+                heroImages.map((image) => image.caption),
+              )}
             />
-            <!--<div clas>s="floating-tag">
-              Schedule blocks, auto cues, reruns flagged
-            </div>-->
+            <div class="floating-tag" id="hero-caption">
+              {heroImages[0].caption}
+            </div>
+            <div class="carousel-indicators" id="carousel-indicators">
+              {
+                heroImages.map((_, index) => (
+                  <button
+                    class={`carousel-dot ${index === 0 ? "active" : ""}`}
+                    data-index={index}
+                    aria-label={`Go to image ${index + 1}`}
+                  />
+                ))
+              }
+            </div>
           </div>
         </section>
         <div id="hero-lightbox" class="lightbox" aria-hidden="true">
@@ -94,32 +139,39 @@ const heroImages = [
           class="section reveal"
           style="animation-delay: 0.05s;"
         >
-          <h2>Designed for intentional watching.</h2>
+          <h2>Built for people who actually want to finish shows.</h2>
           <p>
-            Most apps optimize for endless scrolling. ShowShowShow is built for
-            planning: a clean calendar, a clear queue, and a library that
-            updates as you watch.
+            Netflix wants you scrolling for 30 minutes. We want you watching in
+            30 seconds. ShowShowShow doesn't host or stream content - it helps
+            you organize what to watch across your existing services. No
+            algorithmic rabbit holes. Just your queue, your schedule, your way.
           </p>
           <div class="card-grid">
             <div class="card">
-              <h3>Lineup-first planning</h3>
+              <div class="card-icon">📅</div>
+              <h3>See your whole week at a glance</h3>
               <p>
-                Create a watch lineup and drag episodes into real time blocks.
-                Everything stays visible.
+                Calendar view shows exactly what's playing when. Add episodes
+                into time slots like you're building a TV network. No guessing,
+                no endless 'Continue Watching' rows.
               </p>
             </div>
             <div class="card">
-              <h3>Auto scheduling</h3>
+              <div class="card-icon">⚡</div>
+              <h3>Or let the planner do the work</h3>
               <p>
-                Fill time blocks with round-robin or random picks while
-                respecting your filters.
+                Too busy to plan? Hit 'auto-fill' and the scheduler builds your
+                night from your queue. Blaze through shows in order or shuffle
+                randomly. You stay in control.
               </p>
             </div>
             <div class="card">
-              <h3>Library always synced</h3>
+              <div class="card-icon">✓</div>
+              <h3>Mark watched once, everywhere updates</h3>
               <p>
-                Mark watched items once and your library, schedule, and stats
-                stay aligned.
+                Check off an episode and it updates your library, schedule, and
+                stats automatically. No duplicate tracking across apps or
+                spreadsheets.
               </p>
             </div>
           </div>
@@ -130,40 +182,58 @@ const heroImages = [
           class="section reveal"
           style="animation-delay: 0.1s;"
         >
-          <h2>Simple tiers, no surprises.</h2>
+          <h2>Try everything free for 7 days.</h2>
           <p>
-            Core planning stays free. Supporter unlocks deeper scheduling
-            controls and insights.
+            Full access to all features for a week. After that, $5/month to keep
+            scheduling or stay read-only to browse your library.
           </p>
           <div class="pricing">
             <div class="price-card">
               <div>
-                <h3>Free</h3>
+                <h3>7-Day Trial</h3>
                 <div class="price">$0</div>
-                <p>Core planning for casual watching.</p>
+                <p style="font-size: 0.9rem; color: var(--soft-ink);">
+                  then $5/mo or read-only
+                </p>
               </div>
               <div class="feature-list">
-                <span>Limited library size (50 items)</span>
-                <span>Manual scheduling</span>
-                <span>Watch history + library sync</span>
-                <span>Simple viewing statistics</span>
+                <span>Full access to all features</span>
+                <span>Unlimited library during trial</span>
+                <span>Auto-scheduling and manual planning</span>
+                <span>All statistics and insights</span>
               </div>
             </div>
             <div class="price-card highlight">
+              <!-- <div class="price-card-badge">Most Popular</div> -->
               <div>
                 <h3>Supporter</h3>
                 <div class="price">
                   $5<span style="font-size: 1rem;">/mo</span>
                 </div>
-                <p>Advanced scheduling and deeper insights.</p>
+                <p>Keep planning after your trial.</p>
               </div>
               <div class="feature-list">
-                <span>Unlimited Library</span>
-                <span>Automated schedule generation and conflict handling</span>
-                <span>Enhanced statistics and insights</span>
-                <span>Saved filter presets</span>
+                <span>Unlimited library (track 1000+ shows)</span>
+                <span>Auto-schedule your nights in seconds</span>
+                <span>Detailed watch history and trends</span>
+                <span>Save custom filters (seasons, genres, networks)</span>
+                <span>Full scheduling access (manual + auto)</span>
               </div>
             </div>
+          </div>
+          <div
+            style="margin-top: 32px; padding: 24px; background: var(--mist); border-radius: 16px;"
+          >
+            <h3
+              style="font-family: 'Sora', sans-serif; font-size: 1.1rem; margin-bottom: 8px;"
+            >
+              Not ready to pay? Stay read-only.
+            </h3>
+            <p style="color: var(--soft-ink); line-height: 1.7;">
+              After your trial, you can browse your library and view stats
+              without paying. You just won't be able to schedule new episodes or
+              add to your queue.
+            </p>
           </div>
         </section>
 
@@ -174,13 +244,17 @@ const heroImages = [
         >
           <div class="waitlist">
             <div>
-              <h2>Be first in line for the beta.</h2>
+              <h2>Be among the first building the future of TV scheduling.</h2>
               <p>
-                Get early access and updates as the planning assistant evolves.
-                We will only email for major milestones.
+                Get beta access before public launch. We'll email you when new
+                features drop - no spam, no weekly newsletters.
               </p>
             </div>
-            <form id="waitlist-form" data-api-url={apiUrl}>
+            <form
+              id="waitlist-form"
+              data-api-url={apiUrl}
+              data-google-sheets-url={googleSheetsUrl}
+            >
               <input
                 type="email"
                 name="email"
@@ -191,11 +265,16 @@ const heroImages = [
             </form>
           </div>
           <!-- <p
-            style="margin-top: 12px; color: var(--soft-ink); font-size: 0.9rem;"
+            style="margin-top: 16px; color: var(--soft-ink); font-size: 0.9rem; text-align: center;"
           >
-            Launch pricing will be $5/month. Early supporters get the first
-            month free.
+            Early supporters get the first 3 months of Supporter tier free. ($15
+            value)
           </p> -->
+          <p
+            style="margin-top: 8px; color: var(--soft-ink); font-size: 0.85rem; text-align: center;"
+          >
+            We'll never spam you or sell your email. Promise.
+          </p>
         </section>
       </main>
 
@@ -213,34 +292,78 @@ const heroImages = [
 
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-    const navToggle = document.querySelector(".nav-toggle");
-    const navMenu = document.querySelector(".nav-menu");
-    if (navToggle && navMenu) {
-      navToggle.addEventListener("click", () => {
-        const isOpen = navMenu.classList.toggle("is-open");
-        navToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+      anchor.addEventListener("click", (e) => {
+        const href = anchor.getAttribute("href");
+        if (href && href !== "#") {
+          e.preventDefault();
+          const target = document.querySelector(href);
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }
       });
-    }
+    });
 
     const heroImage = document.getElementById("hero-carousel");
+    const heroCaption = document.getElementById("hero-caption");
+    const carouselIndicators = document.getElementById("carousel-indicators");
     const lightbox = document.getElementById("hero-lightbox");
     const lightboxImage = document.getElementById("hero-lightbox-image");
+
     if (heroImage instanceof HTMLImageElement) {
       const images = JSON.parse(heroImage.dataset.images || "[]");
       const alts = JSON.parse(heroImage.dataset.alts || "[]");
+      const captions = JSON.parse(heroImage.dataset.captions || "[]");
+
       if (images.length > 1) {
         let index = 0;
-        setInterval(() => {
-          index = (index + 1) % images.length;
+        let intervalId: number;
+
+        const updateCarousel = (newIndex: number) => {
+          index = newIndex % images.length;
           heroImage.classList.add("is-fading");
+          if (heroCaption) {
+            heroCaption.style.opacity = "0";
+          }
+
+          // Update dots
+          const dots = carouselIndicators?.querySelectorAll(".carousel-dot");
+          dots?.forEach((dot, i) => {
+            dot.classList.toggle("active", i === index);
+          });
+
           setTimeout(() => {
             heroImage.src = images[index];
             if (alts[index]) {
               heroImage.alt = alts[index];
             }
+            if (heroCaption && captions[index]) {
+              heroCaption.textContent = captions[index];
+              heroCaption.style.opacity = "1";
+            }
             heroImage.classList.remove("is-fading");
           }, 250);
+        };
+
+        // Auto-rotate
+        intervalId = setInterval(() => {
+          updateCarousel(index + 1);
         }, 5000);
+
+        // Dot click handlers
+        const dots = carouselIndicators?.querySelectorAll(".carousel-dot");
+        dots?.forEach((dot, i) => {
+          dot.addEventListener("click", () => {
+            clearInterval(intervalId);
+            updateCarousel(i);
+            // Restart auto-rotation
+            intervalId = setInterval(() => {
+              updateCarousel(index + 1);
+            }, 5000);
+          });
+        });
       }
     }
 
@@ -257,12 +380,16 @@ const heroImages = [
       });
     }
 
-    if (lightbox instanceof HTMLElement && lightboxImage instanceof HTMLImageElement) {
+    if (
+      lightbox instanceof HTMLElement &&
+      lightboxImage instanceof HTMLImageElement
+    ) {
       lightbox.addEventListener("click", (event) => {
         const target = event.target;
         if (
           target === lightbox ||
-          (target instanceof HTMLElement && target.classList.contains("lightbox-close"))
+          (target instanceof HTMLElement &&
+            target.classList.contains("lightbox-close"))
         ) {
           lightbox.classList.remove("is-open");
           lightbox.setAttribute("aria-hidden", "true");
@@ -287,21 +414,44 @@ const heroImages = [
       const originalText = submitButton.textContent;
       submitButton.textContent = "Joining...";
       try {
+        // Use Google Sheets if configured, otherwise fall back to backend API
+        const googleSheetsUrl = form.getAttribute("data-google-sheets-url");
         const apiUrl =
           form.getAttribute("data-api-url") || "http://localhost:3000";
-        const response = await fetch(`${apiUrl}/api/waitlist`, {
+
+        const endpoint = googleSheetsUrl || `${apiUrl}/api/waitlist`;
+
+        // Google Apps Script requires no-cors mode
+        const fetchOptions: RequestInit = {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: emailInput.value,
             source: "landing_page",
           }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || data.message || "Something went wrong");
+        };
+
+        if (googleSheetsUrl) {
+          // For Google Sheets, use no-cors mode
+          fetchOptions.mode = "no-cors";
         }
-        form.innerHTML = `<span style="font-family: Bricolage Grotesque, sans-serif;">${data.message}</span>`;
+
+        const response = await fetch(endpoint, fetchOptions);
+
+        // Handle Google Sheets response (no-cors means we can't read the response)
+        if (googleSheetsUrl) {
+          // With no-cors, if we get here without error, it likely worked
+          form.innerHTML = `<span style="font-family: 'Sora', sans-serif;">Thanks! You're on the list. Check your email soon.</span>`;
+        } else {
+          // Handle backend API response format
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(
+              data.error || data.message || "Something went wrong",
+            );
+          }
+          form.innerHTML = `<span style="font-family: 'Sora', sans-serif;">${data.message}</span>`;
+        }
       } catch (error) {
         const message =
           error instanceof Error

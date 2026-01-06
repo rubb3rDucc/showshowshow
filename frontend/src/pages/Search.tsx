@@ -9,18 +9,14 @@ import {
   Center,
   Stack,
   Pagination,
-  Collapse,
-  Switch,
-  Group,
-  Box,
-  Radio,
 } from '@mantine/core';
-import { Search as SearchIcon, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search as SearchIcon, ArrowLeft } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { searchContent, getContentByTmdbId, getContentByMalId, addToQueue, getQueue } from '../api/content';
 import { getLibrary, addToLibrary } from '../api/library';
 import { SearchResultCard } from '../components/search/SearchResultCard';
+import { ContentDetailModal } from '../components/browse/ContentDetailModal';
 import type { SearchResult, SearchResponse, QueueItem } from '../types/api';
 import type { LibraryStatus } from '../types/library.types';
 
@@ -30,12 +26,13 @@ export function Search() {
   const [query, setQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [includeAdult, setIncludeAdult] = useState(false);
+  const [includeAdult] = useState(false);
   const [animeOnly, setAnimeOnly] = useState(false);
-  const [titlePreference, setTitlePreference] = useState<'english' | 'japanese' | 'romanji'>('english');
+  const [titlePreference] = useState<'english' | 'japanese' | 'romanji'>('english');
   const [addingToQueueId, setAddingToQueueId] = useState<string | null>(null);
   const [addingToLibraryId, setAddingToLibraryId] = useState<string | null>(null);
+  const [selectedContent, setSelectedContent] = useState<SearchResult | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   
   // Store pagination metadata separately to keep pagination controls stable
   // Store the last known good metadata for the current search query
@@ -352,101 +349,25 @@ export function Search() {
             Find Shows & Movies
           </Text>
 
-          {/* Filters Section - Collapsible */}
-          <Box className="mb-4">
+          {/* Filters - Simple inline controls */}
+          <div className="flex flex-wrap items-center gap-3 mb-4">
             <Button
-              variant="subtle"
+              variant={animeOnly ? 'filled' : 'outline'}
               color="gray"
               size="sm"
-              rightSection={filtersOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              onClick={() => setFiltersOpen(!filtersOpen)}
-              className="mb-2"
+              onClick={() => {
+                setAnimeOnly(!animeOnly);
+                setPage(1);
+                setLastKnownMetadata(null);
+              }}
+              className="font-medium"
             >
-              {filtersOpen ? 'Hide Filters' : 'Show Filters'}
+              {animeOnly ? 'Searching Anime (MAL)' : 'Search Anime Only'}
             </Button>
-            
-            <Collapse in={filtersOpen}>
-              <Box className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-4 space-y-4">
-                <Group justify="space-between" align="center">
-                  <Text size="sm" className="font-semibold tracking-tight">
-                    Include Adult Content
-                  </Text>
-                  <Switch
-                    checked={includeAdult}
-                    onChange={(e) => {
-                      setIncludeAdult(e.currentTarget.checked);
-                      setPage(1); // Reset to first page when filter changes
-                    }}
-                    size="md"
-                  />
-                </Group>
-                
-                {/* Jikan API Settings Group */}
-                <Box className="border-t-2 border-[rgb(var(--color-border-default))] pt-4 space-y-4">
-                  <Text size="xs" className="font-semibold tracking-tight text-[rgb(var(--color-text-secondary))] mb-2">
-                    JIKAN API SETTINGS
-                  </Text>
-                  <Group justify="space-between" align="center">
-                    <div>
-                      <Text size="sm" className="font-semibold tracking-tight">
-                        Anime Only (Jikan)
-                      </Text>
-                      {animeOnly && (
-                        <Text size="xs" c="blue" className="mt-1">
-                          🔍 Searching MyAnimeList
-                        </Text>
-                      )}
-                    </div>
-                    <Switch
-                      checked={animeOnly}
-                      onChange={(e) => {
-                        setAnimeOnly(e.currentTarget.checked);
-                        setPage(1); // Reset to first page when filter changes
-                        setLastKnownMetadata(null); // Clear metadata when switching sources
-                      }}
-                      size="md"
-                    />
-                  </Group>
-                  <Box>
-                    <Text size="sm" className="font-semibold tracking-tight mb-2">
-                      Title Display
-                    </Text>
-                    <Radio.Group
-                      value={titlePreference}
-                      onChange={(value) => setTitlePreference(value as 'english' | 'japanese' | 'romanji')}
-                    >
-                      <Stack gap="xs">
-                        <Radio
-                          value="english"
-                          label={
-                            <Text size="xs" className="font-normal">
-                              English
-                            </Text>
-                          }
-                        />
-                        <Radio
-                          value="japanese"
-                          label={
-                            <Text size="xs" className="font-normal">
-                              Japanese
-                            </Text>
-                          }
-                        />
-                        <Radio
-                          value="romanji"
-                          label={
-                            <Text size="xs" className="font-normal">
-                              Romanji
-                            </Text>
-                          }
-                        />
-                      </Stack>
-                    </Radio.Group>
-                  </Box>
-                </Box>
-              </Box>
-            </Collapse>
-          </Box>
+            {includeAdult && (
+              <span className="text-xs text-gray-600">Adult content enabled</span>
+            )}
+          </div>
 
           {/* Search Bar */}
           <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm">
@@ -486,40 +407,54 @@ export function Search() {
           </div>
         )}
 
-        {/* Results Count - Show if we have pagination metadata or data */}
+        {/* Results Count and Pagination - Show if we have pagination metadata or data */}
         {searchQuery && effectivePaginationMetadata && (
-          <div className="mb-4">
-            <Text
-              size="sm"
-              className="font-semibold tracking-tight"
-            >
-              FOUND {resultsCount} RESULTS
-              {effectivePaginationMetadata.total_pages > 1 && ` (PAGE ${page} OF ${effectivePaginationMetadata.total_pages})`}
-            </Text>
+          <div className="mb-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <Text
+                size="sm"
+                className="font-semibold tracking-tight"
+              >
+                FOUND {resultsCount} RESULTS
+                {effectivePaginationMetadata.total_pages > 1 && ` (PAGE ${page} OF ${effectivePaginationMetadata.total_pages})`}
+              </Text>
+            </div>
+
+            {/* Pagination at top */}
+            {effectivePaginationMetadata.total_pages > 1 && (
+              <Center>
+                <Pagination
+                  value={page}
+                  onChange={setPage}
+                  total={effectivePaginationMetadata.total_pages}
+                  siblings={1}
+                  boundaries={1}
+                  disabled={isPlaceholderData}
+                />
+              </Center>
+            )}
           </div>
         )}
 
         {/* Results Grid - Show if we have results (placeholder data is fine) */}
         {searchQuery && searchResults.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
             {searchResults.map((result) => {
               const libraryInfo = getLibraryStatus(result);
               const itemKey = `${result.data_source || 'tmdb'}-${result.mal_id || result.tmdb_id}-${result.content_type}`;
-              const isThisItemAddingToQueue = addingToQueueId === itemKey;
-              const isThisItemAddingToLibrary = addingToLibraryId === itemKey;
-              
+
               return (
                 <SearchResultCard
                   key={itemKey}
                   item={result}
+                  onClick={() => {
+                    setSelectedContent(result);
+                    setModalOpen(true);
+                  }}
                   isInQueue={isInQueue(result)}
-                  onAddToQueue={(item) => addToQueueMutation.mutate(item)}
-                  isLoading={isThisItemAddingToQueue}
                   titlePreference={titlePreference}
                   isInLibrary={libraryInfo.inLibrary}
                   libraryStatus={libraryInfo.status}
-                  onAddToLibrary={(item) => addToLibraryMutation.mutate(item)}
-                  isAddingToLibrary={isThisItemAddingToLibrary}
                 />
               );
             })}
@@ -567,6 +502,38 @@ export function Search() {
             </Stack>
           </Center>
         )}
+
+        {/* Content Detail Modal */}
+        <ContentDetailModal
+          content={selectedContent ? {
+            id: selectedContent.tmdb_id || selectedContent.mal_id || 0,
+            tmdb_id: selectedContent.tmdb_id || 0,
+            title: selectedContent.title_english || selectedContent.title,
+            poster_url: selectedContent.poster_url,
+            backdrop_url: selectedContent.backdrop_url || null,
+            overview: selectedContent.overview || '',
+            first_air_date: selectedContent.release_date || undefined,
+            vote_average: selectedContent.vote_average || undefined,
+            content_type: selectedContent.content_type === 'tv' ? 'show' : 'movie',
+          } : null}
+          isOpen={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedContent(null);
+          }}
+          onAddToLibrary={() => {
+            if (selectedContent) {
+              addToLibraryMutation.mutate(selectedContent);
+            }
+          }}
+          onAddToQueue={() => {
+            if (selectedContent) {
+              addToQueueMutation.mutate(selectedContent);
+            }
+          }}
+          isAddingToLibrary={addingToLibraryId === `${selectedContent?.data_source || 'tmdb'}-${selectedContent?.mal_id || selectedContent?.tmdb_id}-${selectedContent?.content_type}`}
+          isAddingToQueue={addingToQueueId === `${selectedContent?.data_source || 'tmdb'}-${selectedContent?.mal_id || selectedContent?.tmdb_id}-${selectedContent?.content_type}`}
+        />
       </Container>
     </div>
   );
