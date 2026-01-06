@@ -107,7 +107,12 @@ const start = async () => {
     // In production, restrict to frontend URL; in development, allow all
     const frontendUrl = process.env.FRONTEND_URL;
     const landingPageUrl = process.env.LANDING_PAGE_URL; // Landing page domain (e.g., showshowshow.com)
-    
+
+    // Log CORS configuration for debugging
+    console.log('[CORS] isProduction:', isProduction());
+    console.log('[CORS] FRONTEND_URL:', frontendUrl);
+    console.log('[CORS] LANDING_PAGE_URL:', landingPageUrl);
+
     const corsOrigin = isProduction() && frontendUrl
       ? [
           frontendUrl, // Main app domain
@@ -121,6 +126,8 @@ const start = async () => {
           'http://localhost:3001',  // Docker backend (for direct access)
           'http://localhost:4321',  // Astro dev server (landing page)
         ]; // Development: allow common localhost ports
+
+    console.log('[CORS] Allowed origins:', corsOrigin);
 
     await fastify.register(cors, {
       origin: corsOrigin,
