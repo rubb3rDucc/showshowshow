@@ -106,15 +106,39 @@ async function handleUserCreated(evt: WebhookEvent) {
   const email = primaryEmail.email_address.toLowerCase();
   const isAdmin = public_metadata?.isAdmin === true;
 
-  // Check if user already exists (idempotency)
-  const existingUser = await db
+  // Check if user already exists by clerk_user_id (idempotency)
+  const existingClerkUser = await db
     .selectFrom('users')
     .select('id')
     .where('clerk_user_id', '=', clerkUserId)
     .executeTakeFirst();
 
-  if (existingUser) {
+  if (existingClerkUser) {
     console.log(`User ${clerkUserId} already exists, skipping creation`);
+    return;
+  }
+
+  // Check if user exists with this email (migrating from old auth)
+  const existingEmailUser = await db
+    .selectFrom('users')
+    .select(['id', 'auth_provider'])
+    .where('email', '=', email)
+    .executeTakeFirst();
+
+  if (existingEmailUser) {
+    // Link existing user to Clerk (upgrade from old auth)
+    await db
+      .updateTable('users')
+      .set({
+        clerk_user_id: clerkUserId,
+        auth_provider: 'clerk',
+        is_admin: isAdmin,
+        updated_at: new Date(),
+      })
+      .where('id', '=', existingEmailUser.id)
+      .execute();
+
+    console.log(`Linked existing user ${email} (${existingEmailUser.id}) to Clerk user ${clerkUserId}`);
     return;
   }
 
