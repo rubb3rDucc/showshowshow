@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
 import { Route, Switch, Redirect } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
+import { useAuth } from '@clerk/clerk-react';
+import { useEffect } from 'react';
+import { setGlobalTokenGetter } from './api/client';
 
-import { useAuthStore } from './stores/authStore';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 
@@ -19,6 +20,7 @@ import { Stats } from './pages/Stats';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
 import { Networks } from './pages/Networks';
 import { PersonDetail } from './pages/PersonDetail';
+import { ClerkTest } from './pages/ClerkTest';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -35,19 +37,12 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const { initialize, isInitialized } = useAuthStore();
+  const { getToken } = useAuth();
 
+  // Set up global token getter for API calls
   useEffect(() => {
-    initialize();
-  }, [initialize]);
-
-  if (!isInitialized) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div>Loading...</div>
-      </div>
-    );
-  }
+    setGlobalTokenGetter(getToken);
+  }, [getToken]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -55,6 +50,7 @@ function App() {
         {/* Public routes */}
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/clerk-test" component={ClerkTest} />
 
         {/* Protected routes */}
         <Route path="/">

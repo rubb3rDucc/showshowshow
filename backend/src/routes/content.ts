@@ -3,7 +3,7 @@ import { searchTMDB, getShowDetails, getMovieDetails, getSeason, getImageUrl, ge
 import { searchJikan, jikanSearchToSearchResult, getAnimeDetails, getAnimeEpisodes, jikanToContentFormat } from '../lib/jikan.js';
 import { normalizeRating } from '../lib/rating-utils.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
-import { authenticate } from '../plugins/auth.js';
+import { authenticateClerk } from '../plugins/clerk-auth.js';
 import type { FastifyInstance } from 'fastify';
 
 export const contentRoutes = async (fastify: FastifyInstance) => {
@@ -929,7 +929,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get user's library (all content they've added)
-  fastify.get('/api/content/library', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/content/library', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }

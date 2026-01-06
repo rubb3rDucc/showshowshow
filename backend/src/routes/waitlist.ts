@@ -1,7 +1,7 @@
 import { db } from '../db/index.js';
 import rateLimit from '@fastify/rate-limit';
 import { ValidationError } from '../lib/errors.js';
-import { requireAdmin } from '../plugins/admin-auth.js';
+import { requireClerkAdmin } from '../plugins/clerk-auth.js';
 import type { FastifyInstance } from 'fastify';
 
 export const waitlistRoutes = async (fastify: FastifyInstance) => {
@@ -105,7 +105,7 @@ export const waitlistRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get all waitlist entries (protected - requires admin)
-  fastify.get('/api/waitlist', { preHandler: requireAdmin }, async (request, reply) => {
+  fastify.get('/api/waitlist', { preHandler: requireClerkAdmin }, async (request, reply) => {
 
     const { with_codes_only, limit } = request.query as {
       with_codes_only?: string;

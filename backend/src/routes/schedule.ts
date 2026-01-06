@@ -1,12 +1,12 @@
 import { sql } from 'kysely';
 import { db } from '../db/index.js';
-import { authenticate } from '../plugins/auth.js';
+import { authenticateClerk } from '../plugins/clerk-auth.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import type { FastifyInstance } from 'fastify';
 
 export const scheduleRoutes = async (fastify: FastifyInstance) => {
   // Get user's schedule
-  fastify.get('/api/schedule', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/schedule', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -110,7 +110,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get schedule for specific date
-  fastify.get('/api/schedule/date/:date', { preHandler: authenticate }, async (request, reply) => {
+  fastify.get('/api/schedule/date/:date', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -228,7 +228,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Create schedule item (manual)
-  fastify.post('/api/schedule', { preHandler: authenticate }, async (request, reply) => {
+  fastify.post('/api/schedule', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -310,7 +310,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Update schedule item (reschedule, mark watched, etc.)
-  fastify.put('/api/schedule/:id', { preHandler: authenticate }, async (request, reply) => {
+  fastify.put('/api/schedule/:id', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -376,7 +376,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Delete schedule item
-  fastify.delete('/api/schedule/:id', { preHandler: authenticate }, async (request, reply) => {
+  fastify.delete('/api/schedule/:id', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -413,7 +413,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Clear all schedule items for user
-  fastify.delete('/api/schedule', { preHandler: authenticate }, async (request, reply) => {
+  fastify.delete('/api/schedule', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -433,7 +433,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Clear schedule items for a specific date
-  fastify.delete('/api/schedule/date/:date', { preHandler: authenticate }, async (request, reply) => {
+  fastify.delete('/api/schedule/date/:date', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -488,7 +488,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Mark schedule item as watched
-  fastify.post('/api/schedule/:id/watched', { preHandler: authenticate }, async (request, reply) => {
+  fastify.post('/api/schedule/:id/watched', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -693,7 +693,7 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Unmark schedule item as watched
-  fastify.delete('/api/schedule/:id/watched', { preHandler: authenticate }, async (request, reply) => {
+  fastify.delete('/api/schedule/:id/watched', { preHandler: authenticateClerk }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }

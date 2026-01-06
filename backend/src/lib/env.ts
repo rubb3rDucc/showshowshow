@@ -6,11 +6,12 @@
 
 interface EnvConfig {
   DATABASE_URL: string;
-  JWT_SECRET: string;
+  CLERK_SECRET_KEY: string;
+  CLERK_PUBLISHABLE_KEY: string;
+  CLERK_WEBHOOK_SECRET: string;
   TMDB_API_KEY: string;
   PORT?: string;
   NODE_ENV?: string;
-  JWT_EXPIRES_IN?: string;
   TMDB_API_BASE_URL?: string;
 }
 
@@ -31,7 +32,9 @@ export function validateEnv(): ValidationResult {
   // Required variables
   const required: Array<keyof EnvConfig> = [
     'DATABASE_URL',
-    'JWT_SECRET',
+    'CLERK_SECRET_KEY',
+    'CLERK_PUBLISHABLE_KEY',
+    'CLERK_WEBHOOK_SECRET',
     'TMDB_API_KEY',
   ];
 
@@ -51,21 +54,25 @@ export function validateEnv(): ValidationResult {
     }
   }
 
-  // Validate JWT_SECRET strength in production
-  if (process.env.JWT_SECRET) {
-    const jwtSecret = process.env.JWT_SECRET;
-    if (process.env.NODE_ENV === 'production') {
-      if (jwtSecret.length < 32) {
-        errors.push('JWT_SECRET must be at least 32 characters in production');
-      }
-      if (jwtSecret === 'dev-secret-key-change-in-production' || jwtSecret === 'your-secret-key-change-in-production') {
-        errors.push('JWT_SECRET must be changed from default value in production');
-      }
-    } else {
-      // Warning in development
-      if (jwtSecret === 'dev-secret-key-change-in-production' || jwtSecret.length < 16) {
-        warnings.push('JWT_SECRET is weak - use a stronger secret in production');
-      }
+  // Validate Clerk keys format
+  if (process.env.CLERK_SECRET_KEY) {
+    const secretKey = process.env.CLERK_SECRET_KEY;
+    if (!secretKey.startsWith('sk_')) {
+      warnings.push('CLERK_SECRET_KEY should start with "sk_" - verify it is correct');
+    }
+  }
+
+  if (process.env.CLERK_PUBLISHABLE_KEY) {
+    const publishableKey = process.env.CLERK_PUBLISHABLE_KEY;
+    if (!publishableKey.startsWith('pk_')) {
+      warnings.push('CLERK_PUBLISHABLE_KEY should start with "pk_" - verify it is correct');
+    }
+  }
+
+  if (process.env.CLERK_WEBHOOK_SECRET) {
+    const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
+    if (!webhookSecret.startsWith('whsec_')) {
+      warnings.push('CLERK_WEBHOOK_SECRET should start with "whsec_" - verify it is correct');
     }
   }
 
@@ -138,18 +145,19 @@ export function validateEnvOrExit(): void {
  */
 export function getEnv(): EnvConfig {
   const result = validateEnv();
-  
+
   if (!result.valid) {
     throw new Error(`Environment validation failed: ${result.errors.join(', ')}`);
   }
 
   return {
     DATABASE_URL: process.env.DATABASE_URL!,
-    JWT_SECRET: process.env.JWT_SECRET!,
+    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY!,
+    CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY!,
+    CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET!,
     TMDB_API_KEY: process.env.TMDB_API_KEY!,
     PORT: process.env.PORT,
     NODE_ENV: process.env.NODE_ENV,
-    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN,
     TMDB_API_BASE_URL: process.env.TMDB_API_BASE_URL,
   };
 }

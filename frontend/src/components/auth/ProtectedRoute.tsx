@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { useAuthStore } from '../../stores/authStore';
+import { useAuth } from '@clerk/clerk-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,18 +8,15 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [, setLocation] = useLocation();
-  const { user, token, isInitialized } = useAuthStore();
+  const { isLoaded, isSignedIn } = useAuth();
 
   useEffect(() => {
-    // Only redirect if fully initialized and NO token exists
-    // This prevents premature redirects during auth check
-    if (isInitialized && !token && !user) {
-      console.log('No auth, redirecting to login');
+    if (isLoaded && !isSignedIn) {
       setLocation('/login');
     }
-  }, [user, token, isInitialized, setLocation]);
+  }, [isLoaded, isSignedIn, setLocation]);
 
-  if (!isInitialized) {
+  if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div>Loading...</div>
@@ -27,12 +24,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // Allow render if token exists, even if user fetch failed temporarily
-  if (!token) {
+  if (!isSignedIn) {
     return null;
   }
 
   return <>{children}</>;
 }
-
-

@@ -1,4 +1,4 @@
-import { authenticate } from '../plugins/auth.js';
+import { authenticateClerk } from '../plugins/clerk-auth.js';
 import { ValidationError } from '../lib/errors.js';
 import { 
   getImageUrl, 
@@ -13,7 +13,7 @@ import type { FastifyInstance } from 'fastify';
 export const peopleRoutes = async (fastify: FastifyInstance) => {
   
   // Search for people
-  fastify.get('/api/people/search', { preHandler: authenticate }, 
+  fastify.get('/api/people/search', { preHandler: authenticateClerk }, 
     async (request, reply) => {
       const { q, page = 1 } = request.query as { q?: string; page?: number };
       
@@ -39,7 +39,7 @@ export const peopleRoutes = async (fastify: FastifyInstance) => {
   );
 
   // Get person's filmography from TMDB
-  fastify.get('/api/people/:tmdb_id', { preHandler: authenticate }, 
+  fastify.get('/api/people/:tmdb_id', { preHandler: authenticateClerk }, 
     async (request, reply) => {
       const { tmdb_id } = request.params as { tmdb_id: string };
       const tmdbId = parseInt(tmdb_id);
@@ -81,7 +81,7 @@ export const peopleRoutes = async (fastify: FastifyInstance) => {
   );
 
   // Get credits for a specific content item (by TMDB ID)
-  fastify.get('/api/content/:type/:tmdb_id/credits', { preHandler: authenticate }, 
+  fastify.get('/api/content/:type/:tmdb_id/credits', { preHandler: authenticateClerk }, 
     async (request, reply) => {
       const { type, tmdb_id } = request.params as { type: 'show' | 'movie'; tmdb_id: string };
       const tmdbId = parseInt(tmdb_id);

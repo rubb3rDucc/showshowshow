@@ -1,10 +1,10 @@
 import { Link } from 'wouter';
 import { Button, Group } from '@mantine/core';
 import { ScheduleView } from '../components/schedule/ScheduleView';
-import { useAuthStore } from '../stores/authStore';
+import { useUser } from '@clerk/clerk-react';
 
 export function Home() {
-  const { user } = useAuthStore();
+  const { user } = useUser();
 
   return (
     <div className="p-8">
@@ -14,7 +14,7 @@ export function Home() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Your Schedule</h1>
             <p className="text-[rgb(var(--color-text-secondary))]">
-              Welcome back, {user?.email}!
+              Welcome back, {user?.primaryEmailAddress?.emailAddress}!
             </p>
           </div>
           <Link href="/queue">

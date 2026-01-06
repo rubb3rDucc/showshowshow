@@ -2,7 +2,9 @@ export interface Database {
   users: {
     id: string;
     email: string;
-    password_hash: string;
+    password_hash: string | null;
+    clerk_user_id: string | null;
+    auth_provider: 'jwt' | 'clerk';
     is_admin: boolean;
     created_at: Date;
     updated_at: Date;
@@ -197,5 +199,15 @@ export interface Database {
     network_id: string;
     is_original: boolean;
     created_at: Date;
+  };
+  deleted_users: {
+    id?: string; // Optional because it has a default value
+    clerk_user_id: string;
+    email: string;
+    deleted_at?: Date; // Optional because it has a default value
+    deleted_reason: string;
+    stripe_customer_id?: string | null;
+    stripe_subscription_id?: string | null;
+    had_active_subscription?: boolean; // Optional because it has a default value
   };
 }

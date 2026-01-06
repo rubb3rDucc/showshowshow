@@ -13,6 +13,7 @@ import { initPostHog, shutdownPostHog } from './lib/posthog.js';
 import { initRedis } from './lib/redis.js';
 import { getEnvConfig, isProduction } from './lib/env-detection.js';
 import { authRoutes } from './routes/auth.js';
+import { clerkWebhookRoutes } from './routes/clerk-webhooks.js';
 import { contentRoutes } from './routes/content.js';
 import { queueRoutes } from './routes/queue.js';
 import { scheduleRoutes } from './routes/schedule.js';
@@ -138,6 +139,9 @@ const start = async () => {
     await fastify.register(rateLimitPlugin);
 
     // Register routes
+    // Webhook routes - registered BEFORE other routes, no rate limiting or auth
+    await fastify.register(clerkWebhookRoutes);
+
     // Auth routes - rate limiting is configured at route level (overrides global)
     await fastify.register(authRoutes, { prefix: '/api/auth' });
 
