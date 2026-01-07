@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useClerk } from '@clerk/clerk-react';
 import { Button, Burger, Drawer, Stack, Divider } from "@mantine/core";
-import { IconLogout } from '@tabler/icons-react';
 
 export function Navigation() {
   const [location] = useLocation();
@@ -107,7 +106,6 @@ export function Navigation() {
             onClick={handleLogout}
             variant='filled'
             fullWidth
-            leftSection={<IconLogout size={16} />}
             className="font-semibold"
           >
             Logout

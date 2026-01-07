@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Text, Button } from '@mantine/core';
-import { Tv, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { NetworkCard } from './NetworkCard';
 import { SectionHeader } from './SectionHeader';
 import { getNetworks } from '../../api/networks';
@@ -40,7 +40,6 @@ export function NetworkGrid({ onNetworkClick, onSeeAllNetworks, limit = 12 }: Ne
       <section className="mb-12">
         <SectionHeader
           title="Networks"
-          icon={<Tv size={20} strokeWidth={2.5} />}
           onSeeAll={onSeeAllNetworks}
         />
         <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 py-4">
@@ -59,7 +58,6 @@ export function NetworkGrid({ onNetworkClick, onSeeAllNetworks, limit = 12 }: Ne
       <section className="mb-12">
         <SectionHeader
           title="Networks"
-          icon={<Tv size={20} strokeWidth={2.5} />}
           onSeeAll={onSeeAllNetworks}
         />
       <div className="bg-red-100 border-2 border-red-900 p-6 text-center">
@@ -76,11 +74,9 @@ export function NetworkGrid({ onNetworkClick, onSeeAllNetworks, limit = 12 }: Ne
     <section className="mb-12">
         <SectionHeader
           title="Networks"
-          icon={<Tv size={20} strokeWidth={2.5} />}
           onSeeAll={onSeeAllNetworks}
         />
         <div className="bg-[rgb(var(--color-bg-elevated))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-8 text-center">
-          <Tv size={48} className="mx-auto mb-4 text-gray-400" />
           <Text className="font-bold text-lg mb-2">No networks yet</Text>
           <Text className="text-sm text-[rgb(var(--color-text-secondary))] mb-4">
             Add networks to start browsing shows
@@ -103,7 +99,6 @@ export function NetworkGrid({ onNetworkClick, onSeeAllNetworks, limit = 12 }: Ne
     <section className="mb-12">
       <SectionHeader
         title="Networks"
-        icon={<Tv size={20} strokeWidth={2.5} />}
         onSeeAll={onSeeAllNetworks}
       />
       

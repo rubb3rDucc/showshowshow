@@ -483,44 +483,21 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       .executeTakeFirstOrThrow();
 
     // Store network associations for TV shows from TMDB
+    // Only associate with networks that already exist in our database (user-curated)
     if (saved.content_type === 'show' && saved.data_source === 'tmdb' && saved.tmdb_id) {
       try {
         const showDetails = await getShowDetails(saved.tmdb_id);
-        
+
         if (showDetails.networks && showDetails.networks.length > 0) {
           for (const network of showDetails.networks) {
-            // Check if network exists in our database
-            let dbNetwork = await db
+            // Check if network exists in our database (don't auto-create)
+            const dbNetwork = await db
               .selectFrom('networks')
               .select('id')
               .where('tmdb_network_id', '=', network.id)
               .executeTakeFirst();
-            
-            // If network doesn't exist, create it
-            if (!dbNetwork) {
-              // Get the highest sort_order
-              const maxSortOrder = await db
-                .selectFrom('networks')
-                .select(db.fn.max('sort_order').as('max_sort'))
-                .executeTakeFirst();
-              
-              dbNetwork = await db
-                .insertInto('networks')
-                .values({
-                  id: crypto.randomUUID(),
-                  tmdb_network_id: network.id,
-                  name: network.name,
-                  logo_path: network.logo_path,
-                  origin_country: network.origin_country,
-                  sort_order: (maxSortOrder?.max_sort ?? -1) + 1,
-                  is_provider: false, // Networks from show details are TV networks, not providers
-                  created_at: new Date(),
-                })
-                .returningAll()
-                .executeTakeFirst();
-            }
-            
-            // Create content-network association
+
+            // Only create association if the network already exists
             if (dbNetwork) {
               await db
                 .insertInto('content_networks')

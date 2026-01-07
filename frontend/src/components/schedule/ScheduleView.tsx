@@ -9,7 +9,7 @@ import {
   Center,
   Alert,
 } from '@mantine/core';
-import { IconAlertCircle, IconCalendar } from '@tabler/icons-react';
+import { IconAlertCircle } from '@tabler/icons-react';
 import { toast } from 'sonner';
 import { getSchedule, clearScheduleForDate } from '../../api/schedule';
 import type { ScheduleItem } from '../../types/api';
@@ -181,7 +181,6 @@ export function ScheduleView() {
         <Card shadow="sm" padding="xl" radius="md" withBorder>
           <Center py={40}>
             <Stack align="center" gap="md">
-              <IconCalendar size={48} stroke={1.5} opacity={0.3} />
               <Text size="lg" fw={500} c="dimmed">
                 No schedule for this date
               </Text>
@@ -247,7 +246,6 @@ export function ScheduleView() {
                       isRerun={item.is_rerun}
                       season={item.season}
                       episode={item.episode}
-                      episodeTitle={item.episode_title || null}
                       watched={item.watched}
                     />
                   );

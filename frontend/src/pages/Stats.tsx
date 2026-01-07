@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Container, Loader, Center, Text, Button } from '@mantine/core';
 import { useLocation } from 'wouter';
-import { TrendingUp, Calendar } from 'lucide-react';
 import { LibraryStats } from '../components/library/LibraryStats';
 import { ProgressBar } from '../components/stats/ProgressBar';
 import { ActivityItem } from '../components/stats/ActivityItem';
@@ -90,12 +89,9 @@ export function Stats() {
         {/* Shows in Progress */}
         {showsInProgress.length > 0 && (
           <div className="mt-8">
-            <div className="flex items-center gap-3 mb-4">
-              <TrendingUp size={20} className="text-[rgb(var(--color-text-secondary))]" />
-              <h2 className="text-xl font-semibold text-[rgb(var(--color-text-primary))] tracking-tight">
-                Shows in Progress
-              </h2>
-            </div>
+            <h2 className="text-xl font-semibold text-[rgb(var(--color-text-primary))] tracking-tight mb-4">
+              Shows in Progress
+            </h2>
             <div className="space-y-3">
               {showsInProgress.map((show) => (
                 <ProgressBar
@@ -125,12 +121,9 @@ export function Stats() {
         {/* Recent Activity */}
         {recentActivity.length > 0 && (
           <div className="mt-8">
-            <div className="flex items-center gap-3 mb-4">
-              <Calendar size={20} className="text-[rgb(var(--color-text-secondary))]" />
-              <h2 className="text-xl font-semibold text-[rgb(var(--color-text-primary))] tracking-tight">
-                Recent Activity
-              </h2>
-            </div>
+            <h2 className="text-xl font-semibold text-[rgb(var(--color-text-primary))] tracking-tight mb-4">
+              Recent Activity
+            </h2>
             <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm dark:shadow-gray-950/50 p-4">
               {recentActivity.map((activity) => (
                 <ActivityItem
@@ -149,7 +142,6 @@ export function Stats() {
         {/* Empty State */}
         {showsInProgress.length === 0 && recentActivity.length === 0 && (
           <div className="mt-8 bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-8 text-center">
-            <TrendingUp size={48} strokeWidth={2} className="mx-auto mb-4 text-gray-700" />
             <Text size="xl" fw={700} className="mb-2">
               Start Watching to See Stats
             </Text>

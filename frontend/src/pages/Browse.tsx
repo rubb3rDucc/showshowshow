@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Container, Button, Loader, Center, Text } from '@mantine/core';
 import { useLocation } from 'wouter';
-import { Search as SearchIcon, ArrowLeft, TrendingUp, Award, Tv, Clock } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { NetworkGrid } from '../components/browse/NetworkGrid';
 import { ContentCarousel } from '../components/browse/ContentCarousel';
@@ -433,7 +433,6 @@ export function Browse() {
                 <section>
                   <SectionHeader
                     title="Popular"
-                    icon={<TrendingUp size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/popular`)}
                   />
                   <ContentCarousel<NetworkContentItem>
@@ -463,7 +462,6 @@ export function Browse() {
                 <section>
                   <SectionHeader
                     title="Highly Rated"
-                    icon={<Award size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/rated`)}
                   />
                   <ContentCarousel<NetworkContentItem>
@@ -479,7 +477,6 @@ export function Browse() {
                 <section>
                   <SectionHeader
                     title="The 2020s"
-                    icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/2020s`)}
                   />
                   <ContentCarousel<NetworkContentItem>
@@ -493,7 +490,6 @@ export function Browse() {
                 <section>
                   <SectionHeader
                     title="The 2010s"
-                    icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/2010s`)}
                   />
                   <ContentCarousel<NetworkContentItem>
@@ -507,7 +503,6 @@ export function Browse() {
                 <section>
                   <SectionHeader
                     title="The 2000s"
-                    icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/2000s`)}
                   />
                   <ContentCarousel<NetworkContentItem>
@@ -521,7 +516,6 @@ export function Browse() {
                 <section>
                   <SectionHeader
                     title="The 90s"
-                    icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/90s`)}
                   />
                   <ContentCarousel<NetworkContentItem>
@@ -535,7 +529,6 @@ export function Browse() {
                 <section>
                   <SectionHeader
                     title="The 80s"
-                    icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/80s`)}
                   />
                   <ContentCarousel<NetworkContentItem>
@@ -549,7 +542,6 @@ export function Browse() {
                 <section>
                   <SectionHeader
                     title="The 70s"
-                    icon={<Clock size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/70s`)}
                   />
                   <ContentCarousel<NetworkContentItem>
@@ -564,7 +556,6 @@ export function Browse() {
                 <section>
                   <SectionHeader
                     title="All Shows"
-                    icon={<Tv size={20} strokeWidth={2.5} />}
                     onSeeAll={() => setLocation(`/browse/network/${selectedNetworkId}/all`)}
                   />
                   <ContentCarousel<NetworkContentItem>
@@ -618,7 +609,6 @@ export function Browse() {
             size="md"
             className="bg-teal-600 hover:bg-teal-700 text-white border-0 font-semibold tracking-tight"
             radius="xs"
-            leftSection={<SearchIcon size={16} />}
             onClick={() => setLocation('/search')}
           >
             Search for Content

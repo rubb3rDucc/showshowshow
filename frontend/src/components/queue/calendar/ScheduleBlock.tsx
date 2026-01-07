@@ -1,7 +1,6 @@
-import { Box, Group, Text, Button, Stack, Tooltip } from '@mantine/core';
+import { Box, Group, Text, Button, Stack } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 import { useState } from 'react';
-import { useMediaQuery } from '@mantine/hooks';
 import type { ScheduleItemWithType } from './types';
 import { getItemPosition } from './utils';
 import { QuietDesign } from '../../../styles/quiet-design-system';
@@ -13,9 +12,8 @@ interface ScheduleBlockProps {
   watched?: boolean;
 }
 
-export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }: ScheduleBlockProps) {
+export function ScheduleBlock({ item, onDelete, watched = false }: ScheduleBlockProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const isMobile = useMediaQuery('(max-width: 768px)');
   const position = getItemPosition(item);
   const isShow = item.season !== null && item.episode !== null;
 
@@ -183,20 +181,6 @@ export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }:
               </Button>
             )}
           </Group>
-          {isMobile && episodeTitle && isShow && (
-            <Text
-              size="xs"
-              style={{
-                color: QuietDesign.colors.gray[500],
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-              data-block-content
-            >
-              {episodeTitle}
-            </Text>
-          )}
           <Text
             size="xs"
             style={{ color: QuietDesign.colors.gray[500] }}
@@ -208,28 +192,6 @@ export function ScheduleBlock({ item, episodeTitle, onDelete, watched = false }:
       )}
     </Box>
   );
-
-  // Only show tooltip if episode has a title
-  if (episodeTitle && isShow) {
-    return (
-      <Tooltip
-        label={episodeTitle}
-        position="top"
-        withArrow
-        styles={{
-          tooltip: {
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            color: 'white',
-            fontSize: '12px',
-            fontWeight: 400,
-            padding: '6px 10px',
-          },
-        }}
-      >
-        {blockContent}
-      </Tooltip>
-    );
-  }
 
   return blockContent;
 }

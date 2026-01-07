@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useEffectEvent } from 'react';
 import { Modal, Drawer, Textarea, Button, Badge, Menu, ActionIcon, Text, useMantineTheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-import { X, Calendar, Trash2, MoreVertical, Star, CheckCircle, FileText } from 'lucide-react';
+import { MoreVertical, Star } from 'lucide-react';
 import type { LibraryItemUI, LibraryStatus } from '../../types/library.types';
 import { EpisodeTracker } from './EpisodeTracker';
 
@@ -56,65 +56,58 @@ const NotesSection = ({
 }: NotesSectionProps) => {
   return (
     <div className="border-b border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-surface))] w-full">
-      <div className="w-full flex items-center justify-between p-2 md:p-4">
-
-        <div className="flex items-center gap-3">
-          <FileText size={18} className="text-[rgb(var(--color-text-secondary))]" />
-          <span className="font-semibold text-[rgb(var(--color-text-primary))]">Notes</span>
-        </div>
+      <div className="w-full flex items-center justify-between p-3 md:p-4">
+        <span className="font-semibold text-base text-[rgb(var(--color-text-primary))]">Notes</span>
       </div>
 
-      <div className="p-4 md:p-6 pt-0 space-y-3 w-full">
-        {/* Metadata Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-1">
-
-          {/* Score Selector */}
-          <div>
-            <label className="block text-xs font-semibold text-[rgb(var(--color-text-secondary))] mb-2">
-              Score
-            </label>
-            <div className="flex flex-wrap gap-1">
-              {/* Star rating with 44x44 touch targets for mobile */}
-              <div className="flex items-center gap-1 overflow-x-auto">
+      <div className="p-4 md:p-4 pt-0 space-y-3 md:space-y-3 w-full">
+        {/* Score Selector */}
+        <div>
+          <label className="block text-sm font-semibold text-[rgb(var(--color-text-secondary))] mb-2">
+            Score
+          </label>
+          <div className="flex flex-wrap gap-1">
+            {/* Star rating with 44x44 touch targets */}
+            <div className="flex items-center gap-0.5 overflow-x-auto">
+              <button
+                onClick={() => onScoreChange(null)}
+                className={`
+                  min-w-[44px] min-h-[44px] text-sm border border-[rgb(var(--color-border-default))] font-semibold
+                  transition-all flex items-center justify-center
+                  ${score === null
+                    ? 'bg-[rgb(var(--color-accent))] text-white border-[rgb(var(--color-accent))]'
+                    : 'bg-[rgb(var(--color-bg-surface))] text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))]'
+                  }
+                  `}
+                style={{ borderRadius: '4px' }}
+                aria-label="No score"
+              >
+                —
+              </button>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                 <button
-                  onClick={() => onScoreChange(null)}
+                  key={num}
+                  onClick={() => onScoreChange(num)}
                   className={`
-                    min-w-[44px] min-h-[44px] text-sm border border-[rgb(var(--color-border-default))] font-semibold rounded-md
-                    transition-all flex items-center justify-center
-                    ${score === null
-                      ? 'bg-[rgb(var(--color-accent))] text-white border-[rgb(var(--color-accent))]'
-                      : 'bg-[rgb(var(--color-bg-surface))] text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))]'
+                    min-w-[44px] min-h-[44px] flex items-center justify-center
+                      ${score && score >= num
+                      ? 'text-amber-500'
+                      : 'text-gray-300 dark:text-gray-600'
                     }
-                    `}
-                  aria-label="No score"
+      hover:text-amber-400 transition-colors
+    `}
+                  aria-label={`Rate ${num} stars`}
                 >
-                  —
+                  <Star size={20} fill={score && score >= num ? 'currentColor' : 'none'} />
                 </button>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                  <button
-                    key={num}
-                    onClick={() => onScoreChange(num)}
-                    className={`
-                      min-w-[44px] min-h-[44px] flex items-center justify-center
-                        ${score && score >= num
-                        ? 'text-amber-500'
-                        : 'text-gray-300 dark:text-gray-600'
-                      }
-        hover:text-amber-400 transition-colors
-      `}
-                    aria-label={`Rate ${num} stars`}
-                  >
-                    <Star size={20} fill={score && score >= num ? 'currentColor' : 'none'} />
-                  </button>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Notes */}
         <div>
-          <label className="block text-xs font-semibold text-[rgb(var(--color-text-secondary))] mb-2">
+          <label className="block text-sm font-semibold text-[rgb(var(--color-text-secondary))] mb-2">
             Notes
           </label>
           <Textarea
@@ -122,19 +115,20 @@ const NotesSection = ({
             value={notes}
             resize="vertical"
             onChange={onNotesChange}
-            minRows={4}
+            minRows={3}
             maxLength={250}
             classNames={{
               input: 'border border-[rgb(var(--color-border-default))] focus:border-[rgb(var(--color-accent))] bg-[rgb(var(--color-bg-surface))] text-[rgb(var(--color-text-primary))] font-normal placeholder:text-[rgb(var(--color-text-tertiary))]',
             }}
             styles={{
               input: {
-                borderRadius: '0.5rem',
+                borderRadius: '4px',
+                fontSize: '14px',
               },
             }}
           />
           <div className="text-right mt-1">
-            <span className="text-xs font-normal text-[rgb(var(--color-text-tertiary))]">
+            <span className="text-sm font-normal text-[rgb(var(--color-text-tertiary))]">
               {notes.length}/250
             </span>
           </div>
@@ -304,7 +298,7 @@ export function LibraryDetailModal({
                   className="font-medium text-xs"
                   styles={{
                     root: {
-                      borderRadius: 0,
+                      borderRadius: '4px',
                       backgroundColor: '#000000',
                       color: '#ffffff',
                     },
@@ -314,40 +308,32 @@ export function LibraryDetailModal({
                 </Badge>
                 {item.content.contentType === 'show' && item.progress && (
                   <Text
-                    size="xs"
+                    size="sm"
                     fw={500}
                     c="dimmed"
-                    className="text-[10px] sm:text-xs"
                   >
-                    {/* {watchedEpisodes}/{totalEpisodes} ep • {progress}% */}
                     {watchedEpisodes}/{totalEpisodes} ep
                   </Text>
                 )}
               </div>
 
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  color="black"
-                  className="bg-gray-900 hover:bg-gray-800 text-white font-medium"
-                  leftSection={<Calendar size={14} />}
-                  onClick={() => onAddToQueue(item)}
-                >
-                  Add to Queue
-                </Button>
-                {item.content.contentType === 'show' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    color="black"
-                    className="border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-medium"
-                    leftSection={<CheckCircle size={14} />}
-                    onClick={handleMarkShowWatched}
-                  >
-                    Mark Complete
-                  </Button>
-                )}
-              </div>
+              <Button
+                size="sm"
+                color="black"
+                fullWidth
+                className="bg-gray-900 hover:bg-gray-800 text-white font-medium"
+                styles={{
+                  root: {
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    padding: '8px 12px',
+                    minHeight: '40px',
+                  },
+                }}
+                onClick={() => onAddToQueue(item)}
+              >
+                + Queue
+              </Button>
 
               {/* Progress Bar */}
               {/* <div className="flex flex-wrap items-center gap-2">
@@ -390,25 +376,27 @@ export function LibraryDetailModal({
                 ))}
               </div> */}
 
-              {/* Add quick status selector in header */}
-              <span className="text-xs text-[rgb(var(--color-text-tertiary))]">Status:</span>
-              <div className="flex items-center gap-2 mt-2 overflow-x-auto">
-                <div className="flex gap-1">
+              {/* Status selector - full width grid with touch targets */}
+              <div className="w-full mt-2">
+                <span className="text-sm text-[rgb(var(--color-text-tertiary))] block mb-1">Status:</span>
+                <div className="grid grid-cols-2 gap-1 w-full">
                   {STATUS_OPTIONS.map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => {setStatus(option.value);
-                        // Auto-save or show save indicator
-                      }}
+                      onClick={() => setStatus(option.value)}
                       className={`
-                            px-2 py-0.5 text-sm rounded-none
-                            ${status === option.value
+                        min-h-[44px] font-medium transition-all
+                        ${status === option.value
                           ? `${option.color} text-white`
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }
-                          `}
+                      `}
+                      style={{
+                        borderRadius: '4px',
+                        fontSize: '13px',
+                      }}
                     >
-                      {option.label.toLocaleLowerCase()}
+                      {option.label}
                     </button>
                   ))}
                 </div>
@@ -425,7 +413,7 @@ export function LibraryDetailModal({
               className="font-medium text-xs"
               styles={{
                 root: {
-                  borderRadius: 0,
+                  borderRadius: '4px',
                   backgroundColor: '#000000',
                   color: '#ffffff',
                 },
@@ -444,7 +432,7 @@ export function LibraryDetailModal({
                   aria-label="Show actions"
                   styles={{
                     root: {
-                      borderRadius: 0,
+                      borderRadius: '4px',
                     },
                   }}
                 >
@@ -455,15 +443,14 @@ export function LibraryDetailModal({
               <Menu.Dropdown
                 className="border border-[rgb(var(--color-border-subtle))]"
                 style={{
-                  borderRadius: 0,
+                  borderRadius: '4px',
                 }}
               >
                 <Menu.Label className="text-xs font-medium">
-                  Show actions
+                  Actions
                 </Menu.Label>
                 {item.content.contentType === 'show' && (
                   <Menu.Item
-                    leftSection={<CheckCircle size={14} />}
                     onClick={handleMarkShowWatched}
                     className="font-medium text-gray-700 text-sm"
                   >
@@ -471,19 +458,14 @@ export function LibraryDetailModal({
                   </Menu.Item>
                 )}
                 <Menu.Item
-                  leftSection={<Calendar size={14} />}
                   onClick={() => onAddToQueue(item)}
                   className="font-medium text-gray-700 text-sm"
                 >
                   Add to Queue
                 </Menu.Item>
                 <Menu.Divider />
-                <Menu.Label className="text-xs font-medium">
-                  Danger zone
-                </Menu.Label>
                 <Menu.Item
                   color="red"
-                  leftSection={<Trash2 size={14} />}
                   onClick={handleRemove}
                   className="font-medium text-sm"
                 >
@@ -491,7 +473,6 @@ export function LibraryDetailModal({
                 </Menu.Item>
                 <Menu.Divider />
                 <Menu.Item
-                  leftSection={<X size={14} />}
                   onClick={onClose}
                   className="font-medium text-gray-700 text-sm"
                 >

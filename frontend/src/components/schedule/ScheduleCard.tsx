@@ -14,7 +14,6 @@ interface ScheduleCardProps {
   isRerun?: boolean;
   season?: number | null;
   episode?: number | null;
-  episodeTitle?: string | null;
   watched?: boolean;
 }
 
@@ -23,7 +22,6 @@ export function ScheduleCard({
   queueItem,
   season,
   episode,
-  episodeTitle,
   contentId,
   isRerun,
   watched = false,
@@ -126,7 +124,6 @@ export function ScheduleCard({
           {queueItem?.type === 'show' && season !== null && episode !== null && (
             <div className="text-sm text-[rgb(var(--color-text-tertiary))] mb-1">
               S{String(season).padStart(2, '0')}E{String(episode).padStart(2, '0')}
-              {episodeTitle && ` • ${episodeTitle}`}
             </div>
           )}
           <div className="flex items-center gap-2 text-xs text-gray-400">
@@ -217,7 +214,6 @@ export function ScheduleCard({
           {queueItem?.type === 'show' && season !== null && episode !== null && (
             <div className="text-sm text-[rgb(var(--color-text-tertiary))] mb-1">
               S{String(season).padStart(2, '0')}E{String(episode).padStart(2, '0')}
-              {episodeTitle && ` • ${episodeTitle}`}
             </div>
           )}
           <div className="flex items-center gap-2 text-xs text-gray-400">

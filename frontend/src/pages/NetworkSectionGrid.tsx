@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Container, Button, Loader, Center, Text } from '@mantine/core';
 import { useLocation, useParams } from 'wouter';
-import { ArrowLeft, Star, Tv } from 'lucide-react';
+import { ArrowLeft, Star } from 'lucide-react';
 import { useState, useMemo, useReducer, useEffect } from 'react';
 import { toast } from 'sonner';
 import { getNetworkContent, type NetworkContent } from '../api/networks';
@@ -544,7 +544,6 @@ export function NetworkSectionGrid() {
         ) : !isLoading ? (
           // Only show "no content" if not loading initial data
           <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm p-12 text-center">
-            <Tv size={48} className="mx-auto mb-4 text-gray-400" />
             <p className="font-bold text-lg mb-2">No shows found</p>
             <p className="text-sm text-[rgb(var(--color-text-secondary))] mb-4">
               This section doesn't have any shows matching the criteria.

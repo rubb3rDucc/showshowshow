@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Loader, Text, Tabs  } from '@mantine/core';
-import { ListVideo, Check, Info } from 'lucide-react';
+import { ListVideo, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import type { LibraryItemUI } from '../../types/library.types';
 import { getEpisodesByContentId } from '../../api/content';
@@ -33,7 +33,7 @@ function SeasonTabs({ seasons, activeSeason, onSeasonChange }: SeasonTabsProps) 
         }}
         styles={{
           tab: {
-            borderRadius: 0,
+            borderRadius: '4px',
           },
         }}
       >
@@ -94,7 +94,7 @@ interface EpisodeListProps {
 
 function EpisodeList({ episodes, watchedEpisodes, onToggleWatched, season, isLoading, onViewDetails }: EpisodeListProps) {
   return (
-    <ul className="divide-y divide-gray-200 border border-[rgb(var(--color-border-subtle))] overflow-hidden">
+    <ul className="divide-y divide-gray-200 border border-[rgb(var(--color-border-subtle))] overflow-hidden" style={{ borderRadius: '4px' }}>
       {episodes.map((episode) => {
         const episodeKey = `s${season}e${episode.episode_number}`;
         const isWatched = watchedEpisodes.has(episodeKey);
@@ -108,7 +108,7 @@ function EpisodeList({ episodes, watchedEpisodes, onToggleWatched, season, isLoa
               ${isWatched ? 'bg-gray-50/50' : 'bg-white'}
             `}
           >
-            {/* Checkbox */}
+            {/* Checkbox - green square when watched, no icon */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -122,17 +122,14 @@ function EpisodeList({ episodes, watchedEpisodes, onToggleWatched, season, isLoa
               type="button"
               tabIndex={-1}
               className={`
-                flex-shrink-0 w-8 h-8 md:w-10 md:h-10 border border-gray-300 flex items-center justify-center transition-all duration-200 focus:outline-none
-                ${isWatched ? 'bg-green-600' : 'bg-white hover:bg-gray-50'}
+                flex-shrink-0 w-8 h-8 md:w-10 md:h-10 border border-gray-300 transition-all duration-200 focus:outline-none
+                ${isWatched ? 'bg-green-600 border-green-600' : 'bg-white hover:bg-gray-50'}
               `}
+              style={{ borderRadius: '4px' }}
               aria-label={`Mark ${episodeTitle} as ${isWatched ? 'unwatched' : 'watched'}`}
               aria-pressed={isWatched}
               disabled={isLoading}
-            >
-              {isWatched && (
-                <Check size={20} strokeWidth={2} className="text-white" />
-              )}
-            </button>
+            />
 
             {/* Content */}
             <button
@@ -489,25 +486,36 @@ export function EpisodeTracker({
 
           {/* Bulk Actions */}
           {/* mark entire show as watched */}
-          <button
+          <Button
+            fullWidth
+            color="dark"
+            className="bg-gray-900 hover:bg-gray-800 font-medium"
+            styles={{
+              root: {
+                borderRadius: '4px',
+                fontSize: 'clamp(12px, 2.5vw, 14px)',
+                padding: '12px 16px',
+                minHeight: '44px',
+              },
+            }}
             onClick={handleMarkAllWatched}
-            disabled={markAllMutation.isPending}
-            className="w-full bg-gray-900 border-r-0 hover:bg-gray-800 py-3 flex items-center justify-center transition-colors disabled:opacity-50"
+            loading={markAllMutation.isPending}
           >
-            <span className="text-white font-medium text-sm flex items-center gap-2">
-              Mark Entire Show as Watched
-            </span>
-          </button>
+            Mark Entire Show as Watched
+          </Button>
 
-          {/* Unwatched buttons */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Season buttons */}
+          <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"
               color="dark"
               className="font-medium border-[rgb(var(--color-border-default))] hover:bg-[rgb(var(--color-bg-page))]"
               styles={{
                 root: {
-                  borderRadius: 0,
+                  borderRadius: '4px',
+                  fontSize: 'clamp(10px, 2vw, 13px)',
+                  padding: '8px 6px',
+                  minHeight: '40px',
                 },
               }}
               onClick={handleMarkSeasonWatched}
@@ -521,7 +529,10 @@ export function EpisodeTracker({
               className="font-medium border-[rgb(var(--color-border-default))] hover:bg-[rgb(var(--color-bg-page))]"
               styles={{
                 root: {
-                  borderRadius: 0,
+                  borderRadius: '4px',
+                  fontSize: 'clamp(10px, 2vw, 13px)',
+                  padding: '8px 6px',
+                  minHeight: '40px',
                 },
               }}
               onClick={handleMarkSeasonUnwatched}
@@ -532,13 +543,14 @@ export function EpisodeTracker({
           </div>
 
           {/* Season Progress - Fixed height to prevent layout shifts */}
-          <div 
-            className="bg-[rgb(var(--color-bg-page))] border border-[rgb(var(--color-border-subtle))] p-6" 
-            style={{ 
+          <div
+            className="bg-[rgb(var(--color-bg-page))] border border-[rgb(var(--color-border-subtle))] p-6"
+            style={{
               height: '120px',
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              borderRadius: '4px'
             }}
           >
             <div className="flex justify-between items-end mb-3" style={{ minHeight: '48px', height: '48px' }}>
@@ -570,7 +582,7 @@ export function EpisodeTracker({
                 {progress}%
               </div>
             </div>
-            <div className="w-full bg-gray-200 h-2 overflow-hidden" style={{ height: '8px', flexShrink: 0 }}>
+            <div className="w-full bg-gray-200 h-2 overflow-hidden" style={{ height: '8px', flexShrink: 0, borderRadius: '4px' }}>
               <div
                 className="bg-gray-900 h-full transition-all duration-500 ease-out"
                 style={{
