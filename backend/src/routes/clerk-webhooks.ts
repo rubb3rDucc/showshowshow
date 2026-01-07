@@ -1,5 +1,7 @@
 import { Webhook } from 'svix';
 import { db } from '../db/index.js';
+import { setUserContext } from '../db/rls-context.js';
+import { SYSTEM_USER_ID } from '../lib/constants.js';
 import type { FastifyInstance } from 'fastify';
 import type { WebhookEvent } from '@clerk/backend';
 
@@ -60,6 +62,9 @@ export const clerkWebhookRoutes = async (fastify: FastifyInstance) => {
 
     // Handle the webhook event
     try {
+      // Set system context for RLS bypass - webhooks run as service account
+      await setUserContext(SYSTEM_USER_ID);
+
       switch (evt.type) {
         case 'user.created':
           await handleUserCreated(evt);
