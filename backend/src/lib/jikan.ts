@@ -6,6 +6,7 @@
  */
 
 const JIKAN_API_BASE_URL = 'https://api.jikan.moe/v4';
+const JIKAN_TIMEOUT_MS = parseInt(process.env.JIKAN_TIMEOUT_MS || '15000', 10); // 15 second default (Jikan can be slow)
 
 // Rate limiting: stagger requests to respect 3 req/sec limit
 let lastRequestTime = 0;
@@ -14,27 +15,39 @@ const MIN_REQUEST_INTERVAL = 350; // 350ms between requests (slightly more than 
 async function rateLimitedFetch(url: string): Promise<Response> {
   const now = Date.now();
   const timeSinceLastRequest = now - lastRequestTime;
-  
+
   if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
     const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
     await new Promise(resolve => setTimeout(resolve, waitTime));
   }
-  
+
   lastRequestTime = Date.now();
-  
-  const response = await fetch(url);
-  
-  if (!response.ok) {
-    if (response.status === 429) {
-      throw new Error('Jikan API rate limit exceeded. Please wait a moment.');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), JIKAN_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Jikan API rate limit exceeded. Please wait a moment.');
+      }
+      if (response.status === 404) {
+        throw new Error('Anime not found in Jikan API');
+      }
+      throw new Error(`Jikan API error: ${response.status} ${response.statusText}`);
     }
-    if (response.status === 404) {
-      throw new Error('Anime not found in Jikan API');
+
+    return response;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error(`Jikan API request timed out after ${JIKAN_TIMEOUT_MS}ms`);
     }
-    throw new Error(`Jikan API error: ${response.status} ${response.statusText}`);
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  
-  return response;
 }
 
 // Search anime

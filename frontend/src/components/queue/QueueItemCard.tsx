@@ -12,11 +12,7 @@ import {
   Center,
   Select,
 } from '@mantine/core';
-import {
-  IconX,
-  IconChevronDown,
-  IconChevronUp,
-} from '@tabler/icons-react';
+import { X, ChevronDown, ChevronUp } from 'lucide-react';
 import { getEpisodes, getEpisodesByContentId, getContentByTmdbId } from '../../api/content';
 import type { QueueItem } from '../../types/api';
 
@@ -200,7 +196,7 @@ export function QueueItemCard({
                   pointerEvents: 'auto',
                 }}
               >
-                <IconX size={14} strokeWidth={1.5} />
+                <X size={14} strokeWidth={1.5} />
               </ActionIcon>
             </Group>
 
@@ -217,7 +213,7 @@ export function QueueItemCard({
                   padding: '2px 8px',
                 }}
                 rightSection={
-                  expanded ? <IconChevronUp size={12} /> : <IconChevronDown size={12} />
+                  expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />
                 }
                 onClick={(e) => {
                   e.stopPropagation();
@@ -242,9 +238,9 @@ export function QueueItemCard({
                 }}
                 rightSection={
                   showMovieDescription ? (
-                    <IconChevronUp size={12} />
+                    <ChevronUp size={12} />
                   ) : (
-                    <IconChevronDown size={12} />
+                    <ChevronDown size={12} />
                   )
                 }
                 onClick={(e) => {
@@ -353,7 +349,7 @@ export function QueueItemCard({
                               <Text size="xs" c="dimmed" style={{ fontWeight: 300 }}>
                                 {ep.duration || 0}m
                               </Text>
-                              <IconChevronDown
+                              <ChevronDown
                                 size={12}
                                 style={{
                                   color: '#9ca3af',

@@ -10,7 +10,7 @@ import {
   Loader,
   Center,
 } from '@mantine/core';
-import { IconMail, IconLock, IconUser } from '@tabler/icons-react';
+import { Mail, Lock, User } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/clerk-react';
 
 export function Settings() {
@@ -63,7 +63,7 @@ export function Settings() {
                   Your account details
                 </Text>
               </div>
-              <IconUser size={24} className="text-gray-400" />
+              <User size={24} className="text-gray-400" />
             </Group>
 
             <Divider />
@@ -109,14 +109,14 @@ export function Settings() {
                   Update your email, password, or connected accounts
                 </Text>
               </div>
-              <IconLock size={24} className="text-gray-400" />
+              <Lock size={24} className="text-gray-400" />
             </Group>
 
             <Divider />
 
             <Stack gap="sm">
               <Button
-                leftSection={<IconMail size={16} />}
+                leftSection={<Mail size={16} />}
                 variant="light"
                 onClick={() => openUserProfile()}
                 fullWidth
@@ -126,7 +126,7 @@ export function Settings() {
 
               {!isOAuthOnly && (
                 <Button
-                  leftSection={<IconLock size={16} />}
+                  leftSection={<Lock size={16} />}
                   variant="light"
                   onClick={() => openUserProfile()}
                   fullWidth

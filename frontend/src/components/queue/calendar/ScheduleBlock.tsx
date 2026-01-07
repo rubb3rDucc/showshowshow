@@ -1,5 +1,5 @@
 import { Box, Group, Text, Button, Stack } from '@mantine/core';
-import { IconX } from '@tabler/icons-react';
+import { X } from 'lucide-react';
 import { useState } from 'react';
 import type { ScheduleItemWithType } from './types';
 import { getItemPosition } from './utils';
@@ -134,7 +134,7 @@ export function ScheduleBlock({ item, onDelete, watched = false }: ScheduleBlock
                   onDelete(item.id);
                 }}
               >
-                <IconX size={12} />
+                <X size={12} />
               </Button>
             )}
           </Group>
@@ -177,7 +177,7 @@ export function ScheduleBlock({ item, onDelete, watched = false }: ScheduleBlock
                   onDelete(item.id);
                 }}
               >
-                <IconX size={12} />
+                <X size={12} />
               </Button>
             )}
           </Group>

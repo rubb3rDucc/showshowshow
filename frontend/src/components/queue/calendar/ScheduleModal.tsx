@@ -1,5 +1,5 @@
 import { Modal, Stack, Text, Box, Group, Button, Select, Alert, ScrollArea, Accordion, Checkbox, Center, Loader, Radio } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { AlertCircle } from 'lucide-react';
 import type { QueueItem, Episode } from '../../../types/api';
 import type { TimeSlot, SchedulingMode } from './types';
 import { toDate } from './utils';
@@ -192,7 +192,7 @@ export function ScheduleModal({
                     </Accordion>
                   </ScrollArea>
                 ) : (
-                  <Alert icon={<IconAlertCircle size={16} />} title="No Episodes">
+                  <Alert icon={<AlertCircle size={16} />} title="No Episodes">
                     Episodes not available for this show.
                   </Alert>
                 )}
@@ -274,7 +274,7 @@ export function ScheduleModal({
                 }}
               />
             ) : (
-              <Alert icon={<IconAlertCircle size={16} />} title="Empty Queue">
+              <Alert icon={<AlertCircle size={16} />} title="Empty Queue">
                 No items in queue to schedule.
               </Alert>
             )}
@@ -285,7 +285,7 @@ export function ScheduleModal({
             </Group>
           </>
         ) : (
-          <Alert icon={<IconAlertCircle size={16} />} title="No Time Slot Selected">
+          <Alert icon={<AlertCircle size={16} />} title="No Time Slot Selected">
             Please select a time slot first.
           </Alert>
         )}

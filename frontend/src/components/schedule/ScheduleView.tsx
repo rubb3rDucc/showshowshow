@@ -9,7 +9,7 @@ import {
   Center,
   Alert,
 } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSchedule, clearScheduleForDate } from '../../api/schedule';
 import type { ScheduleItem } from '../../types/api';
@@ -155,7 +155,7 @@ export function ScheduleView() {
 
   if (error) {
     return (
-      <Alert color="red" title="Error" icon={<IconAlertCircle />}>
+      <Alert color="red" title="Error" icon={<AlertCircle />}>
         Failed to load schedule. Please try again.
       </Alert>
     );

@@ -43,20 +43,86 @@ fastify.decorate('db', db);
 
 // Health check endpoint
 fastify.get('/health', async () => {
+  const health: {
+    status: 'ok' | 'degraded' | 'error';
+    timestamp: string;
+    services: {
+      database: { status: 'ok' | 'error'; latency_ms?: number; error?: string };
+      tmdb?: { status: 'ok' | 'error'; latency_ms?: number; error?: string };
+      jikan?: { status: 'ok' | 'error'; latency_ms?: number; error?: string };
+    };
+  } = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    services: {
+      database: { status: 'ok' },
+    },
+  };
+
+  // Check database
+  const dbStart = Date.now();
   try {
     await testConnection();
-    return {
-      status: 'ok',
-      database: 'connected',
-      timestamp: new Date().toISOString()
-    };
+    health.services.database.latency_ms = Date.now() - dbStart;
   } catch (error) {
-    return {
+    health.services.database = {
       status: 'error',
-      database: 'disconnected',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      latency_ms: Date.now() - dbStart,
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
+    health.status = 'error';
   }
+
+  // Check TMDB API (only if API key is configured)
+  if (process.env.TMDB_API_KEY) {
+    const tmdbStart = Date.now();
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(
+        `https://api.themoviedb.org/3/configuration?api_key=${process.env.TMDB_API_KEY}`,
+        { signal: controller.signal }
+      );
+      clearTimeout(timeoutId);
+      health.services.tmdb = {
+        status: response.ok ? 'ok' : 'error',
+        latency_ms: Date.now() - tmdbStart,
+        ...(response.ok ? {} : { error: `HTTP ${response.status}` }),
+      };
+    } catch (error: any) {
+      health.services.tmdb = {
+        status: 'error',
+        latency_ms: Date.now() - tmdbStart,
+        error: error.name === 'AbortError' ? 'Timeout' : error.message,
+      };
+      if (health.status === 'ok') health.status = 'degraded';
+    }
+  }
+
+  // Check Jikan API
+  const jikanStart = Date.now();
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch('https://api.jikan.moe/v4/anime/1', {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    health.services.jikan = {
+      status: response.ok ? 'ok' : 'error',
+      latency_ms: Date.now() - jikanStart,
+      ...(response.ok ? {} : { error: `HTTP ${response.status}` }),
+    };
+  } catch (error: any) {
+    health.services.jikan = {
+      status: 'error',
+      latency_ms: Date.now() - jikanStart,
+      error: error.name === 'AbortError' ? 'Timeout' : error.message,
+    };
+    if (health.status === 'ok') health.status = 'degraded';
+  }
+
+  return health;
 });
 
 // Test endpoint

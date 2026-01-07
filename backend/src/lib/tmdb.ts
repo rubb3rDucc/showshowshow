@@ -4,25 +4,39 @@ dotenv.config();
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_API_BASE_URL = process.env.TMDB_API_BASE_URL || 'https://api.themoviedb.org/3';
+const TMDB_TIMEOUT_MS = parseInt(process.env.TMDB_TIMEOUT_MS || '10000', 10); // 10 second default
 
 if (!TMDB_API_KEY) {
   console.warn('⚠️  TMDB_API_KEY not set in environment variables');
 }
 
-// Fetch with error handling
+// Fetch with timeout and error handling
 async function fetchTMDB(endpoint: string): Promise<any> {
   if (!TMDB_API_KEY) {
     throw new Error('TMDB_API_KEY not configured');
   }
 
   const url = `${TMDB_API_BASE_URL}${endpoint}${endpoint.includes('?') ? '&' : '?'}api_key=${TMDB_API_KEY}`;
-  const response = await fetch(url);
 
-  if (!response.ok) {
-    throw new Error(`TMDB API error: ${response.status} ${response.statusText}`);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TMDB_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error(`TMDB API request timed out after ${TMDB_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return response.json();
 }
 
 // Search for shows and movies

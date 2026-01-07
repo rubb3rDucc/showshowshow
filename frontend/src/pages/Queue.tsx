@@ -30,7 +30,7 @@ import {
   Tabs,
 } from '@mantine/core';
 import { useMediaQuery, useDisclosure } from '@mantine/hooks';
-import { IconAlertCircle, IconList, IconChevronLeft } from '@tabler/icons-react';
+import { AlertCircle, List, ChevronLeft } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { getQueue, removeFromQueue, reorderQueue } from '../api/content';
@@ -200,7 +200,7 @@ export function Queue() {
     return (
       <div className="p-4 md:p-8">
         <div style={{ width: '100%', padding: '0 16px' }}>
-          <Alert color="red" title="Error" icon={<IconAlertCircle />}>
+          <Alert color="red" title="Error" icon={<AlertCircle />}>
             Failed to load Lineup. Please try again.
           </Alert>
         </div>
@@ -357,7 +357,7 @@ export function Queue() {
                   variant="subtle"
                   color="gray"
                   size="xs"
-                  leftSection={<IconChevronLeft size={12} />}
+                  leftSection={<ChevronLeft size={12} />}
                   style={{ fontWeight: 300 }}
                 >
                   Search
@@ -371,7 +371,7 @@ export function Queue() {
                   color="gray"
                   onClick={open}
                 >
-                  <IconList size={18} />
+                  <List size={18} />
                 </ActionIcon>
                 <Text size="sm" fw={300} style={{ color: '#374151' }}>
                   {localQueue.length} {localQueue.length === 1 ? 'item' : 'items'}
@@ -386,7 +386,7 @@ export function Queue() {
                 onClick={open}
                 style={{ fontWeight: 300 }}
               >
-                <IconList size={18} />
+                <List size={18} />
                 {" "}
                 {" "}
                 <Text size="sm" fw={300} style={{ color: '#374151' }}>

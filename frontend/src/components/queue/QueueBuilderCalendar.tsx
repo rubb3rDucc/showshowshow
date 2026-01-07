@@ -10,7 +10,7 @@ import {
   Box,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconCalendar, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+import { Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { PendingItemsSummary } from './calendar/PendingItemsSummary';
 import { ScheduleTimeline } from './calendar/ScheduleTimeline';
 import { ScheduleModal } from './calendar/ScheduleModal';
@@ -120,7 +120,7 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
                   setSelectedDate(null);
                 }
               }}
-              leftSection={<IconCalendar size={16} />}
+              leftSection={<Calendar size={16} />}
               style={{ flex: 1, fontStyle:'italic',  }}
             />
             <Text size="xs" c="dimmed" mt="xl">
@@ -130,7 +130,7 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
 
           {/* Empty Queue State */}
           {/* {isEmpty && (
-            <Alert icon={<IconAlertCircle size={16} />} title="Empty Queue" color="yellow">
+            <Alert icon={<AlertCircle size={16} />} title="Empty Queue" color="yellow">
               Add items to your queue from the search page to schedule them.
             </Alert>
           )} */}
@@ -169,7 +169,7 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
         <Card shadow="sm" padding="lg" radius="md" withBorder>
           <Group justify="space-between" align="center" mb={expanded ? 'md' : 0}>
             <Group gap="xs">
-              <IconCalendar size={20} />
+              <Calendar size={20} />
               <Text fw={600} size="lg">
                 Calendar Builder
               </Text>
@@ -178,7 +178,7 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
               variant="subtle"
               size="sm"
               onClick={onToggle}
-              rightSection={expanded ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
+              rightSection={expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             >
               {expanded ? 'Collapse' : 'Expand'}
             </Button>

@@ -1,5 +1,5 @@
 import { Card, Group, Text, Badge, Button, Stack, ScrollArea } from '@mantine/core';
-import { IconCheck } from '@tabler/icons-react';
+import { Check } from 'lucide-react';
 import type { PendingScheduleItem } from './types';
 
 interface PendingItemsSummaryProps {
@@ -32,7 +32,7 @@ export function PendingItemsSummary({
           size="xs"
           onClick={onSaveAll}
           loading={isLoading}
-          leftSection={<IconCheck size={14} />}
+          leftSection={<Check size={14} />}
         >
           Save All
         </Button>

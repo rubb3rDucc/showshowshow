@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { IconCheck } from '@tabler/icons-react';
+import { Check } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { ScheduleCardItem, QueueCardItem } from './scheduleCardAdapters';
@@ -169,7 +169,7 @@ export function ScheduleCard({
             aria-label={isWatched ? `Mark as unwatched: ${title}` : `Mark as watched: ${title}`}
             aria-checked={isWatched}
           >
-            {isWatched && <IconCheck size={14} style={{ color: 'white' }} />}
+            {isWatched && <Check size={14} style={{ color: 'white' }} />}
             <span className="font-normal">
               {isWatched ? 'Watched' : 'Mark watched'}
             </span>
@@ -263,7 +263,7 @@ export function ScheduleCard({
             aria-label={isWatched ? `Mark as unwatched: ${title}` : `Mark as watched: ${title}`}
             aria-checked={isWatched}
           >
-            {isWatched && <IconCheck size={14} style={{ color: 'white' }} />}
+            {isWatched && <Check size={14} style={{ color: 'white' }} />}
             <span className="font-normal whitespace-nowrap">
               {isWatched ? 'Watched' : 'Mark watched'}
             </span>

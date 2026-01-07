@@ -12,7 +12,7 @@ import {
   Collapse,
   Checkbox,
 } from '@mantine/core';
-import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { DatePickerInput } from '@mantine/dates';
 import { useMediaQuery } from '@mantine/hooks';
 import { toast } from 'sonner';
@@ -49,7 +49,7 @@ function SeasonSection({
         variant="subtle"
         size="md"
         onClick={() => setIsExpanded(!isExpanded)}
-        leftSection={isExpanded ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+        leftSection={isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         styles={{
           root: {
             fontWeight: 500,
@@ -157,7 +157,7 @@ function ShowEpisodeFilter({
           variant="subtle"
           size="md"
           onClick={() => onToggleShow(show.content_id)}
-          leftSection={isExpanded ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+          leftSection={isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           styles={{
             root: {
               fontWeight: 400,
@@ -735,7 +735,7 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
             variant="subtle"
             size="md"
             onClick={() => setShowFilters(!showFilters)}
-            leftSection={showFilters ? <IconChevronDown size={18} /> : <IconChevronRight size={18} />}
+            leftSection={showFilters ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
             styles={{
               root: {
                 fontWeight: 400,
