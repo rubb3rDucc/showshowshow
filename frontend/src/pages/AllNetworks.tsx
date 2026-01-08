@@ -147,7 +147,7 @@ export function AllNetworks() {
           <Button
             variant="subtle"
             leftSection={<ArrowLeft size={16} />}
-            onClick={() => setLocation('/')}
+            onClick={() => setLocation('/browse')}
             className="mb-6"
           >
             Back to Browse
@@ -208,7 +208,7 @@ export function AllNetworks() {
                     <SortableNetworkCard
                       key={network.id}
                       network={network}
-                      onClick={() => setLocation(`/?network=${network.id}`)}
+                      onClick={() => setLocation(`/browse?network=${network.id}`)}
                       isEditMode={isEditMode}
                       index={index}
                     />
@@ -229,7 +229,7 @@ export function AllNetworks() {
                 <NetworkCard
                   key={network.id}
                   network={network}
-                  onClick={() => setLocation(`/?network=${network.id}`)}
+                  onClick={() => setLocation(`/browse?network=${network.id}`)}
                 />
               ))}
             </div>

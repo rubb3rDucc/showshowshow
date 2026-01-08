@@ -134,14 +134,14 @@ export function Browse() {
     // Directly set the network ID and update URL
     setSelectedNetworkId(networkId);
     // Update URL for sharing/bookmarking
-    window.history.pushState({}, '', `/?network=${networkId}`);
+    window.history.pushState({}, '', `/browse?network=${networkId}`);
   };
 
   const handleBackToNetworks = () => {
     // Clear the network selection
     setSelectedNetworkId(null);
     // Update URL
-    window.history.pushState({}, '', '/');
+    window.history.pushState({}, '', '/browse');
   };
 
   const handleContentClick = (item: NetworkContentItem) => {
@@ -338,7 +338,7 @@ export function Browse() {
               onClick={handleBackToNetworks}
               className="mb-6"
             >
-              Back to Home
+              Back to Networks
             </Button>
 
             <div className="flex items-center gap-4 mb-2">

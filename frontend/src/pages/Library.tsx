@@ -168,7 +168,7 @@ export function Library() {
   };
 
   const handleNavigateToSearch = () => {
-    setLocation('/');
+    setLocation('/browse');
   };
 
   if (isLoadingLibrary) {

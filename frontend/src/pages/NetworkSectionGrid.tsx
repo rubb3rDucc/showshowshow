@@ -334,7 +334,7 @@ export function NetworkSectionGrid() {
           <Button
             variant="subtle"
             leftSection={<ArrowLeft size={16} />}
-            onClick={() => setLocation('/')}
+            onClick={() => setLocation('/browse')}
             className="mb-6"
           >
             Back to Browse
@@ -389,7 +389,7 @@ export function NetworkSectionGrid() {
           <Button
             variant="subtle"
             leftSection={<ArrowLeft size={16} />}
-            onClick={() => setLocation(`/?network=${networkId}`)}
+            onClick={() => setLocation(`/browse?network=${networkId}`)}
             className="mb-6"
           >
             Back to Network
@@ -417,7 +417,7 @@ export function NetworkSectionGrid() {
           <Button
             variant="subtle"
             leftSection={<ArrowLeft size={16} />}
-            onClick={() => setLocation(`/?network=${networkId}`)}
+            onClick={() => setLocation(`/browse?network=${networkId}`)}
             className="mb-6"
           >
             Back to Network
@@ -550,7 +550,7 @@ export function NetworkSectionGrid() {
             </p>
             <Button
               variant="outline"
-              onClick={() => setLocation(`/?network=${networkId}`)}
+              onClick={() => setLocation(`/browse?network=${networkId}`)}
               className="border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm font-semibold"
             >
               Browse All {network?.name} Shows

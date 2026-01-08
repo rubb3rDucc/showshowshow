@@ -9,10 +9,11 @@ export function Navigation() {
   const [mobileMenuOpened, setMobileMenuOpened] = useState(false);
 
   const navItems = [
-    { path: '/', label: 'Browse' },
+    { path: '/', label: 'Home' },
+    { path: '/browse', label: 'Browse' },
     { path: '/library', label: 'Library' },
-    { path: '/stats', label: 'Stats' },
     { path: '/lineup', label: 'Lineup' },
+    { path: '/stats', label: 'Stats' },
     { path: '/settings', label: 'Settings' },
   ];
 

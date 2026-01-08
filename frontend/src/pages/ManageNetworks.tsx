@@ -160,7 +160,7 @@ export function ManageNetworks() {
           <Button
             variant="subtle"
             leftSection={<ArrowLeft size={16} />}
-            onClick={() => setLocation('/')}
+            onClick={() => setLocation('/browse')}
             className="mb-6"
           >
             Back to Browse
