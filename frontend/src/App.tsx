@@ -56,6 +56,14 @@ function App() {
         <Route path="/">
           <ProtectedRoute>
             <Layout>
+              <Home />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/browse">
+          <ProtectedRoute>
+            <Layout>
               <Browse />
             </Layout>
           </ProtectedRoute>
@@ -65,14 +73,6 @@ function App() {
           <ProtectedRoute>
             <Layout>
               <Search />
-            </Layout>
-          </ProtectedRoute>
-        </Route>
-
-        <Route path="/home">
-          <ProtectedRoute>
-            <Layout>
-              <Home />
             </Layout>
           </ProtectedRoute>
         </Route>

@@ -265,7 +265,7 @@ export function Networks() {
           <Button
             variant="subtle"
             leftSection={<ArrowLeft size={16} />}
-            onClick={() => setLocation('/')}
+            onClick={() => setLocation('/browse')}
             className="mb-6"
           >
             Back to Browse
@@ -348,7 +348,7 @@ export function Networks() {
                             </div>
                             <SortableNetworkCard
                               network={network}
-                              onClick={() => setLocation(`/?network=${network.id}`)}
+                              onClick={() => setLocation(`/browse?network=${network.id}`)}
                               isEditMode={isEditMode}
                               index={index}
                             />
@@ -372,7 +372,7 @@ export function Networks() {
                             <div key={network.id} className="relative">
                               <SortableNetworkCard
                                 network={network}
-                                onClick={() => setLocation(`/?network=${network.id}`)}
+                                onClick={() => setLocation(`/browse?network=${network.id}`)}
                                 isEditMode={isEditMode}
                                 index={index + 12}
                               />
@@ -400,7 +400,7 @@ export function Networks() {
                         </div>
                         <NetworkCard
                           network={network}
-                          onClick={() => setLocation(`/?network=${network.id}`)}
+                          onClick={() => setLocation(`/browse?network=${network.id}`)}
                         />
                       </div>
                     ))}
@@ -422,7 +422,7 @@ export function Networks() {
                         <NetworkCard
                           key={network.id}
                           network={network}
-                          onClick={() => setLocation(`/?network=${network.id}`)}
+                          onClick={() => setLocation(`/browse?network=${network.id}`)}
                         />
                       ))}
                     </div>
