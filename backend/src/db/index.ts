@@ -18,7 +18,7 @@ const pool = new Pool({
   idleTimeoutMillis: 10000, // Reduced from 30000 - release idle connections faster
   connectionTimeoutMillis: 10000, // Increased from 2000 to 10000 (10 seconds)
   ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: true
+    rejectUnauthorized: false  // Accept self-signed certs (common for managed Postgres like Supabase)
   } : false,
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,
