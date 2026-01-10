@@ -6,6 +6,7 @@ export interface Database {
     clerk_user_id: string | null;
     auth_provider: 'jwt' | 'clerk';
     is_admin: boolean;
+    activated_at: Date | null;
     created_at: Date;
     updated_at: Date;
   };

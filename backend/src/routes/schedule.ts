@@ -689,6 +689,23 @@ export const scheduleRoutes = async (fastify: FastifyInstance) => {
       }
     });
 
+    // Track event with source
+    const { captureEvent } = await import('../lib/posthog.js');
+    captureEvent('episode_marked_watched', {
+      distinctId: userId,
+      properties: {
+        content_id: scheduleItem.content_id,
+        season: scheduleItem.season,
+        episode: scheduleItem.episode,
+        source: 'schedule',
+        schedule_id: id,
+      },
+    });
+
+    // Check for user activation (first watch from schedule)
+    const { checkAndFireActivation } = await import('../lib/activation.js');
+    await checkAndFireActivation(userId);
+
     return reply.send({ success: true });
   });
 

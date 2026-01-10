@@ -883,6 +883,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         season,
         episode,
         status, // watched/unwatched/skipped
+        source: 'library',
         total_episodes_watched: progress.watched,
         total_episodes: progress.total,
       },
