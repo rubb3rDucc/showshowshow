@@ -10,6 +10,7 @@ import {
   UnauthorizedError,
   ForbiddenError,
   ConflictError,
+  DatabaseConnectionError,
 } from '../../src/lib/errors.js';
 
 describe('Error Classes', () => {
@@ -130,6 +131,128 @@ describe('Error Classes', () => {
       expect(error.statusCode).toBe(409);
       expect(error.code).toBe('CONFLICT');
       expect(error.message).toBe('Email already exists');
+    });
+  });
+
+  describe('DatabaseConnectionError', () => {
+    it('should create 503 error with default message', () => {
+      const error = new DatabaseConnectionError();
+
+      expect(error.statusCode).toBe(503);
+      expect(error.code).toBe('DATABASE_CONNECTION_ERROR');
+      expect(error.message).toBe('Database connection error');
+    });
+
+    it('should create 503 error with custom message', () => {
+      const error = new DatabaseConnectionError('Connection pool exhausted');
+
+      expect(error.statusCode).toBe(503);
+      expect(error.code).toBe('DATABASE_CONNECTION_ERROR');
+      expect(error.message).toBe('Connection pool exhausted');
+    });
+
+    it('should be instance of AppError', () => {
+      const error = new DatabaseConnectionError();
+
+      expect(error).toBeInstanceOf(Error);
+      expect(error).toBeInstanceOf(AppError);
+      expect(error).toBeInstanceOf(DatabaseConnectionError);
+    });
+  });
+
+  describe('Error Inheritance and Stack Traces', () => {
+    it('should have correct name for each error type', () => {
+      expect(new AppError('test').name).toBe('AppError');
+      expect(new NotFoundError().name).toBe('NotFoundError');
+      expect(new ValidationError().name).toBe('ValidationError');
+      expect(new UnauthorizedError().name).toBe('UnauthorizedError');
+      expect(new ForbiddenError().name).toBe('ForbiddenError');
+      expect(new ConflictError().name).toBe('ConflictError');
+      expect(new DatabaseConnectionError().name).toBe('DatabaseConnectionError');
+    });
+
+    it('should have stack trace', () => {
+      const error = new AppError('Test error');
+
+      expect(error.stack).toBeDefined();
+      expect(error.stack).toContain('AppError');
+      expect(error.stack).toContain('Test error');
+    });
+
+    it('should have stack trace for subclass errors', () => {
+      const error = new NotFoundError('User not found');
+
+      expect(error.stack).toBeDefined();
+      expect(error.stack).toContain('NotFoundError');
+    });
+
+    it('all subclasses should be instanceof AppError', () => {
+      const errors = [
+        new NotFoundError(),
+        new ValidationError(),
+        new UnauthorizedError(),
+        new ForbiddenError(),
+        new ConflictError(),
+        new DatabaseConnectionError(),
+      ];
+
+      for (const error of errors) {
+        expect(error).toBeInstanceOf(AppError);
+        expect(error).toBeInstanceOf(Error);
+      }
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle empty string message', () => {
+      const error = new AppError('');
+
+      expect(error.message).toBe('');
+      expect(error.statusCode).toBe(500);
+    });
+
+    it('should handle very long message', () => {
+      const longMessage = 'A'.repeat(10000);
+      const error = new AppError(longMessage);
+
+      expect(error.message).toBe(longMessage);
+      expect(error.message.length).toBe(10000);
+    });
+
+    it('should handle special characters in message', () => {
+      const specialMessage = 'Error: <script>alert("xss")</script> & "quotes" \'single\'';
+      const error = new AppError(specialMessage);
+
+      expect(error.message).toBe(specialMessage);
+    });
+
+    it('should handle unicode in message', () => {
+      const unicodeMessage = 'Error: こんにちは 🚀 émoji';
+      const error = new AppError(unicodeMessage);
+
+      expect(error.message).toBe(unicodeMessage);
+    });
+
+    it('should preserve statusCode 0', () => {
+      const error = new AppError('Test', 0);
+
+      expect(error.statusCode).toBe(0);
+    });
+
+    it('should handle negative statusCode', () => {
+      const error = new AppError('Test', -1);
+
+      expect(error.statusCode).toBe(-1);
+    });
+
+    it('should handle boundary status codes', () => {
+      const error400 = new AppError('Client Error', 400);
+      const error500 = new AppError('Server Error', 500);
+      const error599 = new AppError('Custom Error', 599);
+
+      expect(error400.statusCode).toBe(400);
+      expect(error500.statusCode).toBe(500);
+      expect(error599.statusCode).toBe(599);
     });
   });
 });
