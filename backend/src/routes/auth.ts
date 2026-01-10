@@ -28,8 +28,16 @@ export const authRoutes = async (fastify: FastifyInstance) => {
       });
     }
 
-    // Track session verification event
-    const { captureEvent } = await import('../lib/posthog.js');
+    // Track session verification event and identify user for MAU
+    const { captureEvent, identifyUser } = await import('../lib/posthog.js');
+
+    // Identify user for MAU tracking (critical for PostHog analytics)
+    identifyUser(user.id, {
+      email: user.email,
+      last_seen: new Date().toISOString(),
+      is_admin: user.is_admin,
+    });
+
     captureEvent('user_session_verified', {
       distinctId: user.id,
       properties: {

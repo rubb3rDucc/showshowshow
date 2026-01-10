@@ -1,9 +1,10 @@
 import { AppError, DatabaseConnectionError } from '../lib/errors.js';
 import { captureException } from '../lib/posthog.js';
 import { isProduction } from '../lib/env-detection.js';
+import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
-export const errorHandlerPlugin = async (fastify: FastifyInstance) => {
+const errorHandler = async (fastify: FastifyInstance) => {
   // Set custom error serializer to prevent Fastify from adding default error fields
   fastify.setErrorHandler((error, request: FastifyRequest, reply) => {
     // Remove error message from error object to prevent Fastify from serializing it
@@ -21,10 +22,11 @@ export const errorHandlerPlugin = async (fastify: FastifyInstance) => {
     fastify.log.error(error);
 
     // Detect database connection errors (should always be captured)
+    // Use originalMessage since error.message may have been cleared for production
     const isDatabaseError = error instanceof Error && (
-      error.message.includes('timeout exceeded when trying to connect') ||
-      error.message.includes('connection') ||
-      error.message.includes('ECONNREFUSED') ||
+      (originalMessage?.includes('timeout exceeded when trying to connect') ?? false) ||
+      (originalMessage?.includes('connection') ?? false) ||
+      (originalMessage?.includes('ECONNREFUSED') ?? false) ||
       error.stack?.includes('pg-pool') ||
       error.stack?.includes('postgres') ||
       error.stack?.includes('kysely')
@@ -115,13 +117,14 @@ export const errorHandlerPlugin = async (fastify: FastifyInstance) => {
     // Handle database connection errors specifically
     // Hide technical details from users but log fully for debugging
     if (error instanceof Error) {
-      const errorMessage = error.message.toLowerCase();
+      // Use originalMessage since error.message may have been cleared for production
+      const errorMessageLower = (originalMessage ?? '').toLowerCase();
       const errorCode = (error as any).code; // PostgreSQL error code
-      const isConnectionError = 
-        errorMessage.includes('max client connections') ||
-        (errorMessage.includes('connection') && errorMessage.includes('reached')) ||
-        errorMessage.includes('too many clients') ||
-        errorMessage.includes('connection pool') ||
+      const isConnectionError =
+        errorMessageLower.includes('max client connections') ||
+        (errorMessageLower.includes('connection') && errorMessageLower.includes('reached')) ||
+        errorMessageLower.includes('too many clients') ||
+        errorMessageLower.includes('connection pool') ||
         errorCode === 'XX000' || // PostgreSQL error code for connection issues
         errorCode === '53300'; // PostgreSQL error code for too many connections
 
@@ -178,4 +181,11 @@ export const errorHandlerPlugin = async (fastify: FastifyInstance) => {
       });
   });
 };
+
+// Export with fastify-plugin to break encapsulation
+// This allows the error handler to apply to sibling plugins (routes)
+export const errorHandlerPlugin = fp(errorHandler, {
+  name: 'error-handler',
+  fastify: '5.x',
+});
 

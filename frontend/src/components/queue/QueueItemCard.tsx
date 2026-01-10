@@ -40,6 +40,7 @@ export function QueueItemCard({
 
   // Fetch all episodes only when expanded and it's a show (for season list)
   // Use content_id if available (supports Jikan), otherwise fall back to tmdb_id
+  // Episodes rarely change, so use longer staleTime to prevent unnecessary refetches
   const { data: episodes, isLoading: episodesLoading } = useQuery({
     queryKey: ['episodes', item.content_id || item.tmdb_id],
     queryFn: () => {
@@ -51,13 +52,16 @@ export function QueueItemCard({
       throw new Error('No content ID available');
     },
     enabled: expanded && isShow && !!(item.content_id || item.tmdb_id),
+    staleTime: 1000 * 60 * 30, // 30 minutes - episode data rarely changes
   });
 
   // Fetch movie content details only when description is expanded
+  // Movie content also rarely changes, use longer staleTime
   const { data: movieContent, isLoading: movieContentLoading } = useQuery({
     queryKey: ['content', item.tmdb_id, 'movie'],
     queryFn: () => getContentByTmdbId(item.tmdb_id!, 'movie'),
     enabled: showMovieDescription && isMovie && !!item.tmdb_id,
+    staleTime: 1000 * 60 * 30, // 30 minutes - movie details rarely change
   });
 
   const handleEpisodeClick = (episodeId: string) => {

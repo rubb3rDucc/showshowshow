@@ -1,6 +1,7 @@
 import { db } from '../db/index.js';
 import rateLimit from '@fastify/rate-limit';
 import { ValidationError } from '../lib/errors.js';
+import { parseIntWithDefault } from '../lib/utils.js';
 import { requireClerkAdmin } from '../plugins/clerk-auth.js';
 import type { FastifyInstance } from 'fastify';
 
@@ -122,8 +123,8 @@ export const waitlistRoutes = async (fastify: FastifyInstance) => {
     }
 
     if (limit) {
-      const limitNum = parseInt(limit, 10);
-      if (!isNaN(limitNum) && limitNum > 0) {
+      const limitNum = parseIntWithDefault(limit, 0);
+      if (limitNum > 0) {
         query = query.limit(limitNum) as any;
       }
     }

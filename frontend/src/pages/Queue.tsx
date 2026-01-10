@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -145,11 +145,11 @@ export function Queue() {
     })
   );
 
-  const handleDragStart = () => {
+  const handleDragStart = useCallback(() => {
     isDraggingRef.current = true;
-  };
+  }, []);
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over || active.id === over.id) {
@@ -157,29 +157,35 @@ export function Queue() {
       return;
     }
 
-    const oldIndex = localQueue.findIndex((item) => item.id === active.id);
-    const newIndex = localQueue.findIndex((item) => item.id === over.id);
+    setLocalQueue((prevQueue) => {
+      const oldIndex = prevQueue.findIndex((item) => item.id === active.id);
+      const newIndex = prevQueue.findIndex((item) => item.id === over.id);
+      const newQueue = arrayMove(prevQueue, oldIndex, newIndex);
 
-    const newQueue = arrayMove(localQueue, oldIndex, newIndex);
-    setLocalQueue(newQueue);
+      const itemIds = newQueue.map((item) => item.id);
+      reorderMutation.mutate(itemIds);
 
-    const itemIds = newQueue.map((item) => item.id);
-    reorderMutation.mutate(itemIds);
+      return newQueue;
+    });
 
     isDraggingRef.current = false;
-  };
+  }, [reorderMutation]);
 
-  const handleRemove = (id: string) => {
+  const handleRemove = useCallback((id: string) => {
     removeMutation.mutate(id);
-  };
+  }, [removeMutation]);
 
-  const handleClearScheduleForDate = () => {
+  const handleClearScheduleForDate = useCallback(() => {
     if (!selectedDate) {
       toast.error('Please select a date first');
       return;
     }
     clearScheduleMutation.mutate(selectedDate);
-  };
+  }, [selectedDate, clearScheduleMutation]);
+
+  const handleToggleEpisodeDescription = useCallback((id: string) => {
+    setOpenEpisodeDescriptionId((prev) => prev === id ? null : id);
+  }, []);
 
   if (isLoading) {
     return (
@@ -302,9 +308,7 @@ export function Queue() {
                         items={localQueue}
                         onRemove={handleRemove}
                         openEpisodeDescriptionId={openEpisodeDescriptionId}
-                        onToggleEpisodeDescription={(id) => {
-                          setOpenEpisodeDescriptionId(openEpisodeDescriptionId === id ? null : id);
-                        }}
+                        onToggleEpisodeDescription={handleToggleEpisodeDescription}
                       />
                     </SortableContext>
                   </DndContext>
@@ -428,9 +432,7 @@ export function Queue() {
                     items={localQueue}
                     onRemove={handleRemove}
                     openEpisodeDescriptionId={openEpisodeDescriptionId}
-                    onToggleEpisodeDescription={(id) => {
-                      setOpenEpisodeDescriptionId(openEpisodeDescriptionId === id ? null : id);
-                    }}
+                    onToggleEpisodeDescription={handleToggleEpisodeDescription}
                   />
                 </SortableContext>
               </DndContext>

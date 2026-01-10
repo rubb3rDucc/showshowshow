@@ -46,8 +46,12 @@ export function Browse() {
         additionalPages.push(getNetworkContent(selectedNetworkId, i));
       }
 
-      const fetchedAdditionalPages = await Promise.all(additionalPages);
-      const pages = [firstPage, ...fetchedAdditionalPages];
+      // Using Promise.allSettled to prevent one failed page from breaking the entire fetch
+      const fetchedAdditionalPages = await Promise.allSettled(additionalPages);
+      const successfulPages = fetchedAdditionalPages
+        .filter((result): result is PromiseFulfilledResult<typeof firstPage> => result.status === 'fulfilled')
+        .map(result => result.value);
+      const pages = [firstPage, ...successfulPages];
 
       // Combine all content from all pages
       const allContent = pages.flatMap(page => page.content);

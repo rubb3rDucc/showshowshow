@@ -6,9 +6,7 @@ const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_API_BASE_URL = process.env.TMDB_API_BASE_URL || 'https://api.themoviedb.org/3';
 const TMDB_TIMEOUT_MS = parseInt(process.env.TMDB_TIMEOUT_MS || '10000', 10); // 10 second default
 
-if (!TMDB_API_KEY) {
-  console.warn('⚠️  TMDB_API_KEY not set in environment variables');
-}
+// TMDB_API_KEY validation happens at request time
 
 // Fetch with timeout and error handling
 async function fetchTMDB(endpoint: string): Promise<any> {
@@ -67,9 +65,8 @@ export async function getShowSeasons(tmdbId: number): Promise<any[]> {
     try {
       const season = await fetchTMDB(`/tv/${tmdbId}/season/${seasonNum}`);
       seasons.push(season);
-    } catch (error) {
+    } catch {
       // Some seasons might not exist, skip them
-      console.warn(`Season ${seasonNum} not found for show ${tmdbId}`);
     }
   }
 
@@ -189,9 +186,8 @@ export async function getNetworkDetails(networkId: number, isProvider: boolean =
     if (result && result.id) {
       return result;
     }
-  } catch (error) {
-    // If 404, it might be a provider ID instead
-    console.log(`Network ${networkId} not found, trying as provider...`);
+  } catch {
+    // If 404, it might be a provider ID instead - try providers below
   }
   
   // If network endpoint fails, try getting it from the providers list
@@ -213,10 +209,10 @@ export async function getNetworkDetails(networkId: number, isProvider: boolean =
         };
       }
     }
-  } catch (error) {
-    console.error(`Failed to fetch provider ${networkId}:`, error);
+  } catch {
+    // Provider fetch failed
   }
-  
+
   throw new Error(`Network/Provider ${networkId} not found`);
 }
 
@@ -247,8 +243,7 @@ export async function discoverShowsByNetwork(
     try {
       const endpoint = `/discover/tv?with_watch_providers=${networkId}&watch_region=US&page=${page}&sort_by=popularity.desc`;
       return await fetchTMDB(endpoint);
-    } catch (error) {
-      console.error('Error fetching provider content:', error);
+    } catch {
       return {
         page: 1,
         results: [],
@@ -257,26 +252,25 @@ export async function discoverShowsByNetwork(
       };
     }
   }
-  
+
   // Otherwise, try with_networks first (for traditional TV networks)
   try {
     const endpoint = `/discover/tv?with_networks=${networkId}&page=${page}&sort_by=popularity.desc`;
     const result = await fetchTMDB(endpoint);
-    
+
     // If we got results, return them
     if (result.results && result.results.length > 0) {
       return result;
     }
-  } catch (error) {
-    console.error('Error fetching with networks:', error);
+  } catch {
+    // Network fetch failed, try providers below
   }
-  
+
   // If no results, try with_watch_providers as fallback (for streaming services like Tubi, Mubi)
   try {
     const endpoint = `/discover/tv?with_watch_providers=${networkId}&watch_region=US&page=${page}&sort_by=popularity.desc`;
     return await fetchTMDB(endpoint);
-  } catch (error) {
-    console.error('Error fetching with providers:', error);
+  } catch {
     // Return empty results if both fail
     return {
       page: 1,

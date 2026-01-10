@@ -2,25 +2,39 @@ import { Route, Switch, Redirect } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { useAuth } from '@clerk/clerk-react';
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
+import { Center, Loader } from '@mantine/core';
 import { setGlobalTokenGetter } from './api/client';
 
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 
+// Eagerly loaded pages (core navigation)
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Search } from './pages/Search';
 import { Queue } from './pages/Queue';
 import { Library } from './pages/Library';
-import { Settings } from './pages/Settings';
 import { Browse } from './pages/Browse';
-import { Stats } from './pages/Stats';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
 import { Networks } from './pages/Networks';
-import { PersonDetail } from './pages/PersonDetail';
 import { ClerkTest } from './pages/ClerkTest';
+
+// Lazy loaded pages (less frequently accessed)
+const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const Stats = lazy(() => import('./pages/Stats').then(m => ({ default: m.Stats })));
+const PersonDetail = lazy(() => import('./pages/PersonDetail').then(m => ({ default: m.PersonDetail })));
+
+// Loading fallback for lazy loaded pages
+function PageLoader() {
+  return (
+    <Center py={60}>
+      <Loader size="lg" />
+    </Center>
+  );
+}
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -45,8 +59,9 @@ function App() {
   }, [getToken]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Switch>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Switch>
         {/* Public routes */}
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
@@ -96,7 +111,9 @@ function App() {
         <Route path="/stats">
           <ProtectedRoute>
             <Layout>
-              <Stats />
+              <Suspense fallback={<PageLoader />}>
+                <Stats />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         </Route>
@@ -104,7 +121,9 @@ function App() {
         <Route path="/settings">
           <ProtectedRoute>
             <Layout>
-              <Settings />
+              <Suspense fallback={<PageLoader />}>
+                <Settings />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         </Route>
@@ -128,7 +147,9 @@ function App() {
         <Route path="/people/:tmdbId">
           <ProtectedRoute>
             <Layout>
-              <PersonDetail />
+              <Suspense fallback={<PageLoader />}>
+                <PersonDetail />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         </Route>
@@ -137,10 +158,11 @@ function App() {
         <Route>
           <Redirect to="/" />
         </Route>
-      </Switch>
+        </Switch>
 
-      <Toaster position="top-right" />
-    </QueryClientProvider>
+        <Toaster position="top-right" />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

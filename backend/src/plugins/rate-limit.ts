@@ -4,10 +4,11 @@
  */
 
 import rateLimit from '@fastify/rate-limit';
+import fp from 'fastify-plugin';
 import type { FastifyInstance } from 'fastify';
 import { isDevelopment } from '../lib/env-detection.js';
 
-export const rateLimitPlugin = async (fastify: FastifyInstance) => {
+const globalRateLimiter = async (fastify: FastifyInstance) => {
   // Global rate limiting - more lenient in development
   const globalMax = isDevelopment() ? 1000 : 100; // Higher limit in dev for testing
   const globalTimeWindow = '1 minute';
@@ -18,7 +19,8 @@ export const rateLimitPlugin = async (fastify: FastifyInstance) => {
     global: true, // Apply to all routes by default
     errorResponseBuilder: (request, context) => {
       return {
-        code: 429,
+        statusCode: 429,
+        code: 'RATE_LIMITED',
         error: 'Too Many Requests',
         message: `Rate limit exceeded. Please retry after ${context.ttl} seconds.`,
         retryAfter: context.ttl,
@@ -44,11 +46,17 @@ export const rateLimitPlugin = async (fastify: FastifyInstance) => {
   });
 };
 
+// Export with fastify-plugin to break encapsulation
+export const rateLimitPlugin = fp(globalRateLimiter, {
+  name: 'global-rate-limit',
+  fastify: '5.x',
+});
+
 /**
  * Stricter rate limiting for authentication endpoints
  * Prevents brute force attacks on login/register
  */
-export const authRateLimitPlugin = async (fastify: FastifyInstance) => {
+const authRateLimiter = async (fastify: FastifyInstance) => {
   // In development, use shorter time window for easier testing
   const timeWindow = isDevelopment() ? '1 minute' : '15 minutes';
   
@@ -58,7 +66,8 @@ export const authRateLimitPlugin = async (fastify: FastifyInstance) => {
     global: true, // Apply to all routes in this scope (auth routes)
     errorResponseBuilder: (request, context) => {
       return {
-        code: 429,
+        statusCode: 429,
+        code: 'RATE_LIMITED',
         error: 'Too Many Requests',
         message: 'Too many authentication attempts. Please try again later.',
         retryAfter: context.ttl,
@@ -86,5 +95,11 @@ export const authRateLimitPlugin = async (fastify: FastifyInstance) => {
     // In development, this should work fine
   });
 };
+
+// Export with fastify-plugin to break encapsulation
+export const authRateLimitPlugin = fp(authRateLimiter, {
+  name: 'auth-rate-limit',
+  fastify: '5.x',
+});
 
 

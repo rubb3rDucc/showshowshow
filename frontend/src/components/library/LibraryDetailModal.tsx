@@ -276,6 +276,7 @@ export function LibraryDetailModal({
                 <img
                   src={item.content.posterUrl}
                   alt={item.content.title}
+                  loading="lazy"
                   className="w-full h-full object-cover"
                 />
               ) : (

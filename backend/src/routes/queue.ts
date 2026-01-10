@@ -1,6 +1,7 @@
 import { db } from '../db/index.js';
 import { authenticateClerk } from '../plugins/clerk-auth.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
+import { sql } from 'kysely';
 import type { FastifyInstance } from 'fastify';
 
 export const queueRoutes = async (fastify: FastifyInstance) => {
@@ -134,12 +135,9 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
       setImmediate(async () => {
         try {
           const { ensureEpisodesFetched } = await import('../lib/schedule-generator.js');
-          console.log(`[Queue] Background: Auto-fetching episodes for show ${content_id}...`);
           await ensureEpisodesFetched([content_id]);
-          console.log(`[Queue] Background: ✅ Episodes fetched for show ${content_id}`);
-        } catch (error) {
-          console.error(`[Queue] Background: ❌ Failed to fetch episodes for show ${content_id}:`, error);
-          // Don't throw - this is background work, failures are logged but don't affect the user
+        } catch {
+          // Background work - failures don't affect the user
         }
       });
     }
@@ -173,7 +171,7 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
     // Delete item
     await db.deleteFrom('queue').where('id', '=', id).execute();
 
-    // Reorder remaining items
+    // Reorder remaining items - batch update using CASE statement
     const remainingItems = await db
       .selectFrom('queue')
       .select(['id', 'position'])
@@ -181,13 +179,16 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
       .orderBy('position', 'asc')
       .execute();
 
-    // Update positions sequentially
-    for (let i = 0; i < remainingItems.length; i++) {
-      await db
-        .updateTable('queue')
-        .set({ position: i })
-        .where('id', '=', remainingItems[i].id)
-        .execute();
+    // Batch update all positions in a single query using CASE
+    if (remainingItems.length > 0) {
+      const caseExpressions = remainingItems.map((item, i) => `WHEN '${item.id}' THEN ${i}`).join(' ');
+      const itemIds = remainingItems.map(item => `'${item.id}'`).join(', ');
+
+      await sql`
+        UPDATE queue
+        SET position = CASE id ${sql.raw(caseExpressions)} END
+        WHERE id IN (${sql.raw(itemIds)})
+      `.execute(db);
     }
 
     // Track event
@@ -229,16 +230,15 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
       throw new ValidationError('Some queue items not found or don\'t belong to user');
     }
 
-    // Update positions in transaction
-    await db.transaction().execute(async (trx) => {
-      for (let i = 0; i < item_ids.length; i++) {
-        await trx
-          .updateTable('queue')
-          .set({ position: i })
-          .where('id', '=', item_ids[i])
-          .execute();
-      }
-    });
+    // Batch update all positions in a single query using CASE
+    const caseExpressions = item_ids.map((id, i) => `WHEN '${id}' THEN ${i}`).join(' ');
+    const itemIdsList = item_ids.map(id => `'${id}'`).join(', ');
+
+    await sql`
+      UPDATE queue
+      SET position = CASE id ${sql.raw(caseExpressions)} END
+      WHERE id IN (${sql.raw(itemIdsList)})
+    `.execute(db);
 
     // Track event
     const { captureEvent } = await import('../lib/posthog.js');

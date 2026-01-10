@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Star, Tv } from 'lucide-react'
 import type { SearchResult } from '../../types/api'
 import type { LibraryStatus } from '../../types/library.types'
@@ -40,7 +41,7 @@ const STATUS_BADGE_COLORS: Record<LibraryStatus, { bg: string; text: string }> =
   plan_to_watch: { bg: 'bg-gray-500/90', text: 'text-white' },
 }
 
-export function SearchResultCard({
+export const SearchResultCard = memo(function SearchResultCard({
   item,
   onClick,
   titlePreference = 'english',
@@ -158,4 +159,4 @@ export function SearchResultCard({
       </div>
     </div>
   )
-}
+})

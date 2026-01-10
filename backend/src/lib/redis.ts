@@ -14,7 +14,6 @@ export function initRedis(): Redis | null {
   const redisUrl = process.env.REDIS_URL;
   
   if (!redisUrl) {
-    console.log('⚠️  Redis not configured - caching disabled');
     return null;
   }
 
@@ -34,22 +33,12 @@ export function initRedis(): Redis | null {
       },
     });
 
-    redis.on('connect', () => {
-      console.log('✅ Redis connected');
-    });
-
-    redis.on('error', (err) => {
-      console.error('❌ Redis error:', err.message);
+    redis.on('error', () => {
       // Don't crash the app - graceful degradation
     });
 
-    redis.on('close', () => {
-      console.log('⚠️  Redis connection closed');
-    });
-
     return redis;
-  } catch (error) {
-    console.error('❌ Failed to initialize Redis:', error);
+  } catch {
     return null;
   }
 }
@@ -75,8 +64,7 @@ export async function getCached<T>(key: string): Promise<T | null> {
     const cached = await client.get(key);
     if (!cached) return null;
     return JSON.parse(cached) as T;
-  } catch (error) {
-    console.error(`Error getting cache key ${key}:`, error);
+  } catch {
     return null;
   }
 }
@@ -94,8 +82,7 @@ export async function setCached(
 
   try {
     await client.setex(key, ttl, JSON.stringify(value));
-  } catch (error) {
-    console.error(`Error setting cache key ${key}:`, error);
+  } catch {
     // Don't throw - caching failures shouldn't break the app
   }
 }
@@ -109,8 +96,8 @@ export async function deleteCached(key: string): Promise<void> {
 
   try {
     await client.del(key);
-  } catch (error) {
-    console.error(`Error deleting cache key ${key}:`, error);
+  } catch {
+    // Ignore cache deletion errors
   }
 }
 
@@ -143,8 +130,8 @@ export async function invalidatePattern(pattern: string): Promise<void> {
       });
       stream.on('error', reject);
     });
-  } catch (error) {
-    console.error(`Error invalidating pattern ${pattern}:`, error);
+  } catch {
+    // Ignore pattern invalidation errors
   }
 }
 
