@@ -8,7 +8,15 @@ import type { FastifyInstance } from 'fastify';
 
 export const contentRoutes = async (fastify: FastifyInstance) => {
   // Search for shows and movies
-  fastify.get('/api/content/search', async (request, reply) => {
+  // Stricter rate limit to protect external APIs (TMDB, Jikan)
+  fastify.get('/api/content/search', {
+    config: {
+      rateLimit: {
+        max: 20,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
     const searchStartTime = Date.now();
     
     const { q, page = '1', type, include_adult = 'false', source = 'tmdb' } = request.query as { 
@@ -140,10 +148,11 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
     }
 
     // Check which results are already cached in the database
-    const resultsWithCacheStatus = await Promise.all(
+    // Using Promise.allSettled to prevent one failed lookup from breaking the entire search
+    const cacheCheckResults = await Promise.allSettled(
       results.map(async (result: any) => {
         let cached = null;
-        
+
         // Check by tmdb_id if available
         if (result.tmdb_id) {
           cached = await db
@@ -152,7 +161,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
           .where('tmdb_id', '=', result.tmdb_id)
           .executeTakeFirst();
         }
-        
+
         // Check by mal_id if available and not found by tmdb_id
         if (!cached && result.mal_id) {
           cached = await db
@@ -161,11 +170,11 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
             .where('mal_id', '=', result.mal_id)
             .executeTakeFirst();
         }
-        
+
         // Use cached rating if available, otherwise use result rating
         // Note: TMDB search results don't include ratings, only cached content or Jikan results have ratings
         const rating = normalizeRating(cached?.rating || result.rating || null);
-        
+
         return {
           ...result,
           rating: rating,
@@ -175,6 +184,22 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         };
       })
     );
+
+    // Extract successful results, use original result for any that failed
+    const resultsWithCacheStatus = cacheCheckResults.map((settled, index) => {
+      if (settled.status === 'fulfilled') {
+        return settled.value;
+      }
+      // If cache check failed, return result without cache status
+      console.error('Cache check failed for result:', results[index]?.title, settled.reason);
+      return {
+        ...results[index],
+        rating: normalizeRating(results[index]?.rating || null),
+        is_cached: false,
+        cached_id: null,
+        cached_type: null,
+      };
+    });
 
     const searchTime = Date.now() - searchStartTime;
 

@@ -5,6 +5,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { useEffect } from 'react';
 import { setGlobalTokenGetter } from './api/client';
 
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 
@@ -45,8 +46,9 @@ function App() {
   }, [getToken]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Switch>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Switch>
         {/* Public routes */}
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
@@ -137,10 +139,11 @@ function App() {
         <Route>
           <Redirect to="/" />
         </Route>
-      </Switch>
+        </Switch>
 
-      <Toaster position="top-right" />
-    </QueryClientProvider>
+        <Toaster position="top-right" />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

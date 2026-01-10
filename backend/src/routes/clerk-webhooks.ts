@@ -2,6 +2,7 @@ import { Webhook } from 'svix';
 import { db } from '../db/index.js';
 import { setUserContext } from '../db/rls-context.js';
 import { SYSTEM_USER_ID } from '../lib/constants.js';
+import { identifyUser } from '../lib/posthog.js';
 import type { FastifyInstance } from 'fastify';
 import type { WebhookEvent } from '@clerk/backend';
 
@@ -186,6 +187,15 @@ async function handleUserCreated(evt: WebhookEvent) {
       .execute();
 
     console.log(`Created user ${userId} for Clerk user ${clerkUserId}`);
+
+    // Identify user in PostHog for MAU tracking
+    identifyUser(userId, {
+      email: email,
+      created_at: new Date().toISOString(),
+      auth_provider: 'clerk',
+      is_admin: isAdmin,
+      signup_source: 'clerk_webhook',
+    });
   });
 }
 
