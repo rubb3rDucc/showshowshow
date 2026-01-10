@@ -38,7 +38,7 @@ export function LastNightSection({ items, dateString }: LastNightSectionProps) {
       {/* Header */}
       <div className="flex items-baseline justify-between mb-4">
         <h2 className="text-sm font-normal text-[rgb(var(--color-text-tertiary))]">
-          Last night
+          Yesterday
         </h2>
         <span className="text-sm font-normal text-[rgb(var(--color-text-tertiary))]">
           {displayDate}

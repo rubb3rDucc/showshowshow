@@ -25,6 +25,23 @@ function formatDateDisplay(dateString: string): string {
   });
 }
 
+/**
+ * Get time-of-day label based on current hour
+ * Morning: 5am - 11:59am
+ * Afternoon: 12pm - 4:59pm
+ * Tonight: 5pm - 4:59am
+ */
+function getTimeOfDayLabel(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) {
+    return 'This morning';
+  } else if (hour >= 12 && hour < 17) {
+    return 'This afternoon';
+  } else {
+    return 'Tonight';
+  }
+}
+
 export function TonightSection({
   nowItem,
   earlierItems,
@@ -44,7 +61,7 @@ export function TonightSection({
       {/* Header */}
       <div className="flex items-baseline justify-between mb-6">
         <h2 className="text-sm font-normal text-[rgb(var(--color-text-tertiary))]">
-          Tonight
+          {getTimeOfDayLabel()}
         </h2>
         <span className="text-sm font-normal text-[rgb(var(--color-text-tertiary))]">
           {displayDate}
