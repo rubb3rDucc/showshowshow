@@ -1,6 +1,7 @@
 import { db } from '../db/index.js';
 import { authenticateClerk } from '../plugins/clerk-auth.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
+import { calculateProgress, parsePaginationParams } from '../lib/utils.js';
 import type { FastifyInstance } from 'fastify';
 import { sql } from 'kysely';
 
@@ -12,11 +13,15 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
     }
 
     const userId = request.user.userId;
-    const { status, type, search } = request.query as { 
-      status?: string; 
-      type?: 'show' | 'movie' | 'all'; 
+    const { status, type, search, page, limit } = request.query as {
+      status?: string;
+      type?: 'show' | 'movie' | 'all';
       search?: string;
+      page?: string;
+      limit?: string;
     };
+
+    const { page: pageNum, limit: limitNum, offset } = parsePaginationParams({ page, limit });
 
     let query = db
       .selectFrom('user_library')
@@ -60,17 +65,29 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       query = query.where('content.title', 'ilike', `%${search.trim()}%`);
     }
 
+    // Get total count for pagination (before applying limit/offset)
+    const countResult = await db
+      .selectFrom('user_library')
+      .innerJoin('content', 'user_library.content_id', 'content.id')
+      .select(db.fn.count('user_library.id').as('count'))
+      .where('user_library.user_id', '=', userId)
+      .$if(!!status && status !== 'all', (qb) => qb.where('user_library.status', '=', status as any))
+      .$if(!!type && type !== 'all', (qb) => qb.where('content.content_type', '=', type as 'show' | 'movie'))
+      .$if(!!search && search.trim().length > 0, (qb) => qb.where('content.title', 'ilike', `%${search?.trim()}%`))
+      .executeTakeFirst();
+
+    const totalItems = Number(countResult?.count || 0);
+    const totalPages = Math.ceil(totalItems / limitNum);
+
     const libraryItems = await query
       .orderBy('user_library.updated_at', 'desc')
+      .limit(limitNum)
+      .offset(offset)
       .execute();
 
     // Calculate progress for each item
     const itemsWithProgress = libraryItems.map((item) => {
-      const totalEpisodes = item.number_of_episodes || 0;
-      const episodesWatched = item.episodes_watched || 0;
-      const percentage = totalEpisodes > 0 
-        ? Math.round((episodesWatched / totalEpisodes) * 100) 
-        : 0;
+      const progress = calculateProgress(item.number_of_episodes, item.episodes_watched);
 
       return {
         ...item,
@@ -83,14 +100,24 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
           number_of_seasons: item.number_of_seasons,
         },
         progress: {
-          episodes_watched: episodesWatched,
-          total_episodes: totalEpisodes,
-          percentage,
+          episodes_watched: progress.watched,
+          total_episodes: progress.total,
+          percentage: progress.percentage,
         },
       };
     });
 
-    return reply.send(itemsWithProgress);
+    return reply.send({
+      items: itemsWithProgress,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total_items: totalItems,
+        total_pages: totalPages,
+        has_next: pageNum < totalPages,
+        has_prev: pageNum > 1,
+      },
+    });
   });
 
   // Get library statistics
@@ -157,20 +184,16 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .execute();
 
     const progressItems = showsInProgress.map(item => {
-      const totalEpisodes = item.number_of_episodes || 0;
-      const episodesWatched = item.episodes_watched || 0;
-      const percentage = totalEpisodes > 0 
-        ? Math.round((episodesWatched / totalEpisodes) * 100) 
-        : 0;
+      const progress = calculateProgress(item.number_of_episodes, item.episodes_watched);
 
       return {
         id: item.id,
         content_id: item.content_id,
         title: item.title,
         poster_url: item.poster_url,
-        episodes_watched: episodesWatched,
-        total_episodes: totalEpisodes,
-        percentage,
+        episodes_watched: progress.watched,
+        total_episodes: progress.total,
+        percentage: progress.percentage,
       };
     });
 
@@ -289,11 +312,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       throw new NotFoundError('Library item not found');
     }
 
-    const totalEpisodes = libraryItem.number_of_episodes || 0;
-    const episodesWatched = libraryItem.episodes_watched || 0;
-    const percentage = totalEpisodes > 0 
-      ? Math.round((episodesWatched / totalEpisodes) * 100) 
-      : 0;
+    const progress = calculateProgress(libraryItem.number_of_episodes, libraryItem.episodes_watched);
 
     return reply.send({
       ...libraryItem,
@@ -306,9 +325,9 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         number_of_seasons: libraryItem.number_of_seasons,
       },
       progress: {
-        episodes_watched: episodesWatched,
-        total_episodes: totalEpisodes,
-        percentage,
+        episodes_watched: progress.watched,
+        total_episodes: progress.total,
+        percentage: progress.percentage,
       },
     });
   });
@@ -355,11 +374,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       return reply.send({ in_library: false });
     }
 
-    const totalEpisodes = libraryItem.number_of_episodes || 0;
-    const episodesWatched = libraryItem.episodes_watched || 0;
-    const percentage = totalEpisodes > 0 
-      ? Math.round((episodesWatched / totalEpisodes) * 100) 
-      : 0;
+    const progress = calculateProgress(libraryItem.number_of_episodes, libraryItem.episodes_watched);
 
     return reply.send({
       in_library: true,
@@ -374,9 +389,9 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
           number_of_seasons: libraryItem.number_of_seasons,
         },
         progress: {
-          episodes_watched: episodesWatched,
-          total_episodes: totalEpisodes,
-          percentage,
+          episodes_watched: progress.watched,
+          total_episodes: progress.total,
+          percentage: progress.percentage,
         },
       },
     });
@@ -481,11 +496,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .where('user_library.id', '=', libraryItem.id)
       .executeTakeFirstOrThrow();
 
-    const totalEpisodes = fullItem.number_of_episodes || 0;
-    const episodesWatched = fullItem.episodes_watched || 0;
-    const percentage = totalEpisodes > 0 
-      ? Math.round((episodesWatched / totalEpisodes) * 100) 
-      : 0;
+    const progress = calculateProgress(fullItem.number_of_episodes, fullItem.episodes_watched);
 
     // Track event
     const { captureEvent } = await import('../lib/posthog.js');
@@ -510,9 +521,9 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         number_of_seasons: fullItem.number_of_seasons,
       },
       progress: {
-        episodes_watched: episodesWatched,
-        total_episodes: totalEpisodes,
-        percentage,
+        episodes_watched: progress.watched,
+        total_episodes: progress.total,
+        percentage: progress.percentage,
       },
     });
   });
@@ -646,11 +657,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .where('user_library.id', '=', id)
       .executeTakeFirstOrThrow();
 
-    const totalEpisodes = updatedItem.number_of_episodes || 0;
-    const episodesWatched = updatedItem.episodes_watched || 0;
-    const percentage = totalEpisodes > 0 
-      ? Math.round((episodesWatched / totalEpisodes) * 100) 
-      : 0;
+    const progress = calculateProgress(updatedItem.number_of_episodes, updatedItem.episodes_watched);
 
     // Track event
     const { captureEvent } = await import('../lib/posthog.js');
@@ -675,9 +682,9 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         number_of_seasons: updatedItem.number_of_seasons,
       },
       progress: {
-        episodes_watched: episodesWatched,
-        total_episodes: totalEpisodes,
-        percentage,
+        episodes_watched: progress.watched,
+        total_episodes: progress.total,
+        percentage: progress.percentage,
       },
     });
   });
@@ -865,10 +872,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       throw new NotFoundError('Library item not found');
     }
 
-    const totalEpisodes = libraryItem.number_of_episodes || 0;
-    const percentage = totalEpisodes > 0 
-      ? Math.round((episodesWatched / totalEpisodes) * 100) 
-      : 0;
+    const progress = calculateProgress(libraryItem.number_of_episodes, episodesWatched);
 
     // Track event
     const { captureEvent } = await import('../lib/posthog.js');
@@ -879,8 +883,8 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         season,
         episode,
         status, // watched/unwatched/skipped
-        total_episodes_watched: episodesWatched,
-        total_episodes: totalEpisodes,
+        total_episodes_watched: progress.watched,
+        total_episodes: progress.total,
       },
     });
 
@@ -897,9 +901,9 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
           number_of_seasons: libraryItem.number_of_seasons,
         },
         progress: {
-          episodes_watched: episodesWatched,
-          total_episodes: totalEpisodes,
-          percentage,
+          episodes_watched: progress.watched,
+          total_episodes: progress.total,
+          percentage: progress.percentage,
         },
       },
     });

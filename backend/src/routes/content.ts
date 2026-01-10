@@ -3,6 +3,7 @@ import { searchTMDB, getShowDetails, getMovieDetails, getSeason, getImageUrl, ge
 import { searchJikan, jikanSearchToSearchResult, getAnimeDetails, getAnimeEpisodes, jikanToContentFormat } from '../lib/jikan.js';
 import { normalizeRating } from '../lib/rating-utils.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
+import { parseIntWithDefault } from '../lib/utils.js';
 import { authenticateClerk } from '../plugins/clerk-auth.js';
 import type { FastifyInstance } from 'fastify';
 
@@ -41,7 +42,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       throw new ValidationError('Source must be either "tmdb", "jikan", or "auto"');
     }
 
-    const pageNum = parseInt(page, 10) || 1;
+    const pageNum = parseIntWithDefault(page, 1);
     let results: any[] = [];
     let totalPages = 1;
     let totalResults = 0;
@@ -148,56 +149,56 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
     }
 
     // Check which results are already cached in the database
-    // Using Promise.allSettled to prevent one failed lookup from breaking the entire search
-    const cacheCheckResults = await Promise.allSettled(
-      results.map(async (result: any) => {
-        let cached = null;
+    // Using a single batch query instead of N+1 queries (40 queries → 1)
+    const tmdbIds = results
+      .filter((r: any) => r.tmdb_id)
+      .map((r: any) => r.tmdb_id);
+    const malIds = results
+      .filter((r: any) => r.mal_id)
+      .map((r: any) => r.mal_id);
 
-        // Check by tmdb_id if available
-        if (result.tmdb_id) {
-          cached = await db
-          .selectFrom('content')
-          .select(['id', 'content_type', 'rating'])
-          .where('tmdb_id', '=', result.tmdb_id)
-          .executeTakeFirst();
-        }
+    // Single batch query to check all IDs at once
+    let cachedContent: Array<{ id: string; tmdb_id: number | null; mal_id: number | null; content_type: string; rating: string | null }> = [];
 
-        // Check by mal_id if available and not found by tmdb_id
-        if (!cached && result.mal_id) {
-          cached = await db
-            .selectFrom('content')
-            .select(['id', 'content_type', 'rating'])
-            .where('mal_id', '=', result.mal_id)
-            .executeTakeFirst();
-        }
+    if (tmdbIds.length > 0 || malIds.length > 0) {
+      cachedContent = await db
+        .selectFrom('content')
+        .select(['id', 'tmdb_id', 'mal_id', 'content_type', 'rating'])
+        .where((eb) => {
+          const conditions = [];
+          if (tmdbIds.length > 0) {
+            conditions.push(eb('tmdb_id', 'in', tmdbIds));
+          }
+          if (malIds.length > 0) {
+            conditions.push(eb('mal_id', 'in', malIds));
+          }
+          return eb.or(conditions);
+        })
+        .execute();
+    }
 
-        // Use cached rating if available, otherwise use result rating
-        // Note: TMDB search results don't include ratings, only cached content or Jikan results have ratings
-        const rating = normalizeRating(cached?.rating || result.rating || null);
-
-        return {
-          ...result,
-          rating: rating,
-          is_cached: !!cached,
-          cached_id: cached?.id || null,
-          cached_type: cached?.content_type || null,
-        };
-      })
+    // Build lookup maps for O(1) access
+    const cacheByTmdbId = new Map(
+      cachedContent.filter(c => c.tmdb_id).map(c => [c.tmdb_id, c])
+    );
+    const cacheByMalId = new Map(
+      cachedContent.filter(c => c.mal_id).map(c => [c.mal_id, c])
     );
 
-    // Extract successful results, use original result for any that failed
-    const resultsWithCacheStatus = cacheCheckResults.map((settled, index) => {
-      if (settled.status === 'fulfilled') {
-        return settled.value;
-      }
-      // If cache check failed, return result without cache status
-      console.error('Cache check failed for result:', results[index]?.title, settled.reason);
+    // Map results with cache status using the lookup maps
+    const resultsWithCacheStatus = results.map((result: any) => {
+      // Check by tmdb_id first, then mal_id
+      const cached = cacheByTmdbId.get(result.tmdb_id) || cacheByMalId.get(result.mal_id) || null;
+
+      // Use cached rating if available, otherwise use result rating
+      const rating = normalizeRating(cached?.rating || result.rating || null);
+
       return {
-        ...results[index],
-        rating: normalizeRating(results[index]?.rating || null),
-        is_cached: false,
-        cached_id: null,
-        cached_type: null,
+        ...result,
+        rating: rating,
+        is_cached: !!cached,
+        cached_id: cached?.id || null,
+        cached_type: cached?.content_type || null,
       };
     });
 

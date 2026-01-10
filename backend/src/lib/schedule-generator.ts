@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 
 // Helper: Limit concurrency of async operations
 // Processes tasks in batches to avoid overwhelming connection pool
-async function limitConcurrency<T>(
+export async function limitConcurrency<T>(
   tasks: (() => Promise<T>)[],
   limit: number
 ): Promise<T[]> {
@@ -24,7 +24,7 @@ async function limitConcurrency<T>(
 }
 
 // Helper: Shuffle array (Fisher-Yates algorithm)
-function shuffleArray<T>(array: T[]): T[] {
+export function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -132,13 +132,13 @@ export function generateTimeSlots(startTime: string, endTime: string, slotDurati
 }
 
 // Get available episodes for scheduling
-type EpisodeFilterRule = {
+export type EpisodeFilterRule = {
   mode: 'all' | 'include' | 'exclude';
   seasons?: number[];
   episodes?: Array<{ season: number; episode: number }>;
 };
 
-function applyEpisodeFilters<T extends { content_id: string; season: number; episode_number: number }>(
+export function applyEpisodeFilters<T extends { content_id: string; season: number; episode_number: number }>(
   episodes: T[],
   episodeFilters?: Record<string, EpisodeFilterRule>
 ): T[] {

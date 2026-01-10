@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Star } from 'lucide-react';
 import { LazyImage } from './LazyImage';
 
@@ -12,7 +13,7 @@ interface ContentCardProps {
   onClick: () => void;
 }
 
-export function ContentCard({ item, onClick }: ContentCardProps) {
+export const ContentCard = memo(function ContentCard({ item, onClick }: ContentCardProps) {
   return (
     <div
       className="flex-shrink-0 w-40 cursor-pointer group"
@@ -62,4 +63,4 @@ export function ContentCard({ item, onClick }: ContentCardProps) {
       )}
     </div>
   );
-}
+});
