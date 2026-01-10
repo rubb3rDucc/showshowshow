@@ -1,5 +1,4 @@
 import { db } from '../db/index.js';
-import { randomUUID } from 'crypto';
 
 // Helper: Limit concurrency of async operations
 // Processes tasks in batches to avoid overwhelming connection pool
@@ -43,7 +42,7 @@ export function parseTime(timeStr: string, date: Date, timezoneOffset: string = 
   // Validate timezone offset format
   const offsetMatch = timezoneOffset.match(/^([+-])(\d{2}):(\d{2})$/);
   if (!offsetMatch) {
-    console.warn(`Invalid timezone offset: ${timezoneOffset}, defaulting to UTC`);
+    // Invalid timezone offset - fall back to UTC
     return new Date(Date.UTC(
       date.getUTCFullYear(),
       date.getUTCMonth(),
@@ -204,7 +203,6 @@ async function getAvailableEpisodes(
   }
 
   const episodes = applyEpisodeFilters(await query.execute(), episodeFilters);
-  console.log(`[Schedule Generator] Found ${episodes.length} episodes for ${showIds.length} shows`);
 
   type EpisodeWithWatch = typeof episodes[0] & { watched_at: Date | null; rewatch_count: number | null };
 
@@ -226,7 +224,6 @@ async function getAvailableEpisodes(
   }
 
   const unwatched = (episodes as EpisodeWithWatch[]).filter((e: EpisodeWithWatch) => !e.watched_at);
-  console.log(`[Schedule Generator] Returning ${unwatched.length} unwatched episodes`);
   return unwatched;
 }
 
@@ -258,8 +255,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     rerunFrequency = 'rarely',
     rotationType = 'round_robin',
   } = options;
-  
-  console.log(`[Schedule Generator] Using timezone offset: ${timezoneOffset}`);
 
   // Get content info to separate shows from movies
   const contentItems = await db
@@ -268,17 +263,10 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     .where('id', 'in', showIds)
     .execute();
 
-  console.log(`[Schedule Generator] Found ${contentItems.length} content item(s) in database for IDs: ${showIds.join(', ')}`);
-  contentItems.forEach((item) => {
-    console.log(`[Schedule Generator] Content: ${item.title} (${item.id}) - Type: ${item.content_type}, Duration: ${item.default_duration} min`);
-  });
-
   const shows = contentItems.filter((c) => c.content_type === 'show');
   const movies = contentItems.filter((c) => c.content_type === 'movie');
   const showIdsOnly = shows.map((s) => s.id);
   const movieIds = movies.map((m) => m.id);
-
-  console.log(`[Schedule Generator] Processing ${shows.length} show(s) and ${movies.length} movie(s)`);
 
   // Handle shows (episodes)
   let episodesByShow = new Map<string, any[]>();
@@ -292,7 +280,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       .executeTakeFirst();
 
     const totalEpisodes = Number((episodeCount as any)?.count ?? 0);
-    console.log(`[Schedule Generator] Total episodes in database: ${totalEpisodes} for ${showIdsOnly.length} show(s)`);
 
     if (totalEpisodes > 0) {
       // Get available episodes
@@ -303,15 +290,12 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
         rerunFrequency,
         options.episodeFilters
       );
-      console.log(`[Schedule Generator] Available episodes: ${availableEpisodes.length} out of ${totalEpisodes} total`);
 
       // Group episodes by show for rotation and shuffle them for randomization
       showIdsOnly.forEach((showId) => {
         const showEpisodes = availableEpisodes.filter((e: any) => e.content_id === showId);
-        const showInfo = shows.find(s => s.id === showId);
         // Shuffle episodes to randomize selection order
         episodesByShow.set(showId, shuffleArray(showEpisodes));
-        console.log(`[Schedule Generator] ${showInfo?.title || showId}: ${showEpisodes.length} available episodes`);
       });
     }
   }
@@ -334,18 +318,15 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     movieIds.forEach((movieId) => {
       const movie = movies.find((m) => m.id === movieId);
       if (!movie) {
-        console.log(`[Schedule Generator] Movie ${movieId} not found in content list`);
         return;
       }
 
       // Check if movie is watched
       const isWatched = watchedMovieIds.has(movieId);
-      console.log(`[Schedule Generator] Movie ${movieId} (${movie.default_duration} min): watched=${isWatched}, includeReruns=${includeReruns}`);
 
       // Only include unwatched movies (or all if reruns are enabled)
       if (includeReruns || !isWatched) {
         if (!movie.default_duration || movie.default_duration <= 0) {
-          console.log(`[Schedule Generator] Skipping movie ${movieId} - invalid duration: ${movie.default_duration}`);
           return;
         }
         moviesByShow.set(movieId, [{
@@ -355,21 +336,15 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
           duration: movie.default_duration,
           default_duration: movie.default_duration,
         }]);
-        console.log(`[Schedule Generator] Added movie ${movieId} to available movies`);
-      } else {
-        console.log(`[Schedule Generator] Skipping movie ${movieId} - already watched and reruns disabled`);
       }
     });
-
-    console.log(`[Schedule Generator] Available movies: ${moviesByShow.size} out of ${movieIds.length} total`);
   }
 
   // Check if we have any content to schedule (episodes or movies)
   const totalEpisodes = Array.from(episodesByShow.values()).reduce((sum, eps) => sum + eps.length, 0);
   const totalMovies = moviesByShow.size;
-  
+
   if (totalEpisodes === 0 && totalMovies === 0) {
-    console.log('[Schedule Generator] No content available to schedule (no episodes for shows, no available movies)');
     return [];
   }
 
@@ -441,7 +416,7 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     const actualEndHour = Math.floor((lastMin + slotDurationMinutes) / 60) + lastHour;
     const actualEndMin = (lastMin + slotDurationMinutes) % 60;
     const endTimeStr = `${String(actualEndHour % 24).padStart(2, '0')}:${String(actualEndMin).padStart(2, '0')}`;
-    
+
     let dayEndTime: Date;
     if (crossesMidnight) {
       // If crossing midnight, end time is next day
@@ -458,8 +433,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       dayEndTime = parseTime(endTimeStr, currentDate, timezoneOffset);
     }
 
-    console.log(`[Schedule Generator] Day ${currentDate.toISOString().split('T')[0]}: Start=${dayStartTime.toISOString()}, End=${dayEndTime.toISOString()}`);
-
     // Reset lastScheduledEndTime for each new day
     lastScheduledEndTime = null;
 
@@ -471,18 +444,15 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       // it means it crossed into the next UTC day, so move it forward
       if (scheduledTime < dayStartTime) {
         scheduledTime.setUTCDate(scheduledTime.getUTCDate() + 1);
-        console.log(`[Schedule Generator] Moved slot ${timeSlot} to next day: ${scheduledTime.toISOString()}`);
       }
-      
+
       // After adjustment, check if it's still before start or after end
       if (scheduledTime < dayStartTime || scheduledTime >= dayEndTime) {
-        console.log(`[Schedule Generator] Skipping slot ${timeSlot} - outside scheduling window (${scheduledTime.toISOString()})`);
         continue;
       }
 
       // Skip this time slot if it overlaps with previously scheduled content
       if (lastScheduledEndTime && scheduledTime < lastScheduledEndTime) {
-        console.log(`[Schedule Generator] Skipping slot ${timeSlot} - overlaps with previous content (ends at ${lastScheduledEndTime.toISOString()})`);
         continue;
       }
 
@@ -510,8 +480,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
           const movies = moviesByShow.get(candidateId) ?? [];
           const episodeIndex = episodeIndexes.get(candidateId) ?? 0;
 
-          console.log(`[Schedule Generator] Round-robin check: ${candidateId} - episodeIndex=${episodeIndex}, episodes.length=${episodes.length}, movies.length=${movies.length}, scheduledFromCandidate=${scheduledFromCandidate}/${episodesPerShow}`);
-
           // If we've scheduled enough episodes from this show, move to next show
           if (scheduledFromCandidate >= episodesPerShow) {
             episodesScheduledFromCurrentShow.set(candidateId, 0); // Reset counter
@@ -523,7 +491,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
           // Check if this content has available content
           if (episodeIndex < episodes.length || movies.length > 0) {
             currentContentId = candidateId;
-            console.log(`[Schedule Generator] Selected content: ${candidateId}`);
             break;
           }
 
@@ -535,7 +502,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
         // If we tried all shows and none have content, break out of time slot loop
         if (!currentContentId) {
-          console.log(`[Schedule Generator] No more content available - breaking time slot loop`);
           break; // No more content available
         }
       } else {
@@ -564,7 +530,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
         const duration = movie.duration ?? 120; // Default to 2 hours for movies
 
         if (!duration || duration <= 0) {
-          console.log(`[Schedule Generator] Skipping movie with invalid duration: ${duration}`);
           moviesByShow.delete(currentContentId); // Remove from available movies
           continue;
         }
@@ -574,7 +539,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
         // Don't schedule if movie doesn't fit in the day's time window
         if (endTime > dayEndTime) {
-          console.log(`[Schedule Generator] Skipping movie - doesn't fit in day window (ends ${endTime.toISOString()}, day ends ${dayEndTime.toISOString()})`);
           continue; // Movie doesn't fit
         }
 
@@ -590,7 +554,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
         // Update last scheduled end time to prevent overlaps
         lastScheduledEndTime = endTime;
-        console.log(`[Schedule Generator] Scheduled movie at ${scheduledTime.toISOString()}, ends at ${endTime.toISOString()} (${duration} min)`);
 
         // Remove movie from available list (only schedule once)
         moviesByShow.delete(currentContentId);
@@ -609,7 +572,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       const duration = episode.duration ?? episode.default_duration ?? 30; // Default to 30 minutes if both are null
 
       if (!duration || duration <= 0) {
-        console.log(`[Schedule Generator] Skipping episode with invalid duration: ${duration}`);
         episodeIndexes.set(currentContentId, episodeIndex + 1);
         continue;
       }
@@ -619,7 +581,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
       // Don't schedule if episode doesn't fit in the day's time window
       if (endTime > dayEndTime) {
-        console.log(`[Schedule Generator] Skipping episode - doesn't fit in day window (ends ${endTime.toISOString()}, day ends ${dayEndTime.toISOString()})`);
         continue; // Episode doesn't fit
       }
 
@@ -635,7 +596,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
       // Update last scheduled end time to prevent overlaps
       lastScheduledEndTime = endTime;
-      console.log(`[Schedule Generator] Scheduled episode at ${scheduledTime.toISOString()}, ends at ${endTime.toISOString()} (${duration} min)`);
 
       // Update indexes
       episodeIndexes.set(currentContentId, episodeIndex + 1);
@@ -652,39 +612,6 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     currentDate.setUTCDate(currentDate.getUTCDate() + 1);
   }
 
-  console.log(`[Schedule Generator] Generated ${schedule.length} schedule items`);
-  
-  // Summary: Show what happened to each piece of content
-  console.log('[Schedule Generator] === Content Summary ===');
-  showIds.forEach((showId) => {
-    const contentItem = contentItems.find(c => c.id === showId);
-    const episodesForShow = episodesByShow.get(showId) ?? [];
-    const moviesForShow = moviesByShow.get(showId);
-    const scheduledCount = schedule.filter(s => s.content_id === showId).length;
-    
-    if (!contentItem) {
-      console.log(`[Schedule Generator] ⚠️  ${showId}: Not found in database`);
-      return;
-    }
-    
-    if (contentItem.content_type === 'show') {
-      if (episodesForShow.length === 0) {
-        console.log(`[Schedule Generator] ❌ ${contentItem.title}: No episodes available (${scheduledCount} scheduled)`);
-        console.log(`[Schedule Generator]    → Possible reasons: Episodes not fetched, all watched (reruns=${includeReruns}), or invalid durations`);
-      } else {
-        console.log(`[Schedule Generator] ✅ ${contentItem.title}: ${episodesForShow.length} episodes available, ${scheduledCount} scheduled`);
-      }
-    } else if (contentItem.content_type === 'movie') {
-      if (moviesForShow && moviesForShow.length > 0) {
-        console.log(`[Schedule Generator] ✅ ${contentItem.title}: Movie available, ${scheduledCount} scheduled`);
-      } else {
-        console.log(`[Schedule Generator] ❌ ${contentItem.title}: Movie not available (${scheduledCount} scheduled)`);
-        console.log(`[Schedule Generator]    → Possible reasons: Already watched (reruns=${includeReruns}), or invalid duration`);
-      }
-    }
-  });
-  console.log('[Schedule Generator] === End Summary ===');
-  
   return schedule;
 }
 
@@ -703,8 +630,6 @@ export async function calculateOptimalTimeSlotDuration(contentIds: string[]): Pr
 
   const shows = content.filter(c => c.content_type === 'show');
   const movies = content.filter(c => c.content_type === 'movie');
-
-  console.log(`[Schedule Generator] Analyzing ${shows.length} shows and ${movies.length} movies for optimal slot duration`);
 
   // If we have shows, get their episode durations
   let episodeDurations: number[] = [];
@@ -729,8 +654,6 @@ export async function calculateOptimalTimeSlotDuration(contentIds: string[]): Pr
     }
   }
 
-  console.log(`[Schedule Generator] Found ${episodeDurations.length} episode durations:`, episodeDurations.slice(0, 10));
-
   // Find the most common duration (mode) or shortest if all are different
   let targetDuration: number;
   if (episodeDurations.length > 0) {
@@ -745,24 +668,20 @@ export async function calculateOptimalTimeSlotDuration(contentIds: string[]): Pr
       .map(([dur]) => Number(dur));
 
     targetDuration = sortedDurations[0];
-    console.log(`[Schedule Generator] Most common episode duration: ${targetDuration} minutes`);
   } else if (movies.length > 0) {
     // If only movies, use their average duration divided by 4 (for granularity)
     const movieDurations = movies
       .map(m => m.default_duration)
       .filter((d): d is number => d !== null && d > 0);
-    
+
     const avgMovieDuration = movieDurations.reduce((sum, d) => sum + d, 0) / movieDurations.length;
     targetDuration = Math.floor(avgMovieDuration / 4); // Divide by 4 for more granular slots
-    console.log(`[Schedule Generator] Average movie duration: ${avgMovieDuration}, using ${targetDuration} for slots`);
   } else {
     targetDuration = 30; // Fallback
-    console.log(`[Schedule Generator] No valid durations found, using default 30 minutes`);
   }
 
   // Round up to nearest multiple of 15
   const slotDuration = Math.max(15, Math.ceil(targetDuration / 15) * 15);
-  console.log(`[Schedule Generator] Optimal time slot duration: ${slotDuration} minutes (rounded from ${targetDuration})`);
 
   return slotDuration;
 }
@@ -780,10 +699,8 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
     .execute();
 
   const shows = contentItems.filter(c => c.content_type === 'show');
-  
-  if (shows.length === 0) return;
 
-  console.log(`[Schedule Generator] Checking ${shows.length} show(s) for episodes...`);
+  if (shows.length === 0) return;
 
   // Fast cache check for all shows in parallel (DB queries are fast)
   const cacheChecks = await Promise.all(
@@ -804,13 +721,9 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
 
   // Separate shows that need fetching vs already cached
   const showsToFetch = cacheChecks.filter(c => !c.hasEpisodes);
-  const showsCached = cacheChecks.filter(c => c.hasEpisodes);
-
-  console.log(`[Schedule Generator] ${showsCached.length} show(s) already cached, ${showsToFetch.length} need fetching`);
 
   // Fast path: If all shows are cached, return immediately
   if (showsToFetch.length === 0) {
-    console.log('[Schedule Generator] ✅ All episodes already cached - skipping fetch');
     return;
   }
 
@@ -915,8 +828,8 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
                 still_path: ep.still_path,
               });
             }
-          } catch (error) {
-            console.warn(`[Schedule Generator] Failed to fetch season ${seasonNum} for ${item.show.title}:`, error);
+          } catch {
+            // Season fetch failed, continue with others
           }
         }
 
@@ -961,14 +874,10 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
           });
           fetchedCount = newEpisodes.length;
         }
-      } else {
-        console.warn(`[Schedule Generator] Show ${item.show.title} has no valid source ID (tmdb_id or mal_id)`);
       }
-      
-      console.log(`[Schedule Generator] ✅ Fetched ${fetchedCount} episodes for ${item.show.title}`);
+
       return fetchedCount;
-    } catch (error) {
-      console.error(`[Schedule Generator] ❌ Failed to fetch episodes for ${item.show.title}:`, error);
+    } catch {
       return 0;
     }
   });

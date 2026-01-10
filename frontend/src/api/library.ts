@@ -25,9 +25,10 @@ export async function getLibrary(
   if (status) params.append('status', status);
   if (type) params.append('type', type);
   if (search) params.append('search', search);
-  
+
   const queryString = params.toString();
-  return apiCall<LibraryItem[]>(`/api/library${queryString ? `?${queryString}` : ''}`);
+  const response = await apiCall<{ items: LibraryItem[]; pagination: unknown }>(`/api/library${queryString ? `?${queryString}` : ''}`);
+  return response.items;
 }
 
 /**

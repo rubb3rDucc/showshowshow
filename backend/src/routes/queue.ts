@@ -135,12 +135,9 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
       setImmediate(async () => {
         try {
           const { ensureEpisodesFetched } = await import('../lib/schedule-generator.js');
-          console.log(`[Queue] Background: Auto-fetching episodes for show ${content_id}...`);
           await ensureEpisodesFetched([content_id]);
-          console.log(`[Queue] Background: ✅ Episodes fetched for show ${content_id}`);
-        } catch (error) {
-          console.error(`[Queue] Background: ❌ Failed to fetch episodes for show ${content_id}:`, error);
-          // Don't throw - this is background work, failures are logged but don't affect the user
+        } catch {
+          // Background work - failures don't affect the user
         }
       });
     }

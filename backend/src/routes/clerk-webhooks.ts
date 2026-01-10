@@ -54,8 +54,7 @@ export const clerkWebhookRoutes = async (fastify: FastifyInstance) => {
         'svix-timestamp': svix_timestamp,
         'svix-signature': svix_signature,
       }) as WebhookEvent;
-    } catch (err) {
-      console.error('Error verifying webhook:', err);
+    } catch {
       return reply.code(400).send({
         error: 'Invalid webhook signature'
       });
@@ -77,12 +76,12 @@ export const clerkWebhookRoutes = async (fastify: FastifyInstance) => {
           await handleUserDeleted(evt);
           break;
         default:
-          console.log(`Unhandled webhook event type: ${evt.type}`);
+          // Unhandled webhook event type - ignore silently
+          break;
       }
 
       return reply.send({ success: true });
-    } catch (error) {
-      console.error('Error handling webhook event:', error);
+    } catch {
       return reply.code(500).send({
         error: 'Error processing webhook'
       });
@@ -120,7 +119,6 @@ async function handleUserCreated(evt: WebhookEvent) {
     .executeTakeFirst();
 
   if (existingClerkUser) {
-    console.log(`User ${clerkUserId} already exists, skipping creation`);
     return;
   }
 
@@ -144,7 +142,6 @@ async function handleUserCreated(evt: WebhookEvent) {
       .where('id', '=', existingEmailUser.id)
       .execute();
 
-    console.log(`Linked existing user ${email} (${existingEmailUser.id}) to Clerk user ${clerkUserId}`);
     return;
   }
 
@@ -186,8 +183,6 @@ async function handleUserCreated(evt: WebhookEvent) {
       })
       .execute();
 
-    console.log(`Created user ${userId} for Clerk user ${clerkUserId}`);
-
     // Identify user in PostHog for MAU tracking
     identifyUser(userId, {
       email: email,
@@ -222,7 +217,7 @@ async function handleUserUpdated(evt: WebhookEvent) {
   const isAdmin = public_metadata?.isAdmin === true;
 
   // Update user in database
-  const result = await db
+  await db
     .updateTable('users')
     .set({
       email: email,
@@ -231,8 +226,6 @@ async function handleUserUpdated(evt: WebhookEvent) {
     })
     .where('clerk_user_id', '=', clerkUserId)
     .execute();
-
-  console.log(`Updated user for Clerk user ${clerkUserId}`);
 }
 
 /**
@@ -251,7 +244,6 @@ async function handleUserDeleted(evt: WebhookEvent) {
     .executeTakeFirst();
 
   if (!user) {
-    console.warn(`User not found for Clerk user ${clerkUserId}, skipping deletion`);
     return;
   }
 
@@ -299,7 +291,4 @@ async function handleUserDeleted(evt: WebhookEvent) {
       .where('clerk_user_id', '=', clerkUserId)
       .execute();
   });
-
-  console.log(`✅ Deleted user ${user.email} (${user.id}) for Clerk user ${clerkUserId}`);
-  console.log(`   Deletion logged in audit table for GDPR compliance`);
 }
