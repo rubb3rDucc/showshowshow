@@ -1,5 +1,6 @@
 import { db } from '../db/index.js';
 import { authenticateClerk } from '../plugins/clerk-auth.js';
+import { requireActiveSubscription } from '../plugins/entitlements.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import { sql } from 'kysely';
 import type { FastifyInstance } from 'fastify';
@@ -36,7 +37,7 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Add item to queue
-  fastify.post('/api/queue', { preHandler: authenticateClerk }, async (request, reply) => {
+  fastify.post('/api/queue', { preHandler: requireActiveSubscription }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -146,7 +147,7 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Remove item from queue
-  fastify.delete('/api/queue/:id', { preHandler: authenticateClerk }, async (request, reply) => {
+  fastify.delete('/api/queue/:id', { preHandler: requireActiveSubscription }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -206,7 +207,7 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Reorder queue
-  fastify.put('/api/queue/reorder', { preHandler: authenticateClerk }, async (request, reply) => {
+  fastify.put('/api/queue/reorder', { preHandler: requireActiveSubscription }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -254,7 +255,7 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Clear queue
-  fastify.delete('/api/queue', { preHandler: authenticateClerk }, async (request, reply) => {
+  fastify.delete('/api/queue', { preHandler: requireActiveSubscription }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }

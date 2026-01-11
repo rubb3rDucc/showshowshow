@@ -13,6 +13,10 @@ interface EnvConfig {
   PORT?: string;
   NODE_ENV?: string;
   TMDB_API_BASE_URL?: string;
+  // Stripe (optional - billing features disabled if not set)
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
+  STRIPE_PRICE_ID?: string;
 }
 
 interface ValidationResult {
@@ -100,6 +104,42 @@ export function validateEnv(): ValidationResult {
     }
   }
 
+  // Validate Stripe keys format (optional - billing features disabled if not set)
+  if (process.env.STRIPE_SECRET_KEY) {
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey.startsWith('sk_')) {
+      warnings.push('STRIPE_SECRET_KEY should start with "sk_" - verify it is correct');
+    }
+  }
+
+  if (process.env.STRIPE_WEBHOOK_SECRET) {
+    const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!stripeWebhookSecret.startsWith('whsec_')) {
+      warnings.push('STRIPE_WEBHOOK_SECRET should start with "whsec_" - verify it is correct');
+    }
+  }
+
+  if (process.env.STRIPE_PRICE_ID) {
+    const stripePriceId = process.env.STRIPE_PRICE_ID;
+    if (!stripePriceId.startsWith('price_')) {
+      warnings.push('STRIPE_PRICE_ID should start with "price_" - verify it is correct');
+    }
+  }
+
+  // Warn if Stripe is partially configured
+  const stripeVars = [
+    'STRIPE_SECRET_KEY',
+    'STRIPE_WEBHOOK_SECRET',
+    'STRIPE_PRICE_ID',
+  ];
+  const stripeConfigured = stripeVars.filter((key) => !!process.env[key]);
+  if (stripeConfigured.length > 0 && stripeConfigured.length < stripeVars.length) {
+    const missing = stripeVars.filter((key) => !process.env[key]);
+    warnings.push(
+      `Stripe is partially configured. Missing: ${missing.join(', ')}. Billing features may not work correctly.`
+    );
+  }
+
   return {
     valid: errors.length === 0,
     errors,
@@ -159,5 +199,8 @@ export function getEnv(): EnvConfig {
     PORT: process.env.PORT,
     NODE_ENV: process.env.NODE_ENV,
     TMDB_API_BASE_URL: process.env.TMDB_API_BASE_URL,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    STRIPE_PRICE_ID: process.env.STRIPE_PRICE_ID,
   };
 }

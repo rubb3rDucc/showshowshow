@@ -47,11 +47,22 @@ export async function apiCall<T>(
   const data = await response.json();
 
   if (!response.ok) {
-    throw new ApiError(
+    const error = new ApiError(
       data.statusCode || response.status,
       data.code || 'UNKNOWN_ERROR',
       data.message || 'An error occurred'
     );
+
+    // Dispatch custom event for 403 Forbidden errors (subscription required)
+    if (error.statusCode === 403 && error.code === 'FORBIDDEN') {
+      window.dispatchEvent(
+        new CustomEvent('subscription-required', {
+          detail: { message: error.message },
+        })
+      );
+    }
+
+    throw error;
   }
 
   return data;

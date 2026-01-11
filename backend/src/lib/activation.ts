@@ -20,7 +20,7 @@ export async function checkAndFireActivation(userId: string): Promise<boolean> {
   const user = await db
     .selectFrom('users')
     .select(['activated_at'])
-    .where('clerk_id', '=', userId)
+    .where('clerk_user_id', '=', userId)
     .executeTakeFirst();
 
   // Already activated
@@ -29,12 +29,12 @@ export async function checkAndFireActivation(userId: string): Promise<boolean> {
   }
 
   // Check criteria:
-  // 1. Has generated at least one schedule (has schedule items with source_type = 'queue')
+  // 1. Has generated at least one schedule (has schedule items with source_type = 'auto' or 'rotation')
   const hasGeneratedSchedule = await db
     .selectFrom('schedule')
     .select('id')
     .where('user_id', '=', userId)
-    .where('source_type', '=', 'queue')
+    .where('source_type', 'in', ['auto', 'rotation'])
     .limit(1)
     .executeTakeFirst();
 
@@ -62,7 +62,7 @@ export async function checkAndFireActivation(userId: string): Promise<boolean> {
   await db
     .updateTable('users')
     .set({ activated_at: activatedAt })
-    .where('clerk_id', '=', userId)
+    .where('clerk_user_id', '=', userId)
     .execute();
 
   // Fire PostHog event
