@@ -19,7 +19,7 @@ export function UpgradeModal({ opened, onClose, message }: UpgradeModalProps) {
         cancel_url: `${window.location.origin}${window.location.pathname}?subscription=cancelled`,
       });
       window.location.href = checkout_url;
-    } catch (err) {
+    } catch {
       toast.error('Failed to start checkout. Please try again.');
     }
   };

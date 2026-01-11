@@ -38,7 +38,7 @@ export function BillingSection() {
         cancel_url: `${window.location.origin}/settings?subscription=cancelled`,
       });
       window.location.href = checkout_url;
-    } catch (err) {
+    } catch {
       toast.error('Failed to start checkout. Please try again.');
     }
   };
@@ -49,7 +49,7 @@ export function BillingSection() {
         return_url: `${window.location.origin}/settings`,
       });
       window.location.href = portal_url;
-    } catch (err) {
+    } catch {
       toast.error('Failed to open billing portal. Please try again.');
     }
   };
