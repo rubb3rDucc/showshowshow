@@ -1,12 +1,13 @@
 import { db } from '../db/index.js';
 import { authenticateClerk } from '../plugins/clerk-auth.js';
+import { requireActiveSubscription } from '../plugins/entitlements.js';
 import { generateSchedule, generateScheduleFromQueue, saveSchedule, generateTimeSlots } from '../lib/schedule-generator.js';
 import { ValidationError } from '../lib/errors.js';
 import type { FastifyInstance } from 'fastify';
 
 export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
   // Auto-generate schedule from queue
-  fastify.post('/api/schedule/generate/queue', { preHandler: authenticateClerk }, async (request, reply) => {
+  fastify.post('/api/schedule/generate/queue', { preHandler: requireActiveSubscription }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
@@ -167,7 +168,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Auto-generate schedule from specific shows
-  fastify.post('/api/schedule/generate/shows', { preHandler: authenticateClerk }, async (request, reply) => {
+  fastify.post('/api/schedule/generate/shows', { preHandler: requireActiveSubscription }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }

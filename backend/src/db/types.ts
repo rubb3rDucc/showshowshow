@@ -6,6 +6,7 @@ export interface Database {
     clerk_user_id: string | null;
     auth_provider: 'jwt' | 'clerk';
     is_admin: boolean;
+    activated_at: Date | null;
     created_at: Date;
     updated_at: Date;
   };
@@ -209,5 +210,44 @@ export interface Database {
     stripe_customer_id?: string | null;
     stripe_subscription_id?: string | null;
     had_active_subscription?: boolean; // Optional because it has a default value
+  };
+  user_entitlements: {
+    user_id: string;
+    plan: 'free' | 'preview' | 'pro';
+    preview_expires_at: Date | null;
+    pro_expires_at: Date | null;
+    stripe_customer_id: string | null;
+    created_at: Date;
+    updated_at: Date;
+  };
+  stripe_subscriptions: {
+    id: string;
+    user_id: string;
+    stripe_subscription_id: string;
+    stripe_customer_id: string;
+    stripe_price_id: string;
+    status:
+      | 'active'
+      | 'canceled'
+      | 'past_due'
+      | 'incomplete'
+      | 'trialing'
+      | 'unpaid';
+    current_period_start: Date;
+    current_period_end: Date;
+    cancel_at_period_end: boolean;
+    canceled_at: Date | null;
+    created_at: Date;
+    updated_at: Date;
+  };
+  stripe_webhook_events: {
+    id: string;
+    stripe_event_id: string;
+    event_type: string;
+    processed_at: Date;
+    payload: Record<string, any>;
+    user_id: string | null;
+    error_message: string | null;
+    created_at: Date;
   };
 }

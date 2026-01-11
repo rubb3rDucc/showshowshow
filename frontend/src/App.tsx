@@ -1,14 +1,23 @@
 import { Route, Switch, Redirect } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'sonner';
-import { useAuth } from '@clerk/clerk-react';
-import { useEffect, lazy, Suspense } from 'react';
+import { Toaster, toast } from 'sonner';
+import { useAuth, useUser } from '@clerk/clerk-react';
+import { useEffect, lazy, Suspense, useState, useCallback, useRef } from 'react';
 import { Center, Loader } from '@mantine/core';
 import { setGlobalTokenGetter } from './api/client';
 
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
+import { UpgradeModal } from './components/billing/UpgradeModal';
+import { getSubscriptionStatus } from './api/billing';
+
+// Custom event type for subscription-required events
+declare global {
+  interface WindowEventMap {
+    'subscription-required': CustomEvent<{ message: string }>;
+  }
+}
 
 // Eagerly loaded pages (core navigation)
 import { Login } from './pages/Login';
@@ -51,12 +60,84 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [upgradeMessage, setUpgradeMessage] = useState('');
+  const hasShownWelcomeRef = useRef(false);
 
   // Set up global token getter for API calls
   useEffect(() => {
     setGlobalTokenGetter(getToken);
   }, [getToken]);
+
+  // Show welcome toast on first login
+  useEffect(() => {
+    if (!isUserLoaded || !isSignedIn || !user || hasShownWelcomeRef.current) {
+      return;
+    }
+
+    const welcomeShownKey = `welcome_shown_${user.id}`;
+    const hasSeenWelcome = localStorage.getItem(welcomeShownKey);
+
+    if (!hasSeenWelcome) {
+      // Mark as shown immediately to prevent duplicates
+      hasShownWelcomeRef.current = true;
+      localStorage.setItem(welcomeShownKey, 'true');
+
+      // Fetch subscription status to determine appropriate message
+      const showWelcomeToast = async () => {
+        const firstName = user.firstName || 'there';
+
+        try {
+          const status = await getSubscriptionStatus();
+
+          if (status.plan === 'preview') {
+            // New user with trial
+            toast.success(`Welcome to ShowShowShow, ${firstName}!`, {
+              description: 'Your 7-day free trial has started. Enjoy full access to all features.',
+              duration: 6000,
+            });
+          } else if (status.plan === 'free') {
+            // Returning user without trial (abuse prevention or expired)
+            toast.info(`Welcome back, ${firstName}!`, {
+              description: 'Subscribe to unlock all features.',
+              duration: 6000,
+            });
+          } else if (status.plan === 'pro') {
+            // Existing subscriber
+            toast.success(`Welcome back, ${firstName}!`, {
+              description: 'Thanks for being a subscriber!',
+              duration: 6000,
+            });
+          }
+        } catch {
+          // Fallback if status fetch fails
+          toast.success(`Welcome to ShowShowShow, ${firstName}!`, {
+            duration: 6000,
+          });
+        }
+      };
+
+      // Small delay to ensure the page has rendered and token is ready
+      setTimeout(showWelcomeToast, 500);
+    }
+  }, [isUserLoaded, isSignedIn, user]);
+
+  // Listen for subscription-required events (403 errors from API)
+  useEffect(() => {
+    const handler = (event: CustomEvent<{ message: string }>) => {
+      setUpgradeMessage(event.detail.message);
+      setUpgradeModalOpen(true);
+    };
+    window.addEventListener('subscription-required', handler);
+    return () => window.removeEventListener('subscription-required', handler);
+  }, []);
+
+  const handleCloseUpgradeModal = useCallback(() => {
+    setUpgradeModalOpen(false);
+    setUpgradeMessage('');
+  }, []);
 
   return (
     <ErrorBoundary>
@@ -161,6 +242,11 @@ function App() {
         </Switch>
 
         <Toaster position="top-right" />
+        <UpgradeModal
+          opened={upgradeModalOpen}
+          onClose={handleCloseUpgradeModal}
+          message={upgradeMessage}
+        />
       </QueryClientProvider>
     </ErrorBoundary>
   );

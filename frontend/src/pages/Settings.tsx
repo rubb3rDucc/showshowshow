@@ -12,6 +12,7 @@ import {
 } from '@mantine/core';
 import { Mail, Lock, User } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/clerk-react';
+import { BillingSection } from '../components/settings/BillingSection';
 
 export function Settings() {
   const { user, isLoaded } = useUser();
@@ -96,6 +97,9 @@ export function Settings() {
             </Stack>
           </Stack>
         </Card>
+
+        {/* Subscription & Billing */}
+        <BillingSection />
 
         {/* Account Management */}
         <Card shadow="sm" padding="lg" radius="md" withBorder>

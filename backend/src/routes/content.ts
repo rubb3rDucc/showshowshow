@@ -5,6 +5,7 @@ import { normalizeRating } from '../lib/rating-utils.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import { parseIntWithDefault } from '../lib/utils.js';
 import { authenticateClerk } from '../plugins/clerk-auth.js';
+import { requireActiveSubscription } from '../plugins/entitlements.js';
 import type { FastifyInstance } from 'fastify';
 
 export const contentRoutes = async (fastify: FastifyInstance) => {
@@ -266,7 +267,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get or cache Jikan content by MAL ID
-  fastify.get('/api/content/jikan/:malId', async (request, reply) => {
+  fastify.get('/api/content/jikan/:malId', { preHandler: requireActiveSubscription }, async (request, reply) => {
     const { malId } = request.params as { malId: string };
     const malIdNum = parseInt(malId, 10);
 
@@ -322,7 +323,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get show or movie details (and cache in database)
-  fastify.get('/api/content/:tmdbId', async (request, reply) => {
+  fastify.get('/api/content/:tmdbId', { preHandler: requireActiveSubscription }, async (request, reply) => {
     const { tmdbId } = request.params as { tmdbId: string };
     const { type } = request.query as { type?: 'tv' | 'movie' };
     const tmdbIdNum = parseInt(tmdbId, 10);
@@ -561,7 +562,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get episodes for a show by content_id (supports both TMDB and Jikan)
-  fastify.get('/api/content/by-id/:contentId/episodes', async (request, reply) => {
+  fastify.get('/api/content/by-id/:contentId/episodes', { preHandler: requireActiveSubscription }, async (request, reply) => {
     const { contentId } = request.params as { contentId: string };
     const { season } = request.query as { season?: string };
 
@@ -763,7 +764,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get episodes for a show by TMDB ID (legacy endpoint, kept for backward compatibility)
-  fastify.get('/api/content/:tmdbId/episodes', async (request, reply) => {
+  fastify.get('/api/content/:tmdbId/episodes', { preHandler: requireActiveSubscription }, async (request, reply) => {
     const { tmdbId } = request.params as { tmdbId: string };
     const { season } = request.query as { season?: string };
     const tmdbIdNum = parseInt(tmdbId, 10);
@@ -825,7 +826,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Refresh/update existing content (re-fetch from API and update database)
-  fastify.put('/api/content/:contentId/refresh', async (request, reply) => {
+  fastify.put('/api/content/:contentId/refresh', { preHandler: requireActiveSubscription }, async (request, reply) => {
     const { contentId } = request.params as { contentId: string };
 
     // Get existing content

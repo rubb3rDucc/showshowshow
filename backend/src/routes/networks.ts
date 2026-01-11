@@ -1,5 +1,6 @@
 import { db } from '../db/index.js';
 import { authenticateClerk } from '../plugins/clerk-auth.js';
+import { requireActiveSubscription } from '../plugins/entitlements.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import { getImageUrl, discoverShowsByNetwork, searchNetworks, getNetworkDetails } from '../lib/tmdb.js';
 import type { FastifyInstance } from 'fastify';
@@ -188,7 +189,7 @@ export const networkRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Add a new network to the database
-  fastify.post('/api/networks', { preHandler: authenticateClerk }, async (request, reply) => {
+  fastify.post('/api/networks', { preHandler: requireActiveSubscription }, async (request, reply) => {
     const { tmdb_network_id, is_provider } = request.body as { tmdb_network_id: number; is_provider?: boolean };
     
     if (!tmdb_network_id) {
@@ -248,7 +249,7 @@ export const networkRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Delete a network from the database
-  fastify.delete('/api/networks/:id', { preHandler: authenticateClerk }, async (request, reply) => {
+  fastify.delete('/api/networks/:id', { preHandler: requireActiveSubscription }, async (request, reply) => {
     const { id } = request.params as { id: string };
     
     const network = await db
@@ -271,7 +272,7 @@ export const networkRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Reorder networks
-  fastify.patch('/api/networks/reorder', { preHandler: authenticateClerk }, async (request, reply) => {
+  fastify.patch('/api/networks/reorder', { preHandler: requireActiveSubscription }, async (request, reply) => {
     const { network_ids } = request.body as { network_ids: string[] };
     
     if (!network_ids || !Array.isArray(network_ids)) {

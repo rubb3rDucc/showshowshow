@@ -24,6 +24,7 @@ import { userRoutes } from './routes/user.js';
 import { waitlistRoutes } from './routes/waitlist.js';
 import { networkRoutes } from './routes/networks.js';
 import { peopleRoutes } from './routes/people.js';
+import { billingRoutes } from './routes/billing.js';
 
 const fastify = Fastify({
   logger: {
@@ -133,6 +134,14 @@ fastify.get('/api/test', async (request, reply) => {
   };
 });
 
+// Debug: Log all incoming requests (helpful for webhook debugging)
+fastify.addHook('onRequest', async (request, _reply) => {
+  if (request.url.includes('webhook')) {
+    console.log(`🔔 INCOMING REQUEST: ${request.method} ${request.url}`);
+    console.log(`   Headers: ${JSON.stringify(Object.keys(request.headers))}`);
+  }
+});
+
 // Graceful shutdown
 const gracefulShutdown = async () => {
   console.log('\n🛑 Shutting down gracefully...');
@@ -226,6 +235,7 @@ const start = async () => {
     await fastify.register(waitlistRoutes);
     await fastify.register(networkRoutes);
     await fastify.register(peopleRoutes);
+    await fastify.register(billingRoutes);
 
     const port = Number(process.env.PORT) || 3000;
     // Bind to 0.0.0.0 in Docker or production, localhost otherwise
