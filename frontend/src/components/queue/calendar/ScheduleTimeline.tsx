@@ -18,6 +18,7 @@ interface ScheduleTimelineProps {
   onTimelineMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void;
   onTimelineMouseLeave: () => void;
   onDeleteItem: (id: string, type: 'saved' | 'pending') => void;
+  onItemTap?: (item: ScheduleItemWithType) => void;
 }
 
 export function ScheduleTimeline({
@@ -30,6 +31,7 @@ export function ScheduleTimeline({
   onTimelineMouseMove,
   onTimelineMouseLeave,
   onDeleteItem,
+  onItemTap,
 }: ScheduleTimelineProps) {
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
@@ -91,6 +93,7 @@ export function ScheduleTimeline({
                   item={item}
                   episodeTitle={episodeTitle}
                   onDelete={(id) => onDeleteItem(id, item.type)}
+                  onItemTap={onItemTap}
                 />
               );
             })}

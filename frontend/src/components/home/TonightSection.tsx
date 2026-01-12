@@ -10,6 +10,7 @@ interface TonightSectionProps {
   comingUpItems: ScheduleItem[];
   hasScheduleButNothingYet: boolean;
   hasScheduleButAllEnded: boolean;
+  isInGap: boolean;
   dateString: string;
 }
 
@@ -50,6 +51,7 @@ export function TonightSection({
   comingUpItems,
   hasScheduleButNothingYet,
   hasScheduleButAllEnded,
+  isInGap,
   dateString,
 }: TonightSectionProps) {
   const displayDate = formatDateDisplay(dateString);
@@ -105,7 +107,7 @@ export function TonightSection({
       )}
 
       {/* "All ended" state - all shows have finished, show them as "Earlier" */}
-      {hasScheduleButAllEnded && earlierItems.length > 0 && (
+      {hasScheduleButAllEnded && !isInGap && earlierItems.length > 0 && (
         <>
           <h3 className="text-xs font-medium text-[rgb(var(--color-text-tertiary))] mb-4">
             Earlier
@@ -122,6 +124,53 @@ export function TonightSection({
                 <ScheduleRow
                   item={item}
                   {...earlierWave.getItemProps(idx)}
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* "Gap" state - some shows have ended, others are coming up later (no nowItem) */}
+      {isInGap && (
+        <>
+          {/* Earlier items */}
+          <h3 className="text-xs font-medium text-[rgb(var(--color-text-tertiary))] mb-4">
+            Earlier
+          </h3>
+          <div
+            className="space-y-0"
+            onMouseLeave={earlierWave.handleMouseLeave}
+          >
+            {earlierItems.map((item, idx) => (
+              <div
+                key={item.id}
+                onMouseEnter={() => earlierWave.handleMouseEnter(idx)}
+              >
+                <ScheduleRow
+                  item={item}
+                  {...earlierWave.getItemProps(idx)}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Later items */}
+          <h3 className="text-xs font-medium text-[rgb(var(--color-text-tertiary))] mt-8 mb-4">
+            Later
+          </h3>
+          <div
+            className="space-y-0"
+            onMouseLeave={laterWave.handleMouseLeave}
+          >
+            {laterItems.map((item, idx) => (
+              <div
+                key={item.id}
+                onMouseEnter={() => laterWave.handleMouseEnter(idx)}
+              >
+                <ScheduleRow
+                  item={item}
+                  {...laterWave.getItemProps(idx)}
                 />
               </div>
             ))}

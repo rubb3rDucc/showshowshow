@@ -33,39 +33,39 @@ function findCurrentlyPlaying(items: ScheduleItem[], now: Date): ScheduleItem | 
 }
 
 /**
- * Find items scheduled for later today (after the currently playing item)
+ * Find items scheduled for later today (after the currently playing item, or after current time if no nowItem)
  */
-function findLaterItems(items: ScheduleItem[], nowItem: ScheduleItem | null): ScheduleItem[] {
-  if (!nowItem) return [];
-
-  const nowItemStart = new Date(nowItem.scheduled_time).getTime();
+function findLaterItems(items: ScheduleItem[], nowItem: ScheduleItem | null, now: Date): ScheduleItem[] {
+  const referenceTime = nowItem
+    ? new Date(nowItem.scheduled_time).getTime()
+    : now.getTime();
 
   return items
     .filter(item => {
       // Exclude the currently playing item
-      if (item.id === nowItem.id) return false;
-      // Include items that start after the now item
+      if (nowItem && item.id === nowItem.id) return false;
+      // Include items that start after the reference time
       const start = new Date(item.scheduled_time).getTime();
-      return start > nowItemStart;
+      return start > referenceTime;
     })
     .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
 }
 
 /**
- * Find items scheduled earlier today (before the currently playing item)
+ * Find items scheduled earlier today (before the currently playing item, or items that have ended if no nowItem)
  */
-function findEarlierItems(items: ScheduleItem[], nowItem: ScheduleItem | null): ScheduleItem[] {
-  if (!nowItem) return [];
-
-  const nowItemStart = new Date(nowItem.scheduled_time).getTime();
+function findEarlierItems(items: ScheduleItem[], nowItem: ScheduleItem | null, now: Date): ScheduleItem[] {
+  const referenceTime = nowItem
+    ? new Date(nowItem.scheduled_time).getTime()
+    : now.getTime();
 
   return items
     .filter(item => {
       // Exclude the currently playing item
-      if (item.id === nowItem.id) return false;
-      // Include items that started before the now item
+      if (nowItem && item.id === nowItem.id) return false;
+      // Include items that started before the reference time
       const start = new Date(item.scheduled_time).getTime();
-      return start < nowItemStart;
+      return start < referenceTime;
     })
     .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
 }
@@ -120,14 +120,14 @@ export function useHomeData() {
   const lastTodayItem = todayItems[todayItems.length - 1];
   const hasScheduleButAllEnded = todayItems.length > 0 && lastTodayItem && !nowItem && !hasScheduleButNothingYet;
 
-  // Get items scheduled for later today (after the now item)
-  const laterItems = findLaterItems(todayItems, nowItem);
+  // Get items scheduled for later today (after the now item, or after current time if no now item)
+  const laterItems = findLaterItems(todayItems, nowItem, now);
 
-  // Get items scheduled earlier today (before the now item)
-  // If all shows have ended (no nowItem and not waiting for first show), show all items as "earlier"
-  const earlierItems = hasScheduleButAllEnded
-    ? todayItems
-    : findEarlierItems(todayItems, nowItem);
+  // Get items scheduled earlier today (before the now item, or before current time if no now item)
+  const earlierItems = findEarlierItems(todayItems, nowItem, now);
+
+  // Check if we're in a "gap" - some items have ended but others are coming up later
+  const isInGap = !nowItem && earlierItems.length > 0 && laterItems.length > 0;
 
   // All today items for "Coming up" state (when nothing is playing yet)
   const comingUpItems = hasScheduleButNothingYet ? todayItems : [];
@@ -147,6 +147,8 @@ export function useHomeData() {
     hasScheduleButNothingYet,
     // Whether all scheduled items have ended
     hasScheduleButAllEnded,
+    // Whether we're in a gap between earlier and later items (no nowItem)
+    isInGap,
     // Tomorrow item count
     tomorrowCount: tomorrowSchedule.data?.length || 0,
     // Date strings for display

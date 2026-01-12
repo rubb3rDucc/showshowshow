@@ -14,6 +14,7 @@ export function Home() {
     comingUpItems,
     hasScheduleButNothingYet,
     hasScheduleButAllEnded,
+    isInGap,
     tomorrowCount,
     dates,
     isLoading,
@@ -41,6 +42,7 @@ export function Home() {
           comingUpItems={comingUpItems}
           hasScheduleButNothingYet={hasScheduleButNothingYet}
           hasScheduleButAllEnded={hasScheduleButAllEnded}
+          isInGap={isInGap}
           dateString={dates.today}
         />
 

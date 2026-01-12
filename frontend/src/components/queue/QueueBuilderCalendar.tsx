@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Card,
   Text,
@@ -14,8 +15,9 @@ import { Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { PendingItemsSummary } from './calendar/PendingItemsSummary';
 import { ScheduleTimeline } from './calendar/ScheduleTimeline';
 import { ScheduleModal } from './calendar/ScheduleModal';
+import { ScheduleItemSheet } from './calendar/ScheduleItemSheet';
 import { useScheduleCalendar } from './calendar/hooks/useScheduleCalendar';
-import type { QueueBuilderCalendarProps } from './calendar/types';
+import type { QueueBuilderCalendarProps, ScheduleItemWithType } from './calendar/types';
 
 export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilderCalendarProps) {
   const {
@@ -62,6 +64,21 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
     schedulingMode,
     setSchedulingMode,
   } = useScheduleCalendar(expanded);
+
+  // State for mobile bottom sheet
+  const [sheetOpened, setSheetOpened] = useState(false);
+  const [selectedItemForSheet, setSelectedItemForSheet] = useState<ScheduleItemWithType | null>(null);
+
+  const handleItemTap = (item: ScheduleItemWithType) => {
+    setSelectedItemForSheet(item);
+    setSheetOpened(true);
+  };
+
+  const handleSheetDelete = () => {
+    if (selectedItemForSheet) {
+      onDeleteItem(selectedItemForSheet.id, selectedItemForSheet.type);
+    }
+  };
 
   const isLoading = scheduleLoading || queueLoading;
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -155,6 +172,7 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
             onTimelineMouseMove={handleTimelineMouseMove}
             onTimelineMouseLeave={handleTimelineMouseLeave}
             onDeleteItem={onDeleteItem}
+            onItemTap={handleItemTap}
           />
         </>
       )}
@@ -187,6 +205,14 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
             {content}
           </Collapse>
         </Card>
+
+        {/* Mobile Bottom Sheet for Schedule Item */}
+        <ScheduleItemSheet
+          opened={sheetOpened}
+          onClose={() => setSheetOpened(false)}
+          item={selectedItemForSheet}
+          onDelete={handleSheetDelete}
+        />
       </>
     );
   }
@@ -222,6 +248,14 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
         isScheduling={isScheduling}
         schedulingMode={schedulingMode}
         onSchedulingModeChange={setSchedulingMode}
+      />
+
+      {/* Mobile Bottom Sheet for Schedule Item */}
+      <ScheduleItemSheet
+        opened={sheetOpened}
+        onClose={() => setSheetOpened(false)}
+        item={selectedItemForSheet}
+        onDelete={handleSheetDelete}
       />
     </>
   );

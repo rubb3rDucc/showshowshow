@@ -1,4 +1,5 @@
 import { Box, Group, Text, Button, Stack } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { X } from 'lucide-react';
 import { useState } from 'react';
 import type { ScheduleItemWithType } from './types';
@@ -10,10 +11,12 @@ interface ScheduleBlockProps {
   episodeTitle?: string | null;
   onDelete: (id: string) => void;
   watched?: boolean;
+  onItemTap?: (item: ScheduleItemWithType) => void;
 }
 
-export function ScheduleBlock({ item, onDelete, watched = false }: ScheduleBlockProps) {
+export function ScheduleBlock({ item, onDelete, watched = false, onItemTap }: ScheduleBlockProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 1024px)');
   const position = getItemPosition(item);
   const isShow = item.season !== null && item.episode !== null;
 
@@ -79,6 +82,12 @@ export function ScheduleBlock({ item, onDelete, watched = false }: ScheduleBlock
       }}
       onClick={(e) => {
         const target = e.target as HTMLElement;
+        // On mobile, tapping the block opens the bottom sheet
+        if (isMobile && onItemTap && !target.closest('button')) {
+          e.stopPropagation();
+          onItemTap(item);
+          return;
+        }
         if (!target.closest('button') && !target.closest('[data-block-content]')) {
           return;
         }
@@ -119,7 +128,7 @@ export function ScheduleBlock({ item, onDelete, watched = false }: ScheduleBlock
             >
               {startTimeStr}
             </Text>
-            {isHovered && (
+            {!isMobile && isHovered && (
               <Button
                 size="xs"
                 variant="subtle"
@@ -162,7 +171,7 @@ export function ScheduleBlock({ item, onDelete, watched = false }: ScheduleBlock
             >
               {displayTitle}
             </Text>
-            {isHovered && (
+            {!isMobile && isHovered && (
               <Button
                 size="xs"
                 variant="subtle"
