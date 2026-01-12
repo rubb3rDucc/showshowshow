@@ -13,6 +13,7 @@ export function Home() {
     laterItems,
     comingUpItems,
     hasScheduleButNothingYet,
+    hasScheduleButAllEnded,
     tomorrowCount,
     dates,
     isLoading,
@@ -39,6 +40,7 @@ export function Home() {
           laterItems={laterItems}
           comingUpItems={comingUpItems}
           hasScheduleButNothingYet={hasScheduleButNothingYet}
+          hasScheduleButAllEnded={hasScheduleButAllEnded}
           dateString={dates.today}
         />
 

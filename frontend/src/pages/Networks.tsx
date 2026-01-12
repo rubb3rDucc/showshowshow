@@ -162,7 +162,6 @@ export function Networks() {
           });
         }
       } catch (error) {
-        console.error('Search failed:', error);
         toast.error('Search failed', {
           description: error instanceof Error ? error.message : 'Something went wrong',
         });

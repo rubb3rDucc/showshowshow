@@ -44,8 +44,7 @@ export async function getGifForTitle(title: string): Promise<string | null> {
     }
 
     return null;
-  } catch (error) {
-    console.warn('Failed to fetch GIF:', error);
+  } catch {
     return null;
   }
 }

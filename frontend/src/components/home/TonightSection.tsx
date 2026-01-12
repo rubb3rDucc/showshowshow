@@ -9,6 +9,7 @@ interface TonightSectionProps {
   laterItems: ScheduleItem[];
   comingUpItems: ScheduleItem[];
   hasScheduleButNothingYet: boolean;
+  hasScheduleButAllEnded: boolean;
   dateString: string;
 }
 
@@ -48,6 +49,7 @@ export function TonightSection({
   laterItems,
   comingUpItems,
   hasScheduleButNothingYet,
+  hasScheduleButAllEnded,
   dateString,
 }: TonightSectionProps) {
   const displayDate = formatDateDisplay(dateString);
@@ -102,7 +104,32 @@ export function TonightSection({
         </>
       )}
 
-      {/* "Now" state - something is currently playing (or most recent past item) */}
+      {/* "All ended" state - all shows have finished, show them as "Earlier" */}
+      {hasScheduleButAllEnded && earlierItems.length > 0 && (
+        <>
+          <h3 className="text-xs font-medium text-[rgb(var(--color-text-tertiary))] mb-4">
+            Earlier
+          </h3>
+          <div
+            className="space-y-0"
+            onMouseLeave={earlierWave.handleMouseLeave}
+          >
+            {earlierItems.map((item, idx) => (
+              <div
+                key={item.id}
+                onMouseEnter={() => earlierWave.handleMouseEnter(idx)}
+              >
+                <ScheduleRow
+                  item={item}
+                  {...earlierWave.getItemProps(idx)}
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* "Now" state - something is currently playing */}
       {nowItem && (
         <>
           {/* "Earlier" items - shows items before the now item */}

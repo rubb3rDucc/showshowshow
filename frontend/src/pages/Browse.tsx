@@ -4,6 +4,7 @@ import { Container, Button, Loader, Center, Text } from '@mantine/core';
 import { useLocation } from 'wouter';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { captureApiError } from '../lib/posthog';
 import { NetworkGrid } from '../components/browse/NetworkGrid';
 import { ContentCarousel } from '../components/browse/ContentCarousel';
 import { SectionHeader } from '../components/browse/SectionHeader';
@@ -61,8 +62,6 @@ export function Browse() {
         new Map(allContent.map(item => [item.tmdb_id, item])).values()
       );
 
-      console.log(`Fetched ${pagesToFetch} pages with ${uniqueContent.length} unique shows for ${firstPage.network.name}`);
-
       // Return in the same format as a single page response
       return {
         network: firstPage.network,
@@ -100,6 +99,7 @@ export function Browse() {
       setContentModalOpen(false);
     },
     onError: (error: Error) => {
+      captureApiError(error, { operation: 'addToLibrary' });
       toast.error('Failed to add to library', {
         description: error.message || 'Something went wrong',
       });
@@ -127,6 +127,7 @@ export function Browse() {
       setContentModalOpen(false);
     },
     onError: (error: Error) => {
+      captureApiError(error, { operation: 'addToQueue' });
       toast.error('Failed to add to lineup', {
         description: error.message || 'Something went wrong',
       });
@@ -134,7 +135,6 @@ export function Browse() {
   });
 
   const handleNetworkClick = (networkId: string) => {
-    console.log('handleNetworkClick called with:', networkId);
     // Directly set the network ID and update URL
     setSelectedNetworkId(networkId);
     // Update URL for sharing/bookmarking
@@ -315,21 +315,6 @@ export function Browse() {
   // Show network detail view (Apple Music style)
   if (selectedNetworkId && networkContent) {
     const sections = organizeSections(networkContent.content || []);
-
-    // Log section sizes for debugging
-    console.log('Section sizes:', {
-      total: networkContent.content?.length || 0,
-      popular: sections.popular.length,
-      recent: sections.recent.length,
-      highRated: sections.highRated.length,
-      '70s': sections.decades['70s'].length,
-      '80s': sections.decades['80s'].length,
-      '90s': sections.decades['90s'].length,
-      '2000s': sections.decades['2000s'].length,
-      '2010s': sections.decades['2010s'].length,
-      '2020s': sections.decades['2020s'].length,
-      all: sections.all.length,
-    });
 
     return (
       <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">

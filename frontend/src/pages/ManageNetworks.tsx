@@ -1,19 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Container, Button, TextInput, Loader, Center, Modal, Text } from '@mantine/core';
+import { Container, Button, TextInput, Loader, Center } from '@mantine/core';
 import { useLocation } from 'wouter';
-import { ArrowLeft, Search, Plus, Trash2, Tv, AlertCircle, X } from 'lucide-react';
+import { ArrowLeft, Search, Plus, Tv, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { getNetworks, searchNetworks, addNetwork, deleteNetwork, type NetworkSearchResult } from '../api/networks';
+import { getNetworks, searchNetworks, addNetwork, type NetworkSearchResult } from '../api/networks';
 
 export function ManageNetworks() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<NetworkSearchResult[]>([]);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [networkToDelete, setNetworkToDelete] = useState<{ id: string; name: string } | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  // TODO: Re-enable after demo
+  // const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  // const [networkToDelete, setNetworkToDelete] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
   const searchTimeoutRef = useRef<number | null>(null);
 
@@ -53,7 +54,6 @@ export function ManageNetworks() {
           });
         }
       } catch (error) {
-        console.error('Search failed:', error);
         toast.error('Search failed', {
           description: error instanceof Error ? error.message : 'Something went wrong',
         });
@@ -95,23 +95,23 @@ export function ManageNetworks() {
     },
   });
 
-  // Delete network mutation
-  const deleteNetworkMutation = useMutation({
-    mutationFn: deleteNetwork,
-    onSuccess: (data) => {
-      toast.success('Network removed', {
-        description: `${data.deleted_network} has been removed`,
-      });
-      queryClient.invalidateQueries({ queryKey: ['networks'] });
-      setDeleteModalOpen(false);
-      setNetworkToDelete(null);
-    },
-    onError: (error: Error) => {
-      toast.error('Failed to remove network', {
-        description: error.message || 'Something went wrong',
-      });
-    },
-  });
+  // TODO: Re-enable after demo - Delete network mutation
+  // const deleteNetworkMutation = useMutation({
+  //   mutationFn: deleteNetwork,
+  //   onSuccess: (data) => {
+  //     toast.success('Network removed', {
+  //       description: `${data.deleted_network} has been removed`,
+  //     });
+  //     queryClient.invalidateQueries({ queryKey: ['networks'] });
+  //     setDeleteModalOpen(false);
+  //     setNetworkToDelete(null);
+  //   },
+  //   onError: (error: Error) => {
+  //     toast.error('Failed to remove network', {
+  //       description: error.message || 'Something went wrong',
+  //     });
+  //   },
+  // });
 
   const handleClearSearch = () => {
     setSearchQuery('');
@@ -127,16 +127,17 @@ export function ManageNetworks() {
     });
   };
 
-  const handleDeleteClick = (id: string, name: string) => {
-    setNetworkToDelete({ id, name });
-    setDeleteModalOpen(true);
-  };
+  // TODO: Re-enable after demo - disabled to prevent users from removing shared networks
+  // const handleDeleteClick = (id: string, name: string) => {
+  //   setNetworkToDelete({ id, name });
+  //   setDeleteModalOpen(true);
+  // };
 
-  const handleConfirmDelete = () => {
-    if (networkToDelete) {
-      deleteNetworkMutation.mutate(networkToDelete.id);
-    }
-  };
+  // const handleConfirmDelete = () => {
+  //   if (networkToDelete) {
+  //     deleteNetworkMutation.mutate(networkToDelete.id);
+  //   }
+  // };
 
   const isNetworkAdded = (tmdbId: number) => {
     return existingNetworks?.some(n => n.tmdb_network_id === tmdbId);
@@ -293,6 +294,7 @@ export function ManageNetworks() {
                   <p className="text-xs font-bold text-center line-clamp-2">
                     {network.name}
                   </p>
+                  {/* TODO: Re-enable after demo - disabled to prevent users from removing shared networks
                   <Button
                     size="xs"
                     variant="outline"
@@ -303,6 +305,7 @@ export function ManageNetworks() {
                   >
                     Remove
                   </Button>
+                  */}
                 </div>
               ))}
             </div>
@@ -314,7 +317,7 @@ export function ManageNetworks() {
         </div>
       </Container>
 
-      {/* Delete Confirmation Modal */}
+      {/* TODO: Re-enable after demo - Delete Confirmation Modal
       <Modal
         opened={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
@@ -352,6 +355,7 @@ export function ManageNetworks() {
           </div>
         </div>
       </Modal>
+      */}
     </div>
   );
 }

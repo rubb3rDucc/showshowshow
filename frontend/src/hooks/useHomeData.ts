@@ -109,31 +109,25 @@ export function useHomeData() {
   );
 
   // Determine "now" item (currently playing based on time)
-  // If nothing is currently playing, use the most recent past item as "now" (so user can mark it watched)
-  let nowItem = findCurrentlyPlaying(todayItems, now);
+  // Only show as "now" if the item is actually within its playback window
+  const nowItem = findCurrentlyPlaying(todayItems, now);
 
   // Check if we're before the first scheduled item
   const firstTodayItem = todayItems[0];
   const hasScheduleButNothingYet = todayItems.length > 0 && firstTodayItem && new Date(firstTodayItem.scheduled_time) > now;
 
-  // If nothing is currently playing and we're past the first item, find the most recent past item
-  if (!nowItem && todayItems.length > 0 && !hasScheduleButNothingYet) {
-    // Find items that have started (past or current)
-    const pastItems = todayItems.filter(item => {
-      const start = new Date(item.scheduled_time);
-      return start <= now;
-    });
-    // Use the last one (most recent)
-    if (pastItems.length > 0) {
-      nowItem = pastItems[pastItems.length - 1];
-    }
-  }
+  // Check if we're after the last scheduled item has ended
+  const lastTodayItem = todayItems[todayItems.length - 1];
+  const hasScheduleButAllEnded = todayItems.length > 0 && lastTodayItem && !nowItem && !hasScheduleButNothingYet;
 
   // Get items scheduled for later today (after the now item)
   const laterItems = findLaterItems(todayItems, nowItem);
 
   // Get items scheduled earlier today (before the now item)
-  const earlierItems = findEarlierItems(todayItems, nowItem);
+  // If all shows have ended (no nowItem and not waiting for first show), show all items as "earlier"
+  const earlierItems = hasScheduleButAllEnded
+    ? todayItems
+    : findEarlierItems(todayItems, nowItem);
 
   // All today items for "Coming up" state (when nothing is playing yet)
   const comingUpItems = hasScheduleButNothingYet ? todayItems : [];
@@ -151,6 +145,8 @@ export function useHomeData() {
     comingUpItems,
     // Whether we have a schedule but nothing is playing yet (all items are in the future)
     hasScheduleButNothingYet,
+    // Whether all scheduled items have ended
+    hasScheduleButAllEnded,
     // Tomorrow item count
     tomorrowCount: tomorrowSchedule.data?.length || 0,
     // Date strings for display

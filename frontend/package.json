@@ -24,6 +24,7 @@
     "@tanstack/react-query": "^5.90.16",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.562.0",
+    "posthog-js": "^1.318.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "sonner": "^2.0.7",

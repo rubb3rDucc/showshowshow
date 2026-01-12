@@ -34,7 +34,6 @@ export function ScheduleView() {
     const dateObj = date instanceof Date ? date : new Date(date);
     
     if (isNaN(dateObj.getTime())) {
-      console.error('Invalid date:', date);
       return undefined;
     }
     
@@ -72,7 +71,6 @@ export function ScheduleView() {
     
     // Validate the date
     if (dateObj && isNaN(dateObj.getTime())) {
-      console.error('Invalid date:', date);
       return;
     }
     

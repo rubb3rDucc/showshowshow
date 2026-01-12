@@ -108,7 +108,6 @@ export function QueueBuilderCalendar({ expanded = true, onToggle }: QueueBuilder
                 
                 // Validate the date
                 if (dateObj && isNaN(dateObj.getTime())) {
-                  console.error('Invalid date:', date);
                   return;
                 }
                 

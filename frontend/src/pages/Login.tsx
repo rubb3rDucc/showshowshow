@@ -2,7 +2,18 @@ import { SignIn } from '@clerk/clerk-react';
 
 export function Login() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[rgb(var(--color-bg-page))]">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[rgb(var(--color-bg-page))] px-4">
+      <div className="text-center mb-8 max-w-md">
+        <h1 className="text-3xl font-bold tracking-tight text-[rgb(var(--color-text-primary))] mb-3">
+          ShowShowShow
+        </h1>
+        <p className="text-[rgb(var(--color-text-secondary))] text-sm leading-relaxed">
+          Build a lineup of shows, then auto-generate a viewing schedule.
+        </p>
+        <p className="text-[rgb(var(--color-text-tertiary))] text-xs mt-2 italic">
+          An early experiment in reducing decision fatigue.
+        </p>
+      </div>
       <SignIn
         routing="path"
         path="/login"

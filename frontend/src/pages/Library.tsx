@@ -4,6 +4,7 @@ import { Container, Button, Text, Loader, Center } from '@mantine/core';
 import { Plus } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
+import { captureApiError } from '../lib/posthog';
 import { LibraryFilters } from '../components/library/LibraryFilters';
 import { LibraryCard } from '../components/library/LibraryCard';
 import { LibraryDetailModal } from '../components/library/LibraryDetailModal';
@@ -51,6 +52,7 @@ export function Library() {
       toast.success('Removed from library');
     },
     onError: (error: Error) => {
+      captureApiError(error, { operation: 'removeFromLibrary' });
       toast.error(error?.message || 'Failed to remove from library');
     },
   });
@@ -84,6 +86,7 @@ export function Library() {
       toast.success('Library updated');
     },
     onError: (error: Error) => {
+      captureApiError(error, { operation: 'updateLibraryItem' });
       toast.error(error?.message || 'Failed to update library');
     },
   });
@@ -96,6 +99,7 @@ export function Library() {
       toast.success('Added to queue');
     },
     onError: (error: Error) => {
+      captureApiError(error, { operation: 'addToQueue' });
       toast.error(error?.message || 'Failed to add to queue');
     },
   });

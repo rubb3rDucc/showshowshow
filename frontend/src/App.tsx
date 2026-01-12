@@ -5,8 +5,12 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import { useEffect, lazy, Suspense, useState, useCallback, useRef } from 'react';
 import { Center, Loader } from '@mantine/core';
 import { setGlobalTokenGetter } from './api/client';
+import { initPostHog, identifyUser } from './lib/posthog';
 
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+
+// Initialize PostHog on app load
+initPostHog();
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 import { UpgradeModal } from './components/billing/UpgradeModal';
@@ -70,6 +74,16 @@ function App() {
   useEffect(() => {
     setGlobalTokenGetter(getToken);
   }, [getToken]);
+
+  // Identify user in PostHog when signed in
+  useEffect(() => {
+    if (isUserLoaded && isSignedIn && user) {
+      identifyUser(user.id, {
+        email: user.primaryEmailAddress?.emailAddress,
+        name: user.fullName,
+      });
+    }
+  }, [isUserLoaded, isSignedIn, user]);
 
   // Show welcome toast on first login
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -33,6 +33,7 @@ import { useMediaQuery, useDisclosure } from '@mantine/hooks';
 import { AlertCircle, List, ChevronLeft } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { toast } from 'sonner';
+import { captureApiError } from '../lib/posthog';
 import { getQueue, removeFromQueue, reorderQueue } from '../api/content';
 import { QueueList } from '../components/queue/QueueList';
 import { QueueBuilderCalendar } from '../components/queue/QueueBuilderCalendar';
@@ -50,7 +51,8 @@ export function Queue() {
   const [generateModalOpened, setGenerateModalOpened] = useState(false);
   const [activeTab, setActiveTab] = useState<string | null>('builder');
   // Default to today's date for "Clear Schedule for Day" - calendar manages its own date internally
-  const selectedDate = new Date();
+  // Memoize to prevent useCallback dependency changes on every render
+  const selectedDate = useMemo(() => new Date(), []);
   const [openEpisodeDescriptionId, setOpenEpisodeDescriptionId] = useState<string | null>(null);
 
   // Fetch queue
@@ -93,6 +95,7 @@ export function Queue() {
       toast.success('Removed from Lineup');
     },
     onError: (error, _itemId, context) => {
+      captureApiError(error, { operation: 'removeFromQueue' });
       if (context?.previousQueue) {
         queryClient.setQueryData(['queue'], context.previousQueue);
         setLocalQueue(context.previousQueue);
@@ -111,6 +114,7 @@ export function Queue() {
       queryClient.invalidateQueries({ queryKey: ['queue'] });
     },
     onError: (error: Error) => {
+      captureApiError(error, { operation: 'reorderQueue' });
       toast.error(error.message || 'Failed to reorder Lineup');
       isDraggingRef.current = false;
       if (queue) {
@@ -133,6 +137,7 @@ export function Queue() {
       queryClient.invalidateQueries({ queryKey: ['schedule'] });
     },
     onError: (error: Error) => {
+      captureApiError(error, { operation: 'clearScheduleForDate' });
       toast.error(error.message || 'Failed to clear schedule');
     },
   });

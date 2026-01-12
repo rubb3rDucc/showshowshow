@@ -78,8 +78,6 @@ export function NetworkSectionGrid() {
     dispatch({ type: 'RESET' });
   }
 
-  console.log('NetworkSectionGrid params:', { networkId, section, fullParams: params });
-
   // Use regular query with manual pagination - workaround for React Query v5 issue
   // Hooks must be called before any early returns
   const {
@@ -90,10 +88,8 @@ export function NetworkSectionGrid() {
   } = useQuery<NetworkContent, Error>({
     queryKey: ['network-content', networkId, currentPage],
     queryFn: async () => {
-      console.log('Fetching page:', currentPage);
       if (!networkId) throw new Error('Network ID is required');
       const result = await getNetworkContent(networkId, currentPage);
-      console.log('Fetched result:', result);
       return result;
     },
     enabled: !!networkId && !!section,
@@ -326,8 +322,6 @@ export function NetworkSectionGrid() {
 
   // Early return if required params are missing (after all hooks)
   if (!networkId || !section) {
-    console.error('Missing required params:', { networkId, section });
-
     return (
       <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
         <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">

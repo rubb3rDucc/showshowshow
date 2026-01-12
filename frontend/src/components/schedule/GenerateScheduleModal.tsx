@@ -437,7 +437,6 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
       }
     },
     onError: (error: Error) => {
-      console.error('Schedule generation error:', error);
       toast.error(error.message || 'Failed to generate schedule');
     },
   });
@@ -477,7 +476,6 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
       const dateObj = date instanceof Date ? date : new Date(date);
       
       if (isNaN(dateObj.getTime())) {
-        console.error('Invalid date:', date);
         return '';
       }
       
@@ -491,14 +489,6 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
     };
 
     const formattedDate = formatDate(scheduleDate);
-
-    console.log('Schedule generation params:', {
-      scheduleDate,
-      formattedDate,
-      startTime: startTimeValue,
-      endTime: endTimeValue,
-      duration,
-    });
 
     // Get user's timezone offset (e.g., "-05:00" for EST, "+00:00" for UTC)
     const getTimezoneOffset = (): string => {
@@ -538,7 +528,6 @@ export function GenerateScheduleModal({ opened, onClose }: GenerateScheduleModal
       params.episode_filters = filters;
     }
 
-    console.log('Generating schedule with params:', params);
     generateMutation.mutate(params);
   };
 

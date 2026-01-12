@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { Button, Stack, Text, Title, Card } from '@mantine/core';
+import { captureException } from '../../lib/posthog';
 
 interface Props {
   children: ReactNode;
@@ -26,11 +27,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log error to console for debugging
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-
-    // TODO: Send to PostHog when frontend integration is added
-    // captureException(error, { componentStack: errorInfo.componentStack });
+    // Send to PostHog for error tracking
+    captureException(error, {
+      componentStack: errorInfo.componentStack || undefined,
+      extra: {
+        errorBoundary: true,
+      },
+    });
   }
 
   handleRetry = () => {
