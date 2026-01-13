@@ -4,7 +4,7 @@ import '../styles/home.css';
 
 const title = 'Terms of Service - ShowShowShow';
 const description = 'Terms of Service for ShowShowShow';
-const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.com';
+const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.app';
 ---
 
 <Layout title={title} description={description}>
@@ -25,12 +25,10 @@ const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.com';
 
     <div class="content">
       <main class="section">
-        <div class="card" style="max-width: 720px; margin: 0 auto;">
-          <h1 style="margin: 0 0 16px; font-family: Sora, sans-serif;">Terms of Service</h1>
-          <p class="lead">This page will be updated with the full terms of service.</p>
-          <p style="color: var(--soft-ink);">
-            Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
+        <div class="card" style="max-width: 900px; margin: 0 auto; text-align: center;">
+          <h1 style="margin: 0 0 16px; font-family: Sora, sans-serif;">Terms and Conditions</h1>
+          <p style="color: var(--soft-ink); margin-bottom: 24px;">View our full terms and conditions on iubenda.</p>
+          <a href="https://www.iubenda.com/terms-and-conditions/97642526" class="btn primary" target="_blank" rel="noopener" title="Terms and Conditions">View Terms and Conditions</a>
           <div style="margin-top: 24px;">
             <a class="btn ghost" href="/">Back to home</a>
           </div>

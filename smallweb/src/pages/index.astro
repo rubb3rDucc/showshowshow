@@ -2,64 +2,10 @@
 import Layout from "../layouts/Layout.astro";
 import "../styles/home.css";
 
-const title = "ShowShowShow - Build lineups for TV, anime, and movies";
+const title = "ShowShowShow - Schedule your TV watching";
 const description =
-  "Schedule episodes and movies in real time blocks. Mix manual planning with auto scheduling, apply season filters, and keep watch history synced.";
-const apiUrl = import.meta.env.PUBLIC_API_URL || "http://localhost:3000";
-const googleSheetsUrl = import.meta.env.PUBLIC_GOOGLE_SHEETS_URL;
-const heroImages = [
-  // {
-  //   src: "/images/new_1.png",
-  //   alt: "Schedule builder preview",
-  //   caption: "Add. Drop. Done.",
-  // },
-  // {
-  //   src: "/images/new_2.png",
-  //   alt: "Library view preview",
-  //   caption: "All your shows, always synced",
-  // },
-  // {
-  //   src: "/images/new_4.png",
-  //   alt: "Week schedule preview",
-  //   caption: "Your TV guide, your rules",
-  // },
-
-  {
-    src: "/images/new_8.png",
-    alt: "Statistics preview",
-    caption: "Know what you watch",
-  },
-  {
-    src: "/images/new_6.png",
-    alt: "Statistics preview",
-    caption: "Know what you watch",
-  },
-  {
-    src: "/images/new_9.png",
-    alt: "Statistics preview",
-    caption: "Know what you watch",
-  },
-  {
-    src: "/images/new_1.png",
-    alt: "Statistics preview",
-    caption: "Know what you watch",
-  },
-  {
-    src: "/images/new_7.png",
-    alt: "Statistics preview",
-    caption: "Know what you watch",
-  },
-  {
-    src: "/images/new_10.png",
-    alt: "Statistics preview",
-    caption: "Know what you watch",
-  },
-  {
-    src: "/images/new_11.png",
-    alt: "Statistics preview",
-    caption: "Know what you watch",
-  },
-];
+  "Decide what you're watching ahead of time. Build viewing schedules for TV shows, anime, and movies.";
+const appUrl = import.meta.env.PUBLIC_APP_URL || "https://app.showshowshow.app";
 ---
 
 <Layout title={title} description={description}>
@@ -67,400 +13,115 @@ const heroImages = [
     <header class="nav">
       <div class="nav-container">
         <a class="brand" href="/">ShowShowShow</a>
-        <div class="nav-menu">
-          <nav class="nav-links">
-            <a href="#features">Features</a>
-            <a href="#pricing">Pricing</a>
-          </nav>
-          <a class="btn primary nav-cta-btn" href="#waitlist">Join waitlist</a>
-        </div>
+        <a class="btn primary nav-cta-btn" href={appUrl}>Login</a>
       </div>
     </header>
 
     <div class="content">
       <main>
         <section class="hero">
-          <div class="reveal" style="animation-delay: 0.05s;">
-            <p class="eyebrow">Your schedule. Your rules.</p>
-            <h1>Stop scrolling. Start watching what you actually want.</h1>
+          <div class="hero-text reveal" style="animation-delay: 0.05s;">
+            <h1>Decide what you're watching before you sit down.</h1>
             <p class="lead">
-              Plan your TV nights like you plan dinner. Add episodes into time
-              blocks, auto-fill from your library, or mix both. Track what
-              you've watched, queue up rewatches, and never lose your place.
-              Optimized for desktop and mobile web.
+              Schedule shows and movies into time slots. Skip the browsing.
+            </p>
+            <p class="subtext">
+              Early version. Sign-in required to save schedules.
             </p>
             <div class="hero-actions">
-              <a class="btn primary" href="#waitlist">Join the early list</a>
-              <a class="btn ghost" href="#features">See how it works</a>
-            </div>
-            <div class="hero-meta">
-              <span class="pill">Scheduling assistant</span>
-              <span class="pill">Works with your services</span>
-              <span class="pill">Never lose your place</span>
+              <a class="btn primary" href={appUrl}>Go to app</a>
             </div>
           </div>
           <div class="hero-media reveal" style="animation-delay: 0.15s;">
-            <img
-              id="hero-carousel"
-              src={heroImages[0].src}
-              alt={heroImages[0].alt}
-              loading="lazy"
-              data-images={JSON.stringify(heroImages.map((image) => image.src))}
-              data-alts={JSON.stringify(heroImages.map((image) => image.alt))}
-              data-captions={JSON.stringify(
-                heroImages.map((image) => image.caption),
-              )}
-            />
-            <div class="floating-tag" id="hero-caption">
-              {heroImages[0].caption}
-            </div>
-            <div class="carousel-indicators" id="carousel-indicators">
-              {
-                heroImages.map((_, index) => (
-                  <button
-                    class={`carousel-dot ${index === 0 ? "active" : ""}`}
-                    data-index={index}
-                    aria-label={`Go to image ${index + 1}`}
-                  />
-                ))
-              }
-            </div>
-          </div>
-        </section>
-        <div id="hero-lightbox" class="lightbox" aria-hidden="true">
-          <button type="button" class="lightbox-close" aria-label="Close image">
-            Close
-          </button>
-          <img id="hero-lightbox-image" src="" alt="" />
-        </div>
-
-        <section
-          id="features"
-          class="section reveal"
-          style="animation-delay: 0.05s;"
-        >
-          <h2>Built for people who actually want to finish shows.</h2>
-          <p>
-            Netflix wants you scrolling for 30 minutes. We want you watching in
-            30 seconds. ShowShowShow doesn't host or stream content - it helps
-            you organize what to watch across your existing services. No
-            algorithmic rabbit holes. Just your queue, your schedule, your way.
-          </p>
-          <div class="card-grid">
-            <div class="card">
-              <div class="card-icon">📅</div>
-              <h3>See your whole week at a glance</h3>
-              <p>
-                Calendar view shows exactly what's playing when. Add episodes
-                into time slots like you're building a TV network. No guessing,
-                no endless 'Continue Watching' rows.
-              </p>
-            </div>
-            <div class="card">
-              <div class="card-icon">⚡</div>
-              <h3>Or let the planner do the work</h3>
-              <p>
-                Too busy to plan? Hit 'auto-fill' and the scheduler builds your
-                night from your queue. Blaze through shows in order or shuffle
-                randomly. You stay in control.
-              </p>
-            </div>
-            <div class="card">
-              <div class="card-icon">✓</div>
-              <h3>Mark watched once, everywhere updates</h3>
-              <p>
-                Check off an episode and it updates your library, schedule, and
-                stats automatically. No duplicate tracking across apps or
-                spreadsheets.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="pricing"
-          class="section reveal"
-          style="animation-delay: 0.1s;"
-        >
-          <h2>Try everything free for 7 days.</h2>
-          <p>
-            Full access to all features for a week. After that, $5/month to keep
-            scheduling or stay read-only to browse your library.
-          </p>
-          <div class="pricing">
-            <div class="price-card">
-              <div>
-                <h3>7-Day Trial</h3>
-                <div class="price">$0</div>
-                <p style="font-size: 0.9rem; color: var(--soft-ink);">
-                  then $5/mo or read-only
-                </p>
-              </div>
-              <div class="feature-list">
-                <span>Full access to all features</span>
-                <span>Unlimited library during trial</span>
-                <span>Auto-scheduling and manual planning</span>
-                <span>All statistics and insights</span>
-              </div>
-            </div>
-            <div class="price-card highlight">
-              <!-- <div class="price-card-badge">Most Popular</div> -->
-              <div>
-                <h3>Supporter</h3>
-                <div class="price">
-                  $5<span style="font-size: 1rem;">/mo</span>
+            <div class="device-mockup">
+              <div class="desktop-frame">
+                <div class="desktop-titlebar">
+                  <span class="traffic-light red"></span>
+                  <span class="traffic-light yellow"></span>
+                  <span class="traffic-light green"></span>
                 </div>
-                <p>Keep planning after your trial.</p>
+                <video
+                  autoplay
+                  muted
+                  loop
+                  playsinline
+                  poster="/images/new_8.png"
+                >
+                  <source src="/videos/new_30_sec_demo.mp4" type="video/mp4" />
+                </video>
               </div>
-              <div class="feature-list">
-                <span>Unlimited library (track 1000+ shows)</span>
-                <span>Auto-schedule your nights in seconds</span>
-                <span>Detailed watch history and trends</span>
-                <span>Save custom filters (seasons, genres, networks)</span>
-                <span>Full scheduling access (manual + auto)</span>
+              <!-- Phone mockup hidden until mobile demo video is available
+              <div class="device device-iphone-14-pro device-spacer">
+                <div class="device-frame">
+                  <img
+                    class="device-screen"
+                    src="/images/new_6.png"
+                    alt="ShowShowShow mobile view"
+                    loading="lazy"
+                  />
+                </div>
+                <div class="device-stripe"></div>
+                <div class="device-header"></div>
+                <div class="device-sensors"></div>
+                <div class="device-btns"></div>
+                <div class="device-power"></div>
               </div>
+              -->
             </div>
-          </div>
-          <div
-            style="margin-top: 32px; padding: 24px; background: var(--mist); border-radius: 16px;"
-          >
-            <h3
-              style="font-family: 'Sora', sans-serif; font-size: 1.1rem; margin-bottom: 8px;"
-            >
-              Not ready to pay? Stay read-only.
-            </h3>
-            <p style="color: var(--soft-ink); line-height: 1.7;">
-              After your trial, you can browse your library and view stats
-              without paying. You just won't be able to schedule new episodes or
-              add to your queue.
-            </p>
           </div>
         </section>
 
         <section
-          id="waitlist"
+          id="how"
           class="section reveal"
           style="animation-delay: 0.05s;"
         >
-          <div class="waitlist">
-            <div>
-              <h2>Be among the first building the future of TV scheduling.</h2>
-              <p>
-                Get beta access before public launch. We'll email you when new
-                features drop - no spam, no weekly newsletters.
-              </p>
+          <div class="metro-tiles">
+            <div class="metro-tile blue">
+              <span class="tile-num">1</span>
+              <h3>Add shows to library</h3>
+              <p>Search TV, anime, movies</p>
             </div>
-            <form
-              id="waitlist-form"
-              data-api-url={apiUrl}
-              data-google-sheets-url={googleSheetsUrl}
-            >
-              <input
-                type="email"
-                name="email"
-                placeholder="you@email.com"
-                required
-              />
-              <button type="submit">Join waitlist</button>
-            </form>
+            <div class="metro-tile green">
+              <span class="tile-num">2</span>
+              <h3>Build a queue</h3>
+              <p>Add shows in order</p>
+            </div>
+            <div class="metro-tile yellow">
+              <span class="tile-num">3</span>
+              <h3>Generate a schedule</h3>
+              <p>Pick time. Auto-fill.</p>
+            </div>
+            <div class="metro-tile purple">
+              <span class="tile-num">4</span>
+              <h3>Watch & mark done</h3>
+              <p>Check off. Stay synced.</p>
+            </div>
           </div>
-          <!-- <p
-            style="margin-top: 16px; color: var(--soft-ink); font-size: 0.9rem; text-align: center;"
-          >
-            Early supporters get the first 3 months of Supporter tier free. ($15
-            value)
-          </p> -->
-          <p
-            style="margin-top: 8px; color: var(--soft-ink); font-size: 0.85rem; text-align: center;"
-          >
-            We'll never spam you or sell your email. Promise.
-          </p>
         </section>
       </main>
 
       <footer>
-        <span>(c) {new Date().getFullYear()} ShowShowShow</span>
+        <span>&copy; {new Date().getFullYear()} ShowShowShow</span>
+        <span class="footer-pricing">Free for 7 days, then $5/month</span>
         <div class="footer-links">
           <a href="/privacy">Privacy</a>
           <a href="/terms">Terms</a>
           <a href="/contact">Contact</a>
         </div>
+        <a
+          href="https://www.themoviedb.org/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="tmdb-attribution"
+        >
+          <img
+            src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg"
+            alt="Powered by TMDB"
+            height="12"
+          />
+        </a>
       </footer>
     </div>
   </div>
 </Layout>
-
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    // Smooth scroll for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-      anchor.addEventListener("click", (e) => {
-        const href = anchor.getAttribute("href");
-        if (href && href !== "#") {
-          e.preventDefault();
-          const target = document.querySelector(href);
-          if (target) {
-            target.scrollIntoView({ behavior: "smooth", block: "start" });
-          }
-        }
-      });
-    });
-
-    const heroImage = document.getElementById("hero-carousel");
-    const heroCaption = document.getElementById("hero-caption");
-    const carouselIndicators = document.getElementById("carousel-indicators");
-    const lightbox = document.getElementById("hero-lightbox");
-    const lightboxImage = document.getElementById("hero-lightbox-image");
-
-    if (heroImage instanceof HTMLImageElement) {
-      const images = JSON.parse(heroImage.dataset.images || "[]");
-      const alts = JSON.parse(heroImage.dataset.alts || "[]");
-      const captions = JSON.parse(heroImage.dataset.captions || "[]");
-
-      if (images.length > 1) {
-        let index = 0;
-        let intervalId: number;
-
-        const updateCarousel = (newIndex: number) => {
-          index = newIndex % images.length;
-          heroImage.classList.add("is-fading");
-          if (heroCaption) {
-            heroCaption.style.opacity = "0";
-          }
-
-          // Update dots
-          const dots = carouselIndicators?.querySelectorAll(".carousel-dot");
-          dots?.forEach((dot, i) => {
-            dot.classList.toggle("active", i === index);
-          });
-
-          setTimeout(() => {
-            heroImage.src = images[index];
-            if (alts[index]) {
-              heroImage.alt = alts[index];
-            }
-            if (heroCaption && captions[index]) {
-              heroCaption.textContent = captions[index];
-              heroCaption.style.opacity = "1";
-            }
-            heroImage.classList.remove("is-fading");
-          }, 250);
-        };
-
-        // Auto-rotate
-        intervalId = setInterval(() => {
-          updateCarousel(index + 1);
-        }, 5000);
-
-        // Dot click handlers
-        const dots = carouselIndicators?.querySelectorAll(".carousel-dot");
-        dots?.forEach((dot, i) => {
-          dot.addEventListener("click", () => {
-            clearInterval(intervalId);
-            updateCarousel(i);
-            // Restart auto-rotation
-            intervalId = setInterval(() => {
-              updateCarousel(index + 1);
-            }, 5000);
-          });
-        });
-      }
-    }
-
-    if (
-      heroImage instanceof HTMLImageElement &&
-      lightbox instanceof HTMLElement &&
-      lightboxImage instanceof HTMLImageElement
-    ) {
-      heroImage.addEventListener("click", () => {
-        lightboxImage.src = heroImage.src;
-        lightboxImage.alt = heroImage.alt;
-        lightbox.classList.add("is-open");
-        lightbox.setAttribute("aria-hidden", "false");
-      });
-    }
-
-    if (
-      lightbox instanceof HTMLElement &&
-      lightboxImage instanceof HTMLImageElement
-    ) {
-      lightbox.addEventListener("click", (event) => {
-        const target = event.target;
-        if (
-          target === lightbox ||
-          (target instanceof HTMLElement &&
-            target.classList.contains("lightbox-close"))
-        ) {
-          lightbox.classList.remove("is-open");
-          lightbox.setAttribute("aria-hidden", "true");
-          lightboxImage.src = "";
-        }
-      });
-    }
-
-    const form = document.getElementById("waitlist-form");
-    if (!form) return;
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const emailInput = form.querySelector('input[name="email"]');
-      const submitButton = form.querySelector('button[type="submit"]');
-      if (
-        !(emailInput instanceof HTMLInputElement) ||
-        !(submitButton instanceof HTMLButtonElement)
-      ) {
-        return;
-      }
-      submitButton.disabled = true;
-      const originalText = submitButton.textContent;
-      submitButton.textContent = "Joining...";
-      try {
-        // Use Google Sheets if configured, otherwise fall back to backend API
-        const googleSheetsUrl = form.getAttribute("data-google-sheets-url");
-        const apiUrl =
-          form.getAttribute("data-api-url") || "http://localhost:3000";
-
-        const endpoint = googleSheetsUrl || `${apiUrl}/api/waitlist`;
-
-        // Google Apps Script requires no-cors mode
-        const fetchOptions: RequestInit = {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: emailInput.value,
-            source: "landing_page",
-          }),
-        };
-
-        if (googleSheetsUrl) {
-          // For Google Sheets, use no-cors mode
-          fetchOptions.mode = "no-cors";
-        }
-
-        const response = await fetch(endpoint, fetchOptions);
-
-        // Handle Google Sheets response (no-cors means we can't read the response)
-        if (googleSheetsUrl) {
-          // With no-cors, if we get here without error, it likely worked
-          form.innerHTML = `<span style="font-family: 'Sora', sans-serif;">Thanks! You're on the list. Check your email soon.</span>`;
-        } else {
-          // Handle backend API response format
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(
-              data.error || data.message || "Something went wrong",
-            );
-          }
-          form.innerHTML = `<span style="font-family: 'Sora', sans-serif;">${data.message}</span>`;
-        }
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Network error. Please try again.";
-        alert(`Error: ${message}`);
-        submitButton.disabled = false;
-        submitButton.textContent = originalText || "Join waitlist";
-      }
-    });
-  });
-</script>
