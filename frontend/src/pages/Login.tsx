@@ -38,6 +38,9 @@ export function Login() {
           Privacy Policy
         </a>
       </p>
+      <p className="text-[rgb(var(--color-text-tertiary))] text-xs mt-3 text-center">
+        Free for 7 days. $5/month after. No charge during trial.
+      </p>
     </div>
   );
 }
