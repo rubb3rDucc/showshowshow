@@ -22,26 +22,32 @@ import type { Episode, GenerateScheduleRequest, QueueItem } from '../../types/ap
 
 interface SeasonSectionProps {
   seasonNum: number;
-  seasonEpisodes: Episode[];
-  allSeasonChecked: boolean;
-  someSeasonChecked: boolean;
+  contentId: string;
   filter: { mode: 'all' | 'include' | 'exclude'; episodes: string[] };
-  showContentId: string;
   onToggleSeason: (contentId: string, seasonEpisodes: Episode[], checked: boolean) => void;
   onToggleEpisode: (contentId: string, season: number, episode: number, checked: boolean) => void;
 }
 
 function SeasonSection({
   seasonNum,
-  seasonEpisodes,
-  allSeasonChecked,
-  someSeasonChecked,
+  contentId,
   filter,
-  showContentId,
   onToggleSeason,
   onToggleEpisode,
 }: SeasonSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Fetch episodes only when this season is expanded
+  const { data: seasonEpisodes = [], isLoading } = useQuery({
+    queryKey: ['episodes', contentId, seasonNum],
+    queryFn: () => getEpisodesByContentId(contentId, seasonNum),
+    enabled: isExpanded,
+  });
+
+  // Calculate selection state
+  const seasonKeys = seasonEpisodes.map((ep) => `${ep.season}-${ep.episode_number}`);
+  const allSeasonChecked = seasonEpisodes.length > 0 && seasonKeys.every((key) => filter.episodes.includes(key));
+  const someSeasonChecked = seasonKeys.some((key) => filter.episodes.includes(key));
 
   return (
     <Box>
@@ -63,49 +69,62 @@ function SeasonSection({
         <Group justify="space-between" style={{ flex: 1 }}>
           <Text size="sm">Season {seasonNum}</Text>
           <Text size="xs" c="dimmed">
-            {allSeasonChecked ? `All selected (${seasonEpisodes.length})` : someSeasonChecked ? `${filter.episodes.filter(key => seasonEpisodes.some(ep => key === `${ep.season}-${ep.episode_number}`)).length} selected` : `${seasonEpisodes.length} episodes`}
+            {isExpanded && isLoading ? 'Loading...' :
+             isExpanded && seasonEpisodes.length > 0 ? (
+               allSeasonChecked ? `All selected (${seasonEpisodes.length})` :
+               someSeasonChecked ? `${filter.episodes.filter(key => seasonKeys.includes(key)).length} selected` :
+               `${seasonEpisodes.length} episodes`
+             ) : ''}
           </Text>
         </Group>
       </Button>
       <Collapse in={isExpanded}>
         <Box ml="md" mt="xs">
-          <Button
-            variant="subtle"
-            size="sm"
-            onClick={() => onToggleSeason(showContentId, seasonEpisodes, !allSeasonChecked)}
-            styles={{
-              root: {
-                fontWeight: 400,
-                fontSize: '13px',
-                minHeight: '36px',
-                padding: '8px 12px',
-              }
-            }}
-            mb="xs"
-          >
-            {allSeasonChecked ? 'Deselect all' : someSeasonChecked ? 'Select all' : 'Select all'}
-          </Button>
-          <Stack gap={4}>
-            {seasonEpisodes.map((ep) => {
-              const key = `${ep.season}-${ep.episode_number}`;
-              return (
-                <Checkbox
-                  key={ep.id}
-                  size="sm"
-                  label={`${ep.episode_number}. ${ep.title}`}
-                  checked={filter.episodes.includes(key)}
-                  onChange={(e) =>
-                    onToggleEpisode(showContentId, ep.season, ep.episode_number, e.currentTarget.checked)
+          {isLoading ? (
+            <Text size="xs" c="dimmed">Loading episodes...</Text>
+          ) : seasonEpisodes.length === 0 ? (
+            <Text size="xs" c="dimmed">No episodes</Text>
+          ) : (
+            <>
+              <Button
+                variant="subtle"
+                size="sm"
+                onClick={() => onToggleSeason(contentId, seasonEpisodes, !allSeasonChecked)}
+                styles={{
+                  root: {
+                    fontWeight: 400,
+                    fontSize: '13px',
+                    minHeight: '36px',
+                    padding: '8px 12px',
                   }
-                  styles={{
-                    root: { minHeight: '44px', display: 'flex', alignItems: 'center' },
-                    label: { fontSize: '14px', cursor: 'pointer' },
-                    input: { cursor: 'pointer' },
-                  }}
-                />
-              );
-            })}
-          </Stack>
+                }}
+                mb="xs"
+              >
+                {allSeasonChecked ? 'Deselect all' : 'Select all'}
+              </Button>
+              <Stack gap={4}>
+                {seasonEpisodes.map((ep) => {
+                  const key = `${ep.season}-${ep.episode_number}`;
+                  return (
+                    <Checkbox
+                      key={ep.id}
+                      size="sm"
+                      label={`${ep.episode_number}. ${ep.title}`}
+                      checked={filter.episodes.includes(key)}
+                      onChange={(e) =>
+                        onToggleEpisode(contentId, ep.season, ep.episode_number, e.currentTarget.checked)
+                      }
+                      styles={{
+                        root: { minHeight: '44px', display: 'flex', alignItems: 'center' },
+                        label: { fontSize: '14px', cursor: 'pointer' },
+                        input: { cursor: 'pointer' },
+                      }}
+                    />
+                  );
+                })}
+              </Stack>
+            </>
+          )}
         </Box>
       </Collapse>
     </Box>
@@ -137,18 +156,9 @@ function ShowEpisodeFilter({
   onToggleSeason,
   onFilterModeChange,
 }: ShowEpisodeFilterProps) {
-  const { data: episodes = [], isLoading } = useQuery({
-    queryKey: ['episodes', show.content_id, 'filters'],
-    queryFn: () => getEpisodesByContentId(show.content_id),
-    enabled: isExpanded,
-  });
-
-  // Group by season
-  const seasons = episodes.reduce((acc, ep) => {
-    if (!acc[ep.season]) acc[ep.season] = [];
-    acc[ep.season].push(ep);
-    return acc;
-  }, {} as Record<number, Episode[]>);
+  // Build season list from metadata - no API call needed
+  const totalSeasons = show.number_of_seasons || 0;
+  const seasons = Array.from({ length: totalSeasons }, (_, i) => i + 1);
 
   return (
     <Box style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px' }}>
@@ -207,33 +217,20 @@ function ShowEpisodeFilter({
             </Stack>
           </Radio.Group>
 
-          {isLoading ? (
-            <Text size="xs" c="dimmed">Loading...</Text>
-          ) : Object.keys(seasons).length === 0 ? (
-            <Text size="xs" c="dimmed">No episodes</Text>
+          {seasons.length === 0 ? (
+            <Text size="xs" c="dimmed">No seasons available</Text>
           ) : (
             <Stack gap="md">
-              {Object.entries(seasons)
-                .sort(([a], [b]) => Number(a) - Number(b))
-                .map(([seasonNum, seasonEpisodes]) => {
-                  const seasonKeys = seasonEpisodes.map((ep) => `${ep.season}-${ep.episode_number}`);
-                  const allSeasonChecked = seasonKeys.every((key) => filter.episodes.includes(key));
-                  const someSeasonChecked = seasonKeys.some((key) => filter.episodes.includes(key));
-
-                  return (
-                    <SeasonSection
-                      key={seasonNum}
-                      seasonNum={Number(seasonNum)}
-                      seasonEpisodes={seasonEpisodes}
-                      allSeasonChecked={allSeasonChecked}
-                      someSeasonChecked={someSeasonChecked}
-                      filter={filter}
-                      showContentId={show.content_id}
-                      onToggleSeason={onToggleSeason}
-                      onToggleEpisode={onToggleEpisode}
-                    />
-                  );
-                })}
+              {seasons.map((seasonNum) => (
+                <SeasonSection
+                  key={seasonNum}
+                  seasonNum={seasonNum}
+                  contentId={show.content_id}
+                  filter={filter}
+                  onToggleSeason={onToggleSeason}
+                  onToggleEpisode={onToggleEpisode}
+                />
+              ))}
             </Stack>
           )}
         </Stack>

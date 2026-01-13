@@ -5,7 +5,7 @@ interface Props {
 }
 
 const { title, description } = Astro.props;
-const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.com';
+const appUrl = import.meta.env.PUBLIC_APP_URL || "https://app.showshowshow.app";
 const umamiUrl = import.meta.env.PUBLIC_UMAMI_URL;
 const umamiId = import.meta.env.PUBLIC_UMAMI_ID;
 ---
@@ -18,49 +18,52 @@ const umamiId = import.meta.env.PUBLIC_UMAMI_ID;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
     <meta name="generator" content={Astro.generator} />
-    
+
     <!-- SEO Meta Tags -->
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="keywords" content="TV scheduler, movie scheduler, watch list, TV calendar, viewing schedule, mindful watching, completion tracking" />
-    
+    <meta
+      name="keywords"
+      content="TV scheduler, movie scheduler, watch list, TV calendar, viewing schedule, mindful watching, completion tracking"
+    />
+
     <!-- Open Graph -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://showshowshow.com" />
+    <meta property="og:url" content="https://showshowshow.app" />
     <meta property="og:image" content="/og-image.png" />
-    
+
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content="/og-image.png" />
-    
+
     <!-- Structured Data (JSON-LD) -->
-    <script type="application/ld+json" set:html={JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "ShowShowShow",
-      "applicationCategory": "EntertainmentApplication",
-      "offers": {
-        "@type": "Offer",
-        "price": "4.99",
-        "priceCurrency": "USD",
-        "priceValidUntil": "2025-12-31"
-      },
-      "description": description
-    })} />
-    
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        name: "ShowShowShow",
+        applicationCategory: "EntertainmentApplication",
+        offers: {
+          "@type": "Offer",
+          price: "4.99",
+          priceCurrency: "USD",
+          priceValidUntil: "2025-12-31",
+        },
+        description: description,
+      })}
+    />
+
     <!-- Umami Analytics -->
-    {umamiUrl && umamiId && (
-      <script
-        async
-        defer
-        data-website-id={umamiId}
-        src={`${umamiUrl}/script.js`}
-      />
-    )}
+
+    <script
+      defer
+      src="https://cloud.umami.is/script.js"
+      data-website-id="5f07fa2a-1b34-446f-8c23-3dab813760e6"></script>
   </head>
   <body>
     <slot />

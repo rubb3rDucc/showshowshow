@@ -28,6 +28,8 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
         'content.title',
         'content.poster_url',
         'content.content_type',
+        'content.number_of_seasons',
+        'content.number_of_episodes',
       ])
       .where('queue.user_id', '=', userId)
       .orderBy('queue.position', 'asc')

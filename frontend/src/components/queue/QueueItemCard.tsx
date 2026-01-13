@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Group,
   Text,
@@ -32,28 +32,39 @@ export function QueueItemCard({
   openEpisodeDescriptionId,
   onToggleEpisodeDescription,
 }: QueueItemCardProps) {
+  const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [showMovieDescription, setShowMovieDescription] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const isShow = item.content_type === 'show';
   const isMovie = item.content_type === 'movie';
 
-  // Fetch all episodes only when expanded and it's a show (for season list)
-  // Use content_id if available (supports Jikan), otherwise fall back to tmdb_id
-  // Episodes rarely change, so use longer staleTime to prevent unnecessary refetches
-  const { data: episodes, isLoading: episodesLoading } = useQuery({
-    queryKey: ['episodes', item.content_id || item.tmdb_id],
+  // Build season list from content metadata - no API call needed
+  const totalSeasons = item.number_of_seasons || item.content?.number_of_seasons || 0;
+  const seasons = Array.from({ length: totalSeasons }, (_, i) => i + 1);
+
+  // Fetch episodes only for the selected season (on-demand)
+  // Backend may update content metadata, so invalidate queue cache on success
+  const { data: episodes, isLoading: episodesLoading, isSuccess: episodesFetched } = useQuery({
+    queryKey: ['episodes', item.content_id || item.tmdb_id, selectedSeason],
     queryFn: () => {
-      if (item.content_id) {
-        return getEpisodesByContentId(item.content_id);
-      } else if (item.tmdb_id) {
-        return getEpisodes(item.tmdb_id);
+      if (item.content_id && selectedSeason) {
+        return getEpisodesByContentId(item.content_id, selectedSeason);
+      } else if (item.tmdb_id && selectedSeason) {
+        return getEpisodes(item.tmdb_id, selectedSeason);
       }
-      throw new Error('No content ID available');
+      throw new Error('No content ID or season available');
     },
-    enabled: expanded && isShow && !!(item.content_id || item.tmdb_id),
+    enabled: expanded && isShow && !!selectedSeason && !!(item.content_id || item.tmdb_id),
     staleTime: 1000 * 60 * 30, // 30 minutes - episode data rarely changes
   });
+
+  // Invalidate queue cache when episodes are fetched (backend may have updated metadata)
+  useEffect(() => {
+    if (episodesFetched) {
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+    }
+  }, [episodesFetched, queryClient]);
 
   // Fetch movie content details only when description is expanded
   // Movie content also rarely changes, use longer staleTime
@@ -70,22 +81,13 @@ export function QueueItemCard({
     }
   };
 
-  // Group episodes by season
-  const seasonMap = episodes?.reduce((acc, ep) => {
-    if (!acc[ep.season]) {
-      acc[ep.season] = [];
-    }
-    acc[ep.season].push(ep);
-    return acc;
-  }, {} as Record<number, typeof episodes>);
+  // Episodes for the selected season (fetched on-demand)
+  const selectedSeasonEpisodes = episodes || [];
 
-  const seasons = seasonMap ? Object.keys(seasonMap).map(Number).sort((a, b) => a - b) : [];
-  const selectedSeasonEpisodes = selectedSeason && seasonMap ? seasonMap[selectedSeason] : [];
-
-  // Calculate total duration
-  const totalDuration = isShow && episodes
-    ? episodes.reduce((sum, ep) => sum + (ep.duration || 0), 0)
-    : (item.content?.default_duration || 0);
+  // Calculate total duration estimate from metadata
+  const totalEpisodes = item.number_of_episodes || item.content?.number_of_episodes || 0;
+  const defaultDuration = item.content?.default_duration || 30;
+  const totalDuration = isShow ? totalEpisodes * defaultDuration : (item.content?.default_duration || 0);
   const hours = Math.floor(totalDuration / 60);
   const minutes = totalDuration % 60;
 
@@ -279,11 +281,7 @@ export function QueueItemCard({
         {isShow && (
           <Collapse in={expanded}>
             <Box style={{ marginTop: '8px', paddingLeft: '16px', paddingRight: '16px' }}>
-              {episodesLoading ? (
-                <Center py="md">
-                  <Loader size="sm" />
-                </Center>
-              ) : episodes && episodes.length > 0 ? (
+              {seasons.length > 0 ? (
                 <Stack gap="sm">
                   {/* Season Selector */}
                   <Select
@@ -292,21 +290,28 @@ export function QueueItemCard({
                     onChange={(value) => setSelectedSeason(value ? Number(value) : null)}
                     data={seasons.map((s) => ({
                       value: s.toString(),
-                      label: `Season ${s} (${seasonMap?.[s]?.length || 0} episodes)`,
+                      label: `Season ${s}`,
                     }))}
                     styles={{
                       input: { fontSize: '14px', fontWeight: 400 },
                     }}
                   />
 
-                  {selectedSeason && selectedSeasonEpisodes.length > 0 && (
+                  {/* Loading state for episodes */}
+                  {selectedSeason && episodesLoading && (
+                    <Center py="md">
+                      <Loader size="sm" />
+                    </Center>
+                  )}
+
+                  {selectedSeason && !episodesLoading && selectedSeasonEpisodes.length > 0 && (
                     <Text size="xs" c="dimmed" style={{ fontWeight: 300, marginTop: '-4px', paddingLeft: '2px' }}>
                       Click episodes to view details
                     </Text>
                   )}
 
                   {/* Episodes for selected season */}
-                  {selectedSeason && selectedSeasonEpisodes.length > 0 && (
+                  {selectedSeason && !episodesLoading && selectedSeasonEpisodes.length > 0 && (
                     <Stack gap={0}>
                       {selectedSeasonEpisodes.map((ep) => {
                         const isEpisodeDescriptionOpen = openEpisodeDescriptionId === ep.id;

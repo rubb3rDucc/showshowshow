@@ -581,6 +581,41 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       throw new ValidationError('Episodes are only available for TV shows');
     }
 
+    // For TMDB content, refresh metadata if it's stale (older than 1 hour)
+    // This ensures number_of_seasons stays current for ongoing shows
+    if (content.data_source === 'tmdb' && content.tmdb_id) {
+      const lastUpdate = content.updated_at ? new Date(content.updated_at) : new Date(0);
+      const hoursSinceUpdate = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
+
+      if (hoursSinceUpdate > 1) {
+        try {
+          const show = await getShowDetails(content.tmdb_id);
+          if (show.number_of_seasons !== content.number_of_seasons ||
+              show.number_of_episodes !== content.number_of_episodes) {
+            await db.updateTable('content')
+              .set({
+                number_of_seasons: show.number_of_seasons,
+                number_of_episodes: show.number_of_episodes,
+                updated_at: new Date(),
+              })
+              .where('id', '=', content.id)
+              .execute();
+            // Update local reference
+            content.number_of_seasons = show.number_of_seasons;
+            content.number_of_episodes = show.number_of_episodes;
+          } else {
+            // Just touch updated_at to avoid checking again soon
+            await db.updateTable('content')
+              .set({ updated_at: new Date() })
+              .where('id', '=', content.id)
+              .execute();
+          }
+        } catch {
+          // If TMDB fetch fails, continue with cached data
+        }
+      }
+    }
+
     // If specific season requested
     if (season) {
       const seasonNum = parseInt(season, 10);
@@ -644,7 +679,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
           return reply.send([]);
         }
       } else if (content.tmdb_id) {
-        // Fetch from TMDB
+        // Fetch the requested season from TMDB
         const tmdbSeason = await getSeason(content.tmdb_id, seasonNum);
 
         // Save episodes to database
@@ -675,7 +710,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       }
     }
 
-    // Get all episodes for all seasons
+    // Get all episodes for all seasons - always fetch from API to ensure completeness
     const existingEpisodes = await db
       .selectFrom('episodes')
       .selectAll()
@@ -684,23 +719,29 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       .orderBy('episode_number', 'asc')
       .execute();
 
-    if (existingEpisodes.length > 0) {
-      return reply.send(existingEpisodes);
-    }
+    // Build a set of existing episodes to avoid duplicates
+    const existingSet = new Set(
+      existingEpisodes.map(e => `${e.season}-${e.episode_number}`)
+    );
 
-    // Fetch episodes based on data source
+    // Always fetch from API to ensure we have all seasons
     if (content.data_source === 'jikan' && content.mal_id) {
       // Fetch all episodes from Jikan
-      const allEpisodes: any[] = [];
+      const allEpisodes: any[] = [...existingEpisodes];
       let page = 1;
       let hasMore = true;
 
       while (hasMore) {
         const jikanEpisodes = await getAnimeEpisodes(content.mal_id, page);
         const episodes = jikanEpisodes.episodes || [];
-        
+
         for (const ep of episodes) {
           const episodeNum = ep.episode || allEpisodes.length + 1;
+          const key = `1-${episodeNum}`;
+
+          // Skip if already exists
+          if (existingSet.has(key)) continue;
+
           const saved = await db
             .insertInto('episodes')
             .values({
@@ -718,22 +759,45 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
             .returningAll()
             .executeTakeFirstOrThrow();
           allEpisodes.push(saved);
+          existingSet.add(key);
         }
 
         hasMore = page < (jikanEpisodes.pagination?.last_visible_page || 1);
         page++;
       }
 
-      return reply.send(allEpisodes);
+      // Return sorted by season and episode
+      return reply.send(allEpisodes.sort((a, b) =>
+        a.season - b.season || a.episode_number - b.episode_number
+      ));
     } else if (content.tmdb_id) {
-      // Fetch all seasons from TMDB
+      // Fetch fresh show details from TMDB to get current season count
       const show = await getShowDetails(content.tmdb_id);
-      const allEpisodes: any[] = [];
+      const allEpisodes: any[] = [...existingEpisodes];
 
+      // Update content metadata if TMDB has different data
+      if (show.number_of_seasons !== content.number_of_seasons ||
+          show.number_of_episodes !== content.number_of_episodes) {
+        await db.updateTable('content')
+          .set({
+            number_of_seasons: show.number_of_seasons,
+            number_of_episodes: show.number_of_episodes,
+            updated_at: new Date(),
+          })
+          .where('id', '=', content.id)
+          .execute();
+      }
+
+      // Fetch ALL seasons from TMDB
       for (let seasonNum = 1; seasonNum <= (show.number_of_seasons || 0); seasonNum++) {
         try {
           const tmdbSeason = await getSeason(content.tmdb_id, seasonNum);
           for (const ep of tmdbSeason.episodes) {
+            const key = `${ep.season_number}-${ep.episode_number}`;
+
+            // Skip if already exists
+            if (existingSet.has(key)) continue;
+
             const saved = await db
               .insertInto('episodes')
               .values({
@@ -751,13 +815,17 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
               .returningAll()
               .executeTakeFirstOrThrow();
             allEpisodes.push(saved);
+            existingSet.add(key);
           }
         } catch (error) {
           console.warn(`Failed to fetch season ${seasonNum} for show ${content.tmdb_id}`);
         }
       }
 
-      return reply.send(allEpisodes);
+      // Return sorted by season and episode
+      return reply.send(allEpisodes.sort((a, b) =>
+        a.season - b.season || a.episode_number - b.episode_number
+      ));
     } else {
       throw new ValidationError('Content has no valid source ID');
     }
