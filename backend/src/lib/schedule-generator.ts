@@ -705,22 +705,38 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
   // Fast cache check for all shows in parallel (DB queries are fast)
   const cacheChecks = await Promise.all(
     shows.map(async (show) => {
-      const episodeCount = await db
+      // Get both count and unique seasons in one query
+      const episodes = await db
         .selectFrom('episodes')
+        .select(['season'])
         .where('content_id', '=', show.id)
-        .select((eb) => eb.fn.count('id').as('count'))
-        .executeTakeFirst();
-      
+        .execute();
+
+      const cachedCount = episodes.length;
+      const cachedSeasons = new Set(episodes.map(e => e.season));
+      const expectedSeasons = show.number_of_seasons || 0;
+      const expectedEpisodes = show.number_of_episodes || 0;
+
+      // Check if we have all seasons
+      const hasAllSeasons = expectedSeasons > 0 && cachedSeasons.size >= expectedSeasons;
+      // Check if we have enough episodes (80% threshold)
+      const hasEnoughEpisodes = expectedEpisodes === 0 || cachedCount >= expectedEpisodes * 0.8;
+      // Consider complete only if both conditions are met
+      const isComplete = hasAllSeasons && hasEnoughEpisodes;
+
       return {
         show,
-        hasEpisodes: Number(episodeCount?.count ?? 0) > 0,
-        episodeCount: Number(episodeCount?.count ?? 0),
+        hasEpisodes: cachedCount > 0,
+        episodeCount: cachedCount,
+        cachedSeasons: cachedSeasons.size,
+        expectedSeasons,
+        isComplete,
       };
     })
   );
 
-  // Separate shows that need fetching vs already cached
-  const showsToFetch = cacheChecks.filter(c => !c.hasEpisodes);
+  // Separate shows that need fetching: either no episodes OR incomplete cache
+  const showsToFetch = cacheChecks.filter(c => !c.isComplete);
 
   // Fast path: If all shows are cached, return immediately
   if (showsToFetch.length === 0) {

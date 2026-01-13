@@ -95,6 +95,8 @@ export interface QueueItem {
   title?: string;
   poster_url?: string | null;
   content_type?: 'show' | 'movie';
+  number_of_seasons?: number | null;
+  number_of_episodes?: number | null;
   content?: Content;
 }
 

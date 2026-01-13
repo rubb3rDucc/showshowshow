@@ -28,6 +28,16 @@ export function Login() {
           },
         }}
       />
+      <p className="text-[rgb(var(--color-text-tertiary))] text-xs mt-6 text-center">
+        By signing in, you agree to our{' '}
+        <a href="https://showshowshow.app/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-[rgb(var(--color-text-secondary))]">
+          Terms of Service
+        </a>{' '}
+        and{' '}
+        <a href="https://showshowshow.app/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-[rgb(var(--color-text-secondary))]">
+          Privacy Policy
+        </a>
+      </p>
     </div>
   );
 }
