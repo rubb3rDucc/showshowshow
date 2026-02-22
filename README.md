@@ -17,14 +17,17 @@ Built for people who want to watch TV intentionally — not just scroll and tap 
 
 ### Home — tonight's schedule at a glance
 <!-- screenshot: home/tonight view -->
+![home pic](/readme_pics/main_feb2026_screenshot.png)
 
-### Lineup builder — drag shows into your queue, generate a schedule
+<!--### Lineup builder — drag shows into your queue, generate a schedule -->
 <!-- screenshot: lineup/queue builder with calendar timeline -->
 
 ### Library — track status and episode progress per show
 <!-- screenshot: library grid with status badges -->
 
-### Search — find and add content from TMDB or Jikan
+![lib pic](/readme_pics/lib_feb2026_screenshot.png)
+
+<!--### Search — find and add content from TMDB or Jikan ->>
 <!-- screenshot: search results with content cards -->
 
 ## Architecture
