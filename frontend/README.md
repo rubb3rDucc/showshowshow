@@ -1,6 +1,6 @@
 # ShowShowShow Frontend
 
-React + TypeScript frontend for ShowShowShow TV schedule manager.
+React + TypeScript frontend for ShowShowShow — a personalized TV/anime scheduling app.
 
 ## Tech Stack
 
@@ -8,10 +8,14 @@ React + TypeScript frontend for ShowShowShow TV schedule manager.
 - **Language:** TypeScript
 - **Build Tool:** Vite
 - **Routing:** Wouter
-- **State Management:** Zustand + TanStack Query
-- **Styling:** Tailwind CSS (default components for now)
+- **Auth:** Clerk (`@clerk/clerk-react`)
+- **Server State:** TanStack Query
+- **UI Components:** Mantine (forms, dates, core)
+- **Styling:** Tailwind CSS
+- **Drag & Drop:** @dnd-kit
 - **Icons:** Lucide React
 - **Notifications:** Sonner
+- **Analytics:** PostHog
 
 ## Setup
 
@@ -23,17 +27,14 @@ pnpm install
 
 ### 2. Environment Variables
 
-Create a `.env` file:
+Create a `.env` file in `/frontend`:
 
 ```bash
 VITE_API_URL=http://localhost:3000
-VITE_GIPHY_API_KEY=your_giphy_api_key_here  # Optional: For GIF hover feature on schedule cards
+VITE_CLERK_PUBLISHABLE_KEY=pk_...
 ```
 
-**Giphy API Key (Optional):**
-- The GIF hover feature on schedule cards requires a Giphy API key
-- Get a free API key at: https://developers.giphy.com/
-- Without the key, the hover feature will gracefully fail (posters will still work normally)
+Both variables are required. Get your Clerk publishable key from the [Clerk dashboard](https://dashboard.clerk.com).
 
 ### 3. Start Development Server
 
@@ -41,99 +42,71 @@ VITE_GIPHY_API_KEY=your_giphy_api_key_here  # Optional: For GIF hover feature on
 pnpm run dev
 ```
 
-Frontend will be available at `http://localhost:5173`
+Frontend will be available at `http://localhost:5173`.
 
 ## Project Structure
 
 ```
 src/
-├── api/              # API client and endpoints
-├── components/       # React components
-│   ├── auth/        # Auth-related components
-│   ├── layout/      # Layout components
-│   └── common/      # Shared components
-├── pages/           # Page components
-├── stores/          # Zustand stores
-├── types/           # TypeScript types
+├── api/              # API client and domain modules
+│   ├── client.ts    # Base fetch client (injects Clerk token)
+│   ├── content.ts   # Content search & caching
+│   ├── library.ts   # Library CRUD
+│   ├── schedule.ts  # Schedule fetching & generation
+│   ├── queue.ts     # Queue/lineup management
+│   ├── billing.ts   # Stripe billing
+│   └── ...
+├── components/
+│   ├── auth/        # ProtectedRoute wrapper
+│   ├── billing/     # UpgradeModal (shown on 403)
+│   ├── browse/      # Network/genre browsing
+│   ├── home/        # Dashboard components (TonightSection, etc.)
+│   ├── layout/      # Navigation, header
+│   ├── library/     # Library cards, detail modals, episode tracking
+│   ├── queue/       # Queue builder with calendar timeline
+│   ├── schedule/    # Schedule calendar and cards
+│   ├── search/      # Search interface and content cards
+│   ├── settings/    # User settings
+│   ├── stats/       # Activity & statistics
+│   └── common/      # Shared utilities
+├── pages/           # Top-level page components
 ├── hooks/           # Custom React hooks
+├── types/           # TypeScript types
 └── utils/           # Utility functions
 ```
 
-## Current Status
-
-### ✅ Implemented (Phase 1 - Structure)
-
-**Authentication:**
-- Login page
-- Register page
-- Auth state management (Zustand)
-- Token persistence (localStorage)
-- Protected routes
-
-**Navigation:**
-- Main layout with navigation
-- Route protection
-- Active route highlighting
-
-**Pages (Placeholders):**
-- Home/Dashboard - Shows welcome message and schedule placeholder
-- Search - Placeholder for content search
-- Queue - Placeholder for queue management
-
-### 🚧 Next Steps (Phase 2)
-
-1. Search functionality
-2. Content cards
-3. Queue management
-4. Schedule generation
-5. Retro styling
-
 ## Available Scripts
 
-- `pnpm run dev` - Start development server
-- `pnpm run build` - Build for production
-- `pnpm run preview` - Preview production build
-- `pnpm run lint` - Run ESLint
+- `pnpm run dev` — Start Vite dev server
+- `pnpm run build` — Build for production
+- `pnpm run preview` — Preview production build
+- `pnpm run lint` — Run ESLint
 
-## Testing the Auth Flow
+## Authentication
 
-1. Start the backend server (see `backend/README.md`)
-2. Start the frontend: `pnpm run dev`
-3. Visit `http://localhost:5173`
-4. You'll be redirected to `/login`
-5. Click "Register" to create an account
-6. After registration, you'll be logged in and see the Home page
-7. Navigate between Home, Search, and Queue
-8. Click Logout to return to login
+Authentication is handled entirely by Clerk. There is no custom auth store.
 
-## API Integration
+- `useAuth()` — Access auth state and retrieve tokens
+- `useUser()` — Access the current user's profile
+- All authenticated API requests include `Authorization: Bearer <clerk-token>`, injected automatically by `api/client.ts`
+- `ProtectedRoute` redirects unauthenticated users to `/login`
 
-The frontend connects to the backend API at `http://localhost:3000` by default.
+## Subscription & Billing
 
-**Current Endpoints Used:**
-- `POST /api/auth/register` - Create account
-- `POST /api/auth/login` - Login
-- `GET /api/auth/me` - Get current user
+The app uses a 3-tier entitlement model:
 
-**Future Endpoints:**
-- `GET /api/content/search` - Search content
-- `GET /api/queue` - Get user's queue
-- `POST /api/queue` - Add to queue
-- `POST /api/schedule/generate/queue` - Generate schedule
+| Tier | Description |
+| ---- | ----------- |
+| `preview` | 7-day free trial (default for new users) |
+| `pro` | Active paid subscription |
+| `free` | Trial expired or subscription canceled |
 
-## Styling
+When the backend returns a `403`, the `UpgradeModal` is shown automatically via a global event listener.
 
-Currently using default Tailwind components. Retro styling (early 2000s aesthetic) will be added in a later phase.
+## Key Patterns
 
-**Planned Aesthetic:**
-- Dark blue/teal gradients
-- Card-based layout
-- Weekly calendar view
-- "Progressive Viewing Technology" vibe
-
-## Notes
-
-- Auth tokens are stored in localStorage
-- Token persists across page refreshes
-- Logout clears the token
-- Protected routes redirect to `/login` if not authenticated
+- **Data fetching**: TanStack Query with a 30s stale time; mutations invalidate related queries on success
+- **403 handling**: Any `403` from the API dispatches a `show-upgrade-modal` custom event
+- **Drag & drop**: Queue reordering uses `@dnd-kit`
+- **Form validation**: Mantine forms handle validation and submission state
+- **Analytics**: PostHog captures events and identifies users after login
