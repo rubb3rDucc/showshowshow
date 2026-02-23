@@ -61,11 +61,11 @@
     "@types/bcrypt": "^6.0.0",
     "@types/ioredis": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^25.0.2",
+    "@types/node": "^25.3.0",
     "@types/pg": "^8.16.0",
-    "@vitest/coverage-v8": "4.0.15",
+    "@vitest/coverage-v8": "4.0.18",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.15"
+    "vitest": "^4.0.18"
   }
 }
