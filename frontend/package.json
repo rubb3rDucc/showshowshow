@@ -13,24 +13,24 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@clerk/clerk-react": "^5.60.0",
+    "@clerk/clerk-react": "^5.61.3",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@mantine/core": "^8.3.14",
-    "@mantine/dates": "^8.3.14",
-    "@mantine/form": "^8.3.14",
-    "@mantine/hooks": "^8.3.14",
-    "@tanstack/react-query": "^5.90.20",
+    "@mantine/core": "^8.3.17",
+    "@mantine/dates": "^8.3.17",
+    "@mantine/form": "^8.3.17",
+    "@mantine/hooks": "^8.3.17",
+    "@tanstack/react-query": "^5.90.21",
     "date-fns": "^4.1.0",
-    "lucide-react": "^0.563.0",
-    "posthog-js": "^1.336.4",
+    "lucide-react": "^0.577.0",
+    "posthog-js": "^1.360.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "sonner": "^2.0.7",
     "terser": "^5.46.0",
     "wouter": "^3.9.0",
-    "zustand": "^5.0.11"
+    "zustand": "^5.0.12"
   },
   "pnpm": {
     "overrides": {
