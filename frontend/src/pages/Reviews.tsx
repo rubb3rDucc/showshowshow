@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { StarterKit } from '@tiptap/starter-kit';
@@ -82,6 +83,7 @@ function Toolbar({ editor }: { editor: Editor }) {
 }
 
 export function Reviews() {
+  const [title, setTitle] = useState('');
   const editor = useEditor({
     extensions: [StarterKit],
     content: '<p></p>',
@@ -123,6 +125,13 @@ export function Reviews() {
             </BubbleMenu>
           )}
 
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Untitled"
+            className="w-full text-3xl font-bold bg-transparent border-none outline-none text-[rgb(var(--color-text-primary))] placeholder-[rgb(var(--color-text-secondary))] mb-6"
+          />
           <EditorContent editor={editor} />
         </div>
       </div>
