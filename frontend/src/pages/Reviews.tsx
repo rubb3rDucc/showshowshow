@@ -7,7 +7,7 @@ import { FontSize } from '@tiptap/extension-font-size';
 import type { Editor } from '@tiptap/react';
 import {
   Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
-  List, ListOrdered, Quote, Terminal, Undo, Redo, AArrowUp, AArrowDown,
+  List, ListOrdered, Quote, Terminal, Undo, Redo, AArrowUp, AArrowDown, SeparatorHorizontal,
 } from 'lucide-react';
 
 const FONT_SIZES = [12, 13, 14, 15, 16, 18, 20, 24, 28, 32, 36, 48];
@@ -121,6 +121,16 @@ function Toolbar({ editor }: { editor: Editor }) {
       {btn(<ListOrdered size={16} />, state.isOrderedList, () => editor.chain().focus().toggleOrderedList().run(), 'Ordered list')}
       {btn(<Quote size={16} />, state.isBlockquote, () => editor.chain().focus().toggleBlockquote().run(), 'Blockquote')}
       {btn(<Terminal size={16} />, state.isCodeBlock, () => editor.chain().focus().toggleCodeBlock().run(), 'Code block')}
+
+      {sep()}
+
+      <button
+        onClick={() => editor.chain().focus().setHorizontalRule().run()}
+        title="Divider"
+        className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
+      >
+        <SeparatorHorizontal size={16} />
+      </button>
     </div>
   );
 }
