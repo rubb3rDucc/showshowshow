@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Container, Button, Text, Loader, Center } from '@mantine/core';
 import { Plus } from 'lucide-react';
 import { useLocation } from 'wouter';
@@ -28,20 +28,47 @@ export function Library() {
   const [selectedItem, setSelectedItem] = useState<LibraryItemUI | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fetch library items
-  const { data: libraryItems = [], isLoading: isLoadingLibrary } = useQuery({
+  // Fetch library items with infinite scroll
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isLoadingLibrary,
+  } = useInfiniteQuery({
     queryKey: ['library', filterStatus !== 'all' ? filterStatus : undefined, filterType !== 'all' ? filterType : undefined],
-    queryFn: () => getLibrary(
+    queryFn: ({ pageParam = 1 }) => getLibrary(
       filterStatus !== 'all' ? filterStatus : undefined,
       filterType !== 'all' ? filterType : undefined,
-      searchQuery || undefined
+      undefined,
+      pageParam as number,
     ),
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.has_next ? lastPage.pagination.page + 1 : undefined,
+    initialPageParam: 1,
   });
+
+  const totalItems = data?.pages[0]?.pagination.total_items ?? 0;
+
+  // Infinite scroll sentinel
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (loadMoreRef.current) observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Convert API items to UI format
   const libraryItemsUI: LibraryItemUI[] = useMemo(() => {
-    return libraryItems.map(libraryItemToUI);
-  }, [libraryItems]);
+    return (data?.pages.flatMap(p => p.items) ?? []).map(libraryItemToUI);
+  }, [data]);
 
   // Remove from library mutation
   const removeMutation = useMutation({
@@ -70,17 +97,12 @@ export function Library() {
       });
     },
     onSuccess: async (_, variables) => {
-      // Invalidate and refetch library data
       await queryClient.invalidateQueries({ queryKey: ['library'] });
       queryClient.invalidateQueries({ queryKey: ['library', 'stats'] });
 
-      // Update selectedItem with fresh data if modal is open
+      // Sync modal with saved values directly from mutation variables
       if (selectedItem && selectedItem.id === variables.id) {
-        const freshLibrary = queryClient.getQueryData<typeof libraryItems>(['library', filterStatus !== 'all' ? filterStatus : undefined, filterType !== 'all' ? filterType : undefined]);
-        const freshItem = freshLibrary?.find(item => libraryItemToUI(item).id === variables.id);
-        if (freshItem) {
-          setSelectedItem(libraryItemToUI(freshItem));
-        }
+        setSelectedItem(prev => prev ? { ...prev, ...variables.updates } : prev);
       }
 
       toast.success('Library updated');
@@ -228,25 +250,30 @@ export function Library() {
             size="sm"
             className="text-[rgb(var(--color-text-secondary))] font-semibold"
           >
-            {filteredLibrary.length} {filteredLibrary.length === 1 ? 'title' : 'titles'}
+            {totalItems} {totalItems === 1 ? 'title' : 'titles'}
           </Text>
         </div>
 
         {/* Library Grid - Responsive Poster Grid */}
         {filteredLibrary.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-            {filteredLibrary.map((item) => (
-              <LibraryCard
-                key={`${item.id}-${item.status}-${item.score ?? 'null'}-${item.notes ?? 'null'}`}
-                item={item}
-                onViewDetails={handleViewDetails}
-                onChangeStatus={handleViewDetails}
-                onAddToQueue={handleAddToQueue}
-                onRemove={handleRemove}
-                onSave={handleSave}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+              {filteredLibrary.map((item) => (
+                <LibraryCard
+                  key={`${item.id}-${item.status}-${item.score ?? 'null'}-${item.notes ?? 'null'}`}
+                  item={item}
+                  onViewDetails={handleViewDetails}
+                  onChangeStatus={handleViewDetails}
+                  onAddToQueue={handleAddToQueue}
+                  onRemove={handleRemove}
+                  onSave={handleSave}
+                />
+              ))}
+            </div>
+            <div ref={loadMoreRef} className="mt-6 flex justify-center">
+              {isFetchingNextPage && <Loader size="sm" />}
+            </div>
+          </>
         ) : (
           <div className="bg-[rgb(var(--color-bg-surface))] rounded-lg p-12 text-center border border-[rgb(var(--color-border-default))] shadow-sm dark:shadow-gray-950/50">
               <div className="text-6xl mb-4"></div>
