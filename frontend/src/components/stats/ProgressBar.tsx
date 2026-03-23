@@ -25,9 +25,9 @@ export function ProgressBar({ title, posterUrl, episodesWatched, totalEpisodes, 
         </h3>
 
         {/* Progress Bar */}
-        <div className="relative w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-2">
+        <div className="relative w-full h-1.5 bg-gray-100 dark:bg-gray-200 rounded-full overflow-hidden mb-2">
           <div
-            className="absolute top-0 left-0 h-full bg-[rgb(var(--color-accent))] transition-all duration-500 ease-out"
+            className="absolute top-0 left-0 h-full bg-blue-400 dark:bg-blue-500 transition-all duration-500 ease-out"
             style={{ width: `${percentage}%` }}
           />
         </div>
