@@ -1,33 +1,131 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { format } from 'date-fns';
 import { PlusIcon } from 'lucide-react';
 import { getReviews, createReview } from '../api/reviews';
+import type { Review } from '../api/reviews';
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim();
 }
 
-function groupByMonth(reviews: Awaited<ReturnType<typeof getReviews>>) {
-  const groups: { label: string; reviews: typeof reviews }[] = [];
-  const seen = new Map<string, number>();
+interface MonthGroup {
+  key: string;        // 'yyyy-MM'
+  monthLabel: string; // 'March'
+  reviews: Review[];
+}
+
+interface YearGroup {
+  year: string;       // '2026'
+  months: MonthGroup[];
+}
+
+function groupByYearAndMonth(reviews: Review[]): YearGroup[] {
+  const yearMap = new Map<string, Map<string, MonthGroup>>();
 
   for (const review of reviews) {
-    const label = format(new Date(review.created_at), 'MMMM yyyy');
-    if (seen.has(label)) {
-      groups[seen.get(label)!].reviews.push(review);
-    } else {
-      seen.set(label, groups.length);
-      groups.push({ label, reviews: [review] });
+    const date = new Date(review.created_at);
+    const year = format(date, 'yyyy');
+    const key = format(date, 'yyyy-MM');
+    const monthLabel = format(date, 'MMMM');
+
+    if (!yearMap.has(year)) yearMap.set(year, new Map());
+    const months = yearMap.get(year)!;
+
+    if (!months.has(key)) {
+      months.set(key, { key, monthLabel, reviews: [] });
     }
+    months.get(key)!.reviews.push(review);
   }
 
-  return groups;
+  return Array.from(yearMap.entries()).map(([year, months]) => ({
+    year,
+    months: Array.from(months.values()),
+  }));
+}
+
+function EntryCard({ review, onClick }: { review: Review; onClick: () => void }) {
+  const dateLabel = format(new Date(review.created_at), 'MMM d');
+  const preview = review.body ? stripHtml(review.body) : null;
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-44 shrink-0 text-left p-4 rounded-lg border border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-surface))] hover:border-[rgb(var(--color-border-default))] hover:bg-[rgb(var(--color-bg-elevated))] transition-colors flex flex-col gap-2"
+    >
+      <span className="text-xs text-[rgb(var(--color-text-secondary))]">{dateLabel}</span>
+      <span className="text-sm font-medium text-[rgb(var(--color-text-primary))] line-clamp-2 leading-snug">
+        {review.title ?? 'Untitled'}
+      </span>
+      {preview && (
+        <span className="text-xs text-[rgb(var(--color-text-secondary))] line-clamp-2 leading-snug">
+          {preview}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function MonthSection({
+  group,
+  isOpen,
+  onToggle,
+  onCardClick,
+}: {
+  group: MonthGroup;
+  isOpen: boolean;
+  onToggle: () => void;
+  onCardClick: (id: string) => void;
+}) {
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-4 py-2 group"
+      >
+        <span className={`text-4xl font-bold lowercase tracking-tight leading-none transition-colors shrink-0 ${
+          isOpen
+            ? 'text-[rgb(var(--color-text-primary))]'
+            : 'text-[rgb(var(--color-text-secondary))] group-hover:text-[rgb(var(--color-text-primary))]'
+        }`}>
+          {group.monthLabel}
+        </span>
+        <div className="flex-1 border-t border-[rgb(var(--color-border-subtle))]" />
+      </button>
+
+      {/* Accordion via CSS grid trick */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: isOpen ? '1fr' : '0fr',
+          transition: 'grid-template-rows 0.3s ease',
+        }}
+      >
+        <div style={{ overflow: 'hidden' }}>
+          <div className="flex gap-3 pt-4 pb-6 overflow-x-auto">
+            {group.reviews.map((review) => (
+              <EntryCard
+                key={review.id}
+                review={review}
+                onClick={() => onCardClick(review.id)}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function Reviews() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+
+  const currentMonthKey = format(new Date(), 'yyyy-MM');
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(
+    () => new Set([currentMonthKey])
+  );
 
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ['reviews'],
@@ -42,12 +140,26 @@ export function Reviews() {
     },
   });
 
-  const groups = groupByMonth(reviews);
+  const yearGroups = groupByYearAndMonth(reviews);
+
+  function toggleMonth(key: string) {
+    if (key === currentMonthKey) return;
+    setExpandedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
 
   return (
-    <div className="max-w-3xl mx-auto px-8 py-10">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold text-[rgb(var(--color-text-primary))]">Reviews</h1>
+    <div className="px-8 py-10">
+      {/* Page header */}
+      <div className="flex items-center justify-between mb-10">
+        <h1 className="text-lg font-semibold text-[rgb(var(--color-text-primary))]">Reviews</h1>
         <button
           onClick={() => createMutation.mutate()}
           disabled={createMutation.isPending}
@@ -64,40 +176,21 @@ export function Reviews() {
         </p>
       ) : (
         <div className="space-y-8">
-          {groups.map((group) => (
-            <div key={group.label}>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-[rgb(var(--color-text-secondary))] mb-3">
-                {group.label}
-              </h2>
-              <div className="space-y-2">
-                {group.reviews.map((review) => {
-                  const preview = review.body
-                    ? stripHtml(review.body).slice(0, 120)
-                    : null;
-                  const dateLabel = format(new Date(review.created_at), 'MMM d');
-
-                  return (
-                    <button
-                      key={review.id}
-                      onClick={() => navigate(`/reviews/${review.id}`)}
-                      className="w-full text-left px-4 py-3 rounded-lg border border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-surface))] hover:border-[rgb(var(--color-border-default))] hover:bg-[rgb(var(--color-bg-elevated))] transition-colors"
-                    >
-                      <div className="flex items-baseline gap-3">
-                        <span className="text-xs text-[rgb(var(--color-text-secondary))] shrink-0 w-12">
-                          {dateLabel}
-                        </span>
-                        <span className="text-sm font-medium text-[rgb(var(--color-text-primary))] truncate">
-                          {review.title ?? 'Untitled'}
-                        </span>
-                      </div>
-                      {preview && (
-                        <p className="mt-1 pl-15 text-xs text-[rgb(var(--color-text-secondary))] line-clamp-1 ml-[60px]">
-                          {preview}
-                        </p>
-                      )}
-                    </button>
-                  );
-                })}
+          {yearGroups.map((yearGroup) => (
+            <div key={yearGroup.year}>
+              <p className="text-xs font-medium tracking-widest text-[rgb(var(--color-text-secondary))] mb-3">
+                {yearGroup.year}
+              </p>
+              <div className="space-y-1">
+                {yearGroup.months.map((group) => (
+                  <MonthSection
+                    key={group.key}
+                    group={group}
+                    isOpen={expandedMonths.has(group.key)}
+                    onToggle={() => toggleMonth(group.key)}
+                    onCardClick={(id) => navigate(`/reviews/${id}`)}
+                  />
+                ))}
               </div>
             </div>
           ))}
