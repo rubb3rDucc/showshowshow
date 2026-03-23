@@ -2,6 +2,10 @@ import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { StarterKit } from '@tiptap/starter-kit';
 import type { Editor } from '@tiptap/react';
+import {
+  Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
+  List, ListOrdered, Quote, Terminal, Undo, Redo,
+} from 'lucide-react';
 
 function Toolbar({ editor }: { editor: Editor }) {
   const state = useEditorState({
@@ -21,39 +25,58 @@ function Toolbar({ editor }: { editor: Editor }) {
     }),
   });
 
-  const btn = (label: string, active: boolean, action: () => boolean) => (
+  const btn = (icon: React.ReactNode, active: boolean, action: () => boolean, title: string) => (
     <button
       onClick={action}
-      className={`px-2 py-1 text-sm rounded transition-colors ${
+      title={title}
+      className={`p-1.5 rounded transition-colors ${
         active
           ? 'bg-[rgb(var(--color-accent))] text-white'
-          : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'
+          : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))]'
       }`}
     >
-      {label}
+      {icon}
     </button>
   );
 
+  const sep = () => <div className="w-px h-5 bg-[rgb(var(--color-border-default))] mx-1 self-center" />;
+
   return (
-    <div className="flex flex-wrap gap-1 border-b border-[rgb(var(--color-border-default))] pb-2 mb-3">
-      {btn('B', state.isBold, () => editor.chain().focus().toggleBold().run())}
-      {btn('I', state.isItalic, () => editor.chain().focus().toggleItalic().run())}
-      {btn('S', state.isStrike, () => editor.chain().focus().toggleStrike().run())}
-      {btn('Code', state.isCode, () => editor.chain().focus().toggleCode().run())}
+    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 px-6 py-2 bg-[rgb(var(--color-bg-surface))] border-b border-[rgb(var(--color-border-subtle))]">
+      <button
+        onClick={() => editor.chain().focus().undo().run()}
+        title="Undo"
+        className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
+      >
+        <Undo size={16} />
+      </button>
+      <button
+        onClick={() => editor.chain().focus().redo().run()}
+        title="Redo"
+        className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
+      >
+        <Redo size={16} />
+      </button>
 
-      <div className="w-px bg-[rgb(var(--color-border-default))] mx-1" />
+      {sep()}
 
-      {btn('H1', state.isH1, () => editor.chain().focus().toggleHeading({ level: 1 }).run())}
-      {btn('H2', state.isH2, () => editor.chain().focus().toggleHeading({ level: 2 }).run())}
-      {btn('H3', state.isH3, () => editor.chain().focus().toggleHeading({ level: 3 }).run())}
+      {btn(<Bold size={16} />, state.isBold, () => editor.chain().focus().toggleBold().run(), 'Bold')}
+      {btn(<Italic size={16} />, state.isItalic, () => editor.chain().focus().toggleItalic().run(), 'Italic')}
+      {btn(<Strikethrough size={16} />, state.isStrike, () => editor.chain().focus().toggleStrike().run(), 'Strikethrough')}
+      {btn(<Code size={16} />, state.isCode, () => editor.chain().focus().toggleCode().run(), 'Inline code')}
 
-      <div className="w-px bg-[rgb(var(--color-border-default))] mx-1" />
+      {sep()}
 
-      {btn('• List', state.isBulletList, () => editor.chain().focus().toggleList('bulletList', 'listItem').run())}
-      {btn('1. List', state.isOrderedList, () => editor.chain().focus().toggleOrderedList().run())}
-      {btn('" "', state.isBlockquote, () => editor.chain().focus().toggleBlockquote().run())}
-      {btn('≡ Block', state.isCodeBlock, () => editor.chain().focus().toggleCodeBlock().run())}
+      {btn(<Heading1 size={16} />, state.isH1, () => editor.chain().focus().toggleHeading({ level: 1 }).run(), 'Heading 1')}
+      {btn(<Heading2 size={16} />, state.isH2, () => editor.chain().focus().toggleHeading({ level: 2 }).run(), 'Heading 2')}
+      {btn(<Heading3 size={16} />, state.isH3, () => editor.chain().focus().toggleHeading({ level: 3 }).run(), 'Heading 3')}
 
+      {sep()}
+
+      {btn(<List size={16} />, state.isBulletList, () => editor.chain().focus().toggleList('bulletList', 'listItem').run(), 'Bullet list')}
+      {btn(<ListOrdered size={16} />, state.isOrderedList, () => editor.chain().focus().toggleOrderedList().run(), 'Ordered list')}
+      {btn(<Quote size={16} />, state.isBlockquote, () => editor.chain().focus().toggleBlockquote().run(), 'Blockquote')}
+      {btn(<Terminal size={16} />, state.isCodeBlock, () => editor.chain().focus().toggleCodeBlock().run(), 'Code block')}
     </div>
   );
 }
@@ -61,45 +84,47 @@ function Toolbar({ editor }: { editor: Editor }) {
 export function Reviews() {
   const editor = useEditor({
     extensions: [StarterKit],
-    content: '<p>Start writing...</p>',
+    content: '<p></p>',
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-full prose-code:before:content-none prose-code:after:content-none prose-code:bg-[rgb(var(--color-bg-elevated))] prose-code:rounded prose-code:px-1 prose-code:font-mono prose-code:text-sm prose-pre:bg-[rgb(var(--color-bg-elevated))] prose-pre:text-[rgb(var(--color-text-primary))]',
+      },
+    },
   });
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-[rgb(var(--color-text-primary))] mb-6">Reviews</h1>
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
+      {editor && <Toolbar editor={editor} />}
 
-      <div className="border border-[rgb(var(--color-border-default))] rounded bg-[rgb(var(--color-bg-surface))] p-4 min-h-[400px]">
-        {editor && <Toolbar editor={editor} />}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-8 py-10">
+          {editor && (
+            <BubbleMenu editor={editor}>
+              <div className="flex gap-0.5 bg-[rgb(var(--color-bg-elevated))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-lg p-1">
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}
+                  className={`p-1.5 rounded ${editor.isActive('bold') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
+                >
+                  <Bold size={14} />
+                </button>
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}
+                  className={`p-1.5 rounded ${editor.isActive('italic') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
+                >
+                  <Italic size={14} />
+                </button>
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBlockquote().run(); }}
+                  className={`p-1.5 rounded ${editor.isActive('blockquote') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
+                >
+                  <Quote size={14} />
+                </button>
+              </div>
+            </BubbleMenu>
+          )}
 
-        {editor && (
-          <BubbleMenu editor={editor}>
-            <div className="flex gap-1 bg-[rgb(var(--color-bg-elevated))] border border-[rgb(var(--color-border-default))] rounded shadow-md p-1">
-              <button
-                onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}
-                className={`px-2 py-1 text-sm font-bold rounded ${editor.isActive('bold') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
-              >
-                B
-              </button>
-              <button
-                onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}
-                className={`px-2 py-1 text-sm italic rounded ${editor.isActive('italic') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
-              >
-                I
-              </button>
-              <button
-                onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBlockquote().run(); }}
-                className={`px-2 py-1 text-sm rounded ${editor.isActive('blockquote') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
-              >
-                "
-              </button>
-            </div>
-          </BubbleMenu>
-        )}
-
-        <EditorContent
-          editor={editor}
-          className="prose prose-sm max-w-none text-[rgb(var(--color-text-primary))] focus:outline-none"
-        />
+          <EditorContent editor={editor} />
+        </div>
       </div>
     </div>
   );
