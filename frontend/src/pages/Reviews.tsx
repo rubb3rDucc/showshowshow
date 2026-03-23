@@ -2,11 +2,21 @@ import { useState } from 'react';
 import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { StarterKit } from '@tiptap/starter-kit';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { FontSize } from '@tiptap/extension-font-size';
 import type { Editor } from '@tiptap/react';
 import {
   Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
-  List, ListOrdered, Quote, Terminal, Undo, Redo,
+  List, ListOrdered, Quote, Terminal, Undo, Redo, AArrowUp, AArrowDown,
 } from 'lucide-react';
+
+const FONT_SIZES = [12, 13, 14, 15, 16, 18, 20, 24, 28, 32, 36, 48];
+const DEFAULT_SIZE = 14; // prose-sm base
+
+function currentFontSize(editor: Editor): number {
+  const val = editor.getAttributes('textStyle').fontSize as string | undefined;
+  return val ? parseInt(val, 10) : DEFAULT_SIZE;
+}
 
 function Toolbar({ editor }: { editor: Editor }) {
   const state = useEditorState({
@@ -23,6 +33,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       isOrderedList: e.isActive('orderedList'),
       isBlockquote: e.isActive('blockquote'),
       isCodeBlock: e.isActive('codeBlock'),
+      fontSize: currentFontSize(e),
     }),
   });
 
@@ -42,6 +53,18 @@ function Toolbar({ editor }: { editor: Editor }) {
 
   const sep = () => <div className="w-px h-5 bg-[rgb(var(--color-border-default))] mx-1 self-center" />;
 
+  const changeFontSize = (direction: 'up' | 'down') => {
+    const cur = state.fontSize;
+    const idx = FONT_SIZES.indexOf(cur);
+    let next: number;
+    if (direction === 'up') {
+      next = idx === -1 ? FONT_SIZES[FONT_SIZES.indexOf(DEFAULT_SIZE) + 1] : FONT_SIZES[Math.min(idx + 1, FONT_SIZES.length - 1)];
+    } else {
+      next = idx === -1 ? FONT_SIZES[FONT_SIZES.indexOf(DEFAULT_SIZE) - 1] : FONT_SIZES[Math.max(idx - 1, 0)];
+    }
+    editor.chain().focus().setFontSize(`${next}px`).run();
+  };
+
   return (
     <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 px-6 py-2 bg-[rgb(var(--color-bg-surface))] border-b border-[rgb(var(--color-border-subtle))]">
       <button
@@ -57,6 +80,26 @@ function Toolbar({ editor }: { editor: Editor }) {
         className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
       >
         <Redo size={16} />
+      </button>
+
+      {sep()}
+
+      <button
+        onClick={() => changeFontSize('down')}
+        title="Decrease font size"
+        className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
+      >
+        <AArrowDown size={16} />
+      </button>
+      <span className="text-xs text-[rgb(var(--color-text-secondary))] w-7 text-center tabular-nums">
+        {state.fontSize}
+      </span>
+      <button
+        onClick={() => changeFontSize('up')}
+        title="Increase font size"
+        className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
+      >
+        <AArrowUp size={16} />
       </button>
 
       {sep()}
@@ -85,7 +128,7 @@ function Toolbar({ editor }: { editor: Editor }) {
 export function Reviews() {
   const [title, setTitle] = useState('');
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, TextStyle, FontSize],
     content: '<p></p>',
     editorProps: {
       attributes: {
