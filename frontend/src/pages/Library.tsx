@@ -48,8 +48,7 @@ export function Library() {
     initialPageParam: 1,
   });
 
-  const libraryItems = data?.pages.flatMap(p => p.items) ?? [];
-  const totalItems = data?.pages[0]?.pagination.total_items ?? libraryItems.length;
+  const totalItems = data?.pages[0]?.pagination.total_items ?? 0;
 
   // Infinite scroll sentinel
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -68,8 +67,8 @@ export function Library() {
 
   // Convert API items to UI format
   const libraryItemsUI: LibraryItemUI[] = useMemo(() => {
-    return libraryItems.map(libraryItemToUI);
-  }, [libraryItems]);
+    return (data?.pages.flatMap(p => p.items) ?? []).map(libraryItemToUI);
+  }, [data]);
 
   // Remove from library mutation
   const removeMutation = useMutation({
