@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   Container,
@@ -33,6 +33,11 @@ export function Search() {
   const [addingToLibraryId, setAddingToLibraryId] = useState<string | null>(null);
   const [selectedContent, setSelectedContent] = useState<SearchResult | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    searchInputRef.current?.focus();
+  }, []);
   
   // Store pagination metadata separately to keep pagination controls stable
   // Store the last known good metadata for the current search query
@@ -372,6 +377,7 @@ export function Search() {
           {/* Search Bar */}
           <div className="bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-sm">
             <TextInput
+              ref={searchInputRef}
               placeholder="Search titles..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
