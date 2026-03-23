@@ -1,4 +1,4 @@
-import { Star, Tv } from 'lucide-react';
+import { Tv } from 'lucide-react';
 import type { LibraryItemUI, LibraryStatus } from '../../types/library.types';
 
 interface LibraryCardProps {
@@ -102,7 +102,7 @@ export function LibraryCard({
         )}
 
         {/* Subtle Status Badge - Top Left */}
-        <div className="absolute top-2 left-2">
+        {/* <div className="absolute top-2 left-2">
           <div className={`
             px-2 py-0.5 rounded-md
             ${statusStyle.bg}
@@ -113,7 +113,7 @@ export function LibraryCard({
           `}>
             {statusStyle.label}
           </div>
-        </div>
+        </div> */}
 
 
         {/* Progress Overlay - Lighter, More Elegant */}
@@ -143,35 +143,35 @@ export function LibraryCard({
       {/* Card Info - Cleaner Hierarchy */}
       <div className="mt-3 space-y-1.5">
         {/* Title */}
-        <h3 className="text-sm font-semibold text-gray-900 
-                       line-clamp-2 
+        {/* <h3 className="text-sm font-semibold text-gray-900
+                       line-clamp-2
                        leading-snug
-                       group-hover:text-gray-700 
+                       group-hover:text-gray-700
                        transition-colors">
           {item.content.title}
-        </h3>
+        </h3> */}
 
         {/* Metadata - Better Visual Separation */}
         <div className="flex items-center gap-2 text-xs text-[rgb(var(--color-text-tertiary))]">
           {/* Type badge */}
-          <span className="px-1.5 py-0.5 rounded 
-                           bg-gray-100 text-gray-600 
+          {/* <span className="px-1.5 py-0.5 rounded
+                           bg-gray-100 text-gray-600
                            font-medium">
             {item.content.contentType === 'movie' ? 'Film' : 'TV'}
-          </span>
+          </span> */}
           
           {/* Progress for shows */}
-          {item.content.contentType === 'show' && item.progress && (
+          {/* {item.content.contentType === 'show' && item.progress && (
             <>
               <span className="text-gray-300">•</span>
               <span className="font-medium">
                 {item.progress.episodesWatched}/{item.progress.totalEpisodes}
               </span>
             </>
-          )}
+          )} */}
           
           {/* Rating */}
-          {item.score && (
+          {/* {item.score && (
             <>
               <span className="text-gray-300">•</span>
               <div className="flex items-center gap-0.5">
@@ -179,7 +179,7 @@ export function LibraryCard({
                 <span className="font-medium">{item.score}</span>
               </div>
             </>
-          )}
+          )} */}
         </div>
       </div>
     </div>
