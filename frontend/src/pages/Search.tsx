@@ -117,7 +117,7 @@ export function Search() {
   // Get library to check if items are already in library
   const { data: library } = useQuery({
     queryKey: ['library'],
-    queryFn: () => getLibrary(),
+    queryFn: () => getLibrary().then(r => r.items),
   });
 
   // Scroll to top when page changes
