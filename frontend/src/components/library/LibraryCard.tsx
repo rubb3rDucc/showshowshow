@@ -1,4 +1,4 @@
-import { Star, Tv } from 'lucide-react';
+import { Tv } from 'lucide-react';
 import type { LibraryItemUI, LibraryStatus } from '../../types/library.types';
 
 interface LibraryCardProps {
