@@ -152,9 +152,11 @@ export function ReviewEditor() {
     enabled: !!id,
   });
 
-  const [title, setTitle] = useState('');
-  const [bodyHtml, setBodyHtml] = useState('');
-  const loadedRef = useRef(false);
+  const [title, setTitle] = useState<string | null>(null);
+  const [bodyHtml, setBodyHtml] = useState<string | null>(null);
+
+  const displayTitle = title ?? review?.title ?? '';
+  const displayBodyHtml = bodyHtml ?? review?.body ?? '';
   const [showModified, setShowModified] = useState(false);
 
   const saveMutation = useMutation({
@@ -165,15 +167,6 @@ export function ReviewEditor() {
       queryClient.invalidateQueries({ queryKey: ['review', id] });
     },
   });
-
-  // Pre-fill from loaded review (once)
-  useEffect(() => {
-    if (review && !loadedRef.current) {
-      loadedRef.current = true;
-      setTitle(review.title ?? '');
-      setBodyHtml(review.body ?? '');
-    }
-  }, [review]);
 
   const editor = useEditor({
     extensions: [StarterKit, TextStyle, FontSize],
@@ -196,17 +189,19 @@ export function ReviewEditor() {
   }, [editor, review]);
 
   // Autosave debounce
+  const { mutate: save } = saveMutation;
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    if (!loadedRef.current) return;
+    if (title === null && bodyHtml === null) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveMutation.mutate({ t: title, b: bodyHtml });
+      save({ t: displayTitle, b: displayBodyHtml });
     }, 1000);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [title, bodyHtml]);
+  }, [title, bodyHtml, save]);
 
   if (isLoading) return null;
 
@@ -268,7 +263,7 @@ export function ReviewEditor() {
 
           <input
             type="text"
-            value={title}
+            value={displayTitle}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Untitled"
             className="w-full text-3xl font-bold bg-transparent border-none outline-none text-[rgb(var(--color-text-primary))] placeholder-[rgb(var(--color-text-secondary))] mb-6"
