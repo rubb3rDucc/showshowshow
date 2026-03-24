@@ -155,6 +155,7 @@ export function ReviewEditor() {
   const [title, setTitle] = useState('');
   const [bodyHtml, setBodyHtml] = useState('');
   const loadedRef = useRef(false);
+  const [showModified, setShowModified] = useState(false);
 
   const saveMutation = useMutation({
     mutationFn: ({ t, b }: { t: string; b: string }) =>
@@ -250,9 +251,18 @@ export function ReviewEditor() {
               <ArrowLeft size={18} />
             </button>
             {review && (
-              <span className="text-sm text-[rgb(var(--color-text-secondary))]">
-                {format(new Date(review.created_at), 'MMM d, yyyy')}
-              </span>
+              // <span className="text-sm text-[rgb(var(--color-text-secondary))]">
+              //   {format(new Date(review.created_at), 'MMM d, yyyy')}
+              // </span>
+              <button
+                onClick={() => setShowModified(prev => !prev)}
+                className="text-sm text-[rgb(var(--color-text-secondary))] hover:[rgb(var(--color-text-primary))] transition-colors"
+                title={showModified ? 'Click to show created date' : 'Click to show modified date'}
+              >
+                {showModified ? 'Edited:' : 'Created:'}
+                {" "}
+                {format(new Date(showModified ? review.created_at : review.updated_at), "MMMM d, yyyy 'at' pp")}
+              </button>
             )}
           </div>
 
