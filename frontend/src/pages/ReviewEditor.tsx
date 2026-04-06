@@ -212,7 +212,7 @@ export function ReviewEditor() {
             {review && (
               <button
                 onClick={() => setShowModified(prev => !prev)}
-                className="text-sm text-[rgb(var(--color-text-secondary))] hover:[rgb(var(--color-text-primary))] transition-colors"
+                className="text-sm text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
                 title={showModified ? 'Click to show created date' : 'Click to show modified date'}
               >
                 {showModified ? 'Edited:' : 'Created:'}

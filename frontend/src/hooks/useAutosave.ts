@@ -12,6 +12,7 @@ export function useAutosave(
     const { enabled = true, delay = 1000 } = options ?? {};
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const saveFnRef = useRef(saveFn);
+    const serialized = JSON.stringify(value);
 
     useLayoutEffect(() => {
         saveFnRef.current = saveFn;
@@ -30,6 +31,6 @@ export function useAutosave(
                 clearTimeout(timerRef.current);
             }
         };
-    }, [value, enabled, delay]);
+    }, [serialized, enabled, delay]);
 
 }
