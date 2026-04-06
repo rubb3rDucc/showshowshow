@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useRoute, useLocation } from 'wouter';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { StarterKit } from '@tiptap/starter-kit';
@@ -13,7 +12,7 @@ import {
   SeparatorHorizontal, ArrowLeft,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { getReview, updateReview } from '../api/reviews';
+import { useReviewEditor } from '../hooks/useReviewEditor';
 
 const FONT_SIZES = [12, 13, 14, 15, 16, 18, 20, 24, 28, 32, 36, 48];
 const DEFAULT_SIZE = 14;
@@ -144,29 +143,11 @@ export function ReviewEditor() {
   const [, params] = useRoute('/reviews/:id');
   const [, navigate] = useLocation();
   const id = params?.id ?? '';
-  const queryClient = useQueryClient();
 
-  const { data: review, isLoading } = useQuery({
-    queryKey: ['review', id],
-    queryFn: () => getReview(id),
-    enabled: !!id,
-  });
-
-  const [title, setTitle] = useState<string | null>(null);
-  const [bodyHtml, setBodyHtml] = useState<string | null>(null);
-
-  const displayTitle = title ?? review?.title ?? '';
-  const displayBodyHtml = bodyHtml ?? review?.body ?? '';
-  const [showModified, setShowModified] = useState(false);
-
-  const saveMutation = useMutation({
-    mutationFn: ({ t, b }: { t: string; b: string }) =>
-      updateReview(id, { title: t || undefined, body: b || undefined }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reviews'] });
-      queryClient.invalidateQueries({ queryKey: ['review', id] });
-    },
-  });
+  const {
+    review, isLoading, displayTitle,
+    showModified, setTitle, setBodyHtml, setShowModified,
+  } = useReviewEditor(id);
 
   const editor = useEditor({
     extensions: [StarterKit, TextStyle, FontSize],
@@ -176,32 +157,15 @@ export function ReviewEditor() {
         class: 'prose prose-sm max-w-none focus:outline-none min-h-full prose-code:before:content-none prose-code:after:content-none prose-code:bg-[rgb(var(--color-bg-elevated))] prose-code:rounded prose-code:px-1 prose-code:font-mono prose-code:text-sm prose-pre:bg-[rgb(var(--color-bg-elevated))] prose-pre:text-[rgb(var(--color-text-primary))]',
       },
     },
-    onUpdate: ({ editor: e }) => {
-      setBodyHtml(e.getHTML());
-    },
+    onUpdate: ({ editor: e }) => setBodyHtml(e.getHTML()),
   });
 
-  // Set editor content once review loads
+  // set editor content once review loads
   useEffect(() => {
     if (editor && review && review.body && !editor.getText()) {
       editor.commands.setContent(review.body);
     }
   }, [editor, review]);
-
-  // Autosave debounce
-  const { mutate: save } = saveMutation;
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (title === null && bodyHtml === null) return;
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      save({ t: displayTitle, b: displayBodyHtml });
-    }, 1000);
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [title, bodyHtml, save]);
 
   if (isLoading) return null;
 
