@@ -210,9 +210,6 @@ export function ReviewEditor() {
               <ArrowLeft size={18} />
             </button>
             {review && (
-              // <span className="text-sm text-[rgb(var(--color-text-secondary))]">
-              //   {format(new Date(review.created_at), 'MMM d, yyyy')}
-              // </span>
               <button
                 onClick={() => setShowModified(prev => !prev)}
                 className="text-sm text-[rgb(var(--color-text-secondary))] hover:[rgb(var(--color-text-primary))] transition-colors"
@@ -220,7 +217,7 @@ export function ReviewEditor() {
               >
                 {showModified ? 'Edited:' : 'Created:'}
                 {" "}
-                {format(new Date(showModified ? review.created_at : review.updated_at), "MMMM d, yyyy 'at' pp")}
+                {format(new Date(showModified ? review.updated_at : review.created_at), "MMMM d, yyyy 'at' pp")}
               </button>
             )}
           </div>
