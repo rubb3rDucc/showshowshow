@@ -7,7 +7,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { FontSize } from '@tiptap/extension-font-size';
 import type { Editor } from '@tiptap/react';
 import {
-  Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
+  Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Terminal, Undo, Redo, AArrowUp, AArrowDown,
   SeparatorHorizontal, ArrowLeft,
 } from 'lucide-react';
