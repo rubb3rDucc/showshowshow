@@ -13,8 +13,6 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useReviewEditor } from '../hooks/useReviewEditor';
-import { useQueryClient } from '@tanstack/react-query';
-import { deleteReview } from '../api/reviews';
 
 const FONT_SIZES = [12, 13, 14, 15, 16, 18, 20, 24, 28, 32, 36, 48];
 const DEFAULT_SIZE = 14;
@@ -24,7 +22,7 @@ function currentFontSize(editor: Editor): number {
   return val ? parseInt(val, 10) : DEFAULT_SIZE;
 }
 
-function Toolbar({ editor }: { editor: Editor }) {
+function Toolbar({ editor, onDelete }: { editor: Editor; onDelete: () => void }) {
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -136,6 +134,16 @@ function Toolbar({ editor }: { editor: Editor }) {
       >
         <SeparatorHorizontal size={16} />
       </button>
+
+      <div className="flex-1" />
+
+      <button
+        onClick={onDelete}
+        title="Delete review"
+        className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:text-red-400 hover:bg-[rgb(var(--color-bg-elevated))] transition-colors"
+      >
+        <Trash2 size={16} />
+      </button>
     </div>
   );
 }
@@ -148,7 +156,7 @@ export function ReviewEditor() {
   const {
     review, isLoading, displayTitle,
     showModified, setTitle, setBodyHtml, setShowModified,
-    handleDelete,
+    handleDelete, saveStatus,
   } = useReviewEditor(id, navigate);
 
   const editor = useEditor({
@@ -180,10 +188,10 @@ export function ReviewEditor() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
-      {editor && <Toolbar editor={editor} />}
+      {editor && <Toolbar editor={editor} onDelete={handleDelete} />}
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-8 py-10">
+        <div className="max-w-3xl mx-auto px-8 py-4 sm:py-10">
           {editor && (
             <BubbleMenu editor={editor}>
               <div className="flex gap-0.5 bg-[rgb(var(--color-bg-elevated))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-lg p-1">
@@ -220,35 +228,42 @@ export function ReviewEditor() {
             </BubbleMenu>
           )}
 
-          {/* Chrome: back arrow + date */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate('/reviews')}
-              className="p-1 -ml-1 rounded text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] hover:bg-[rgb(var(--color-bg-elevated))] transition-colors"
-              title="Back to reviews"
-            >
-              <ArrowLeft size={18} />
-            </button>
+          {/* Chrome: save status + back/delete + date */}
+          <div className="flex flex-col gap-2 mb-4">
+            <span className="text-xs text-[rgb(var(--color-text-secondary))] sm:hidden h-4">
+              {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : '\u00A0'}
+            </span>
 
-            <button
-              onClick={handleDelete}
-              className="p-1 rounded text-[rgb(var(--color-text-secondary))] hover:text-red-400 hover:bg-[rgb(var(--color-bg-elevated))] transition-colors"
-              title="Delete review"
-            >
-              <Trash2 size={16} />
-            </button>
-
-            {review && (
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setShowModified(prev => !prev)}
-                className="text-sm text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
-                title={showModified ? 'Click to show created date' : 'Click to show modified date'}
+                onClick={() => navigate('/reviews')}
+                className="p-1 -ml-1 rounded text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] hover:bg-[rgb(var(--color-bg-elevated))] transition-colors"
+                title="Back to reviews"
               >
-                {showModified ? 'Edited:' : 'Created:'}
-                {" "}
-                {format(new Date(showModified ? review.updated_at : review.created_at), "MMMM d, yyyy 'at' pp")}
+                <ArrowLeft size={18} />
               </button>
-            )}
+
+              {saveStatus === 'saving' && (
+                <span className="hidden sm:inline text-xs text-[rgb(var(--color-text-secondary))]">Saving...</span>
+              )}
+              {saveStatus === 'saved' && (
+                <span className="hidden sm:inline text-xs text-[rgb(var(--color-text-secondary))]">Saved</span>
+              )}
+
+              <div className="flex-1" />
+
+              {review && (
+                <button
+                  onClick={() => setShowModified(prev => !prev)}
+                  className="text-sm text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
+                  title={showModified ? 'Click to show created date' : 'Click to show modified date'}
+                >
+                  {showModified ? 'Edited:' : 'Created:'}
+                  {" "}
+                  {format(new Date(showModified ? review.updated_at : review.created_at), "MMMM d, yyyy 'at' pp")}
+                </button>
+              )}
+            </div>
           </div>
 
           <textarea

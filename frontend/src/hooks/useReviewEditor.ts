@@ -15,25 +15,29 @@ export function useReviewEditor(id: string, navigate: (path: string) => void) {
     const [title, setTitle] = useState<string | null>(null);
     const [bodyHtml, setBodyHtml] = useState<string | null>(null);
     const [showModified, setShowModified] = useState(false);
+    const [savedFlash, setSavedFlash] = useState(false);
 
     const displayTitle = title ?? review?.title ?? '';
     const displayBodyHtml = bodyHtml ?? review?.body ?? '';
 
-
-    const { mutate: save } = useMutation({
+    const saveMutation = useMutation({
         mutationFn: ({t, b}: { t: string; b: string }) =>
             updateReview(id, {title: t || undefined, body: b || undefined }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['review'] });
+            queryClient.invalidateQueries({ queryKey: ['reviews'] });
             queryClient.invalidateQueries({ queryKey: ['review', id] });
+            setSavedFlash(true);
+            setTimeout(() => setSavedFlash(false), 2000);
         },
     });
 
     useAutosave(
         {title, bodyHtml},
-        () => save({ t: displayTitle, b: displayBodyHtml }),
-        { enabled: title !== null || bodyHtml !== null }   
+        () => saveMutation.mutate({ t: displayTitle, b: displayBodyHtml }),
+        { enabled: title !== null || bodyHtml !== null }
     );
+
+    const saveStatus = saveMutation.isPending ? 'saving' : savedFlash ? 'saved' : 'idle';
 
     const handleDelete = async () => {
         await deleteReview(id);
@@ -48,6 +52,7 @@ export function useReviewEditor(id: string, navigate: (path: string) => void) {
         displayBodyHtml,
         showModified,
         handleDelete,
+        saveStatus,
         setTitle,
         setBodyHtml,
         setShowModified,
