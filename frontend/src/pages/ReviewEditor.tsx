@@ -236,12 +236,16 @@ export function ReviewEditor() {
             )}
           </div>
 
-          <input
-            type="text"
+          <textarea
             value={displayTitle}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value)
+              e.target.style.height = 'auto';
+              e.target.style.height = `${e.target.scrollHeight}`
+            }}
             placeholder="Untitled"
-            className="w-full text-3xl font-bold bg-transparent border-none outline-none text-[rgb(var(--color-text-primary))] placeholder-[rgb(var(--color-text-secondary))] mb-6"
+            rows={1}
+            className="w-full text-xl sm:text-2xl md:text-3xl font-bold bg-transparent border-none outline-none resize-none text-[rgb(var(--color-text-primary))] placeholder-[rgb(var(--color-text-secondary))] mb-6"
           />
           <EditorContent editor={editor} />
         </div>
