@@ -150,7 +150,11 @@ export function ReviewEditor() {
   } = useReviewEditor(id);
 
   const editor = useEditor({
-    extensions: [StarterKit, TextStyle, FontSize],
+    extensions: [
+      StarterKit,
+      TextStyle,
+      FontSize
+    ],
     content: '<p></p>',
     editorProps: {
       attributes: {
