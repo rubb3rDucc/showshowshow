@@ -36,6 +36,7 @@ import { Networks } from './pages/Networks';
 import { ClerkTest } from './pages/ClerkTest';
 import { flags } from './flags';
 const Reviews = lazy(() => import('./pages/Reviews').then(m => ({ default: m.Reviews })));
+const ReviewEditor = lazy(() => import('./pages/ReviewEditor').then(m => ({ default: m.ReviewEditor })));
 
 // Lazy loaded pages (less frequently accessed)
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
@@ -252,15 +253,26 @@ function App() {
         </Route>
 
         {flags.reviews && (
-          <Route path="/reviews">
-            <ProtectedRoute>
-              <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <Reviews />
-                </Suspense>
-              </Layout>
-            </ProtectedRoute>
-          </Route>
+          <>
+            <Route path="/reviews">
+              <ProtectedRoute>
+                <Layout>
+                  <Suspense fallback={<PageLoader />}>
+                    <Reviews />
+                  </Suspense>
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+            <Route path="/reviews/:id">
+              <ProtectedRoute>
+                <Layout>
+                  <Suspense fallback={<PageLoader />}>
+                    <ReviewEditor />
+                  </Suspense>
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+          </>
         )}
 
         {/* 404 redirect */}

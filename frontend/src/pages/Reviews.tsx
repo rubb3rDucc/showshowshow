@@ -1,193 +1,224 @@
 import { useState } from 'react';
-import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
-import { BubbleMenu } from '@tiptap/react/menus';
-import { StarterKit } from '@tiptap/starter-kit';
-import { TextStyle } from '@tiptap/extension-text-style';
-import { FontSize } from '@tiptap/extension-font-size';
-import type { Editor } from '@tiptap/react';
-import {
-  Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
-  List, ListOrdered, Quote, Terminal, Undo, Redo, AArrowUp, AArrowDown, SeparatorHorizontal,
-} from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
+import { format } from 'date-fns';
+import { PlusIcon, Trash2 } from 'lucide-react';
+import { getReviews, createReview, deleteReview } from '../api/reviews';
+import type { Review } from '../api/reviews';
 
-const FONT_SIZES = [12, 13, 14, 15, 16, 18, 20, 24, 28, 32, 36, 48];
-const DEFAULT_SIZE = 14; // prose-sm base
-
-function currentFontSize(editor: Editor): number {
-  const val = editor.getAttributes('textStyle').fontSize as string | undefined;
-  return val ? parseInt(val, 10) : DEFAULT_SIZE;
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
 }
 
-function Toolbar({ editor }: { editor: Editor }) {
-  const state = useEditorState({
-    editor,
-    selector: ({ editor: e }) => ({
-      isBold: e.isActive('bold'),
-      isItalic: e.isActive('italic'),
-      isStrike: e.isActive('strike'),
-      isCode: e.isActive('code'),
-      isH1: e.isActive('heading', { level: 1 }),
-      isH2: e.isActive('heading', { level: 2 }),
-      isH3: e.isActive('heading', { level: 3 }),
-      isBulletList: e.isActive('bulletList'),
-      isOrderedList: e.isActive('orderedList'),
-      isBlockquote: e.isActive('blockquote'),
-      isCodeBlock: e.isActive('codeBlock'),
-      fontSize: currentFontSize(e),
-    }),
-  });
+interface MonthGroup {
+  key: string;        // 'yyyy-MM'
+  monthLabel: string; // 'March'
+  reviews: Review[];
+}
 
-  const btn = (icon: React.ReactNode, active: boolean, action: () => boolean, title: string) => (
-    <button
-      onClick={action}
-      title={title}
-      className={`p-1.5 rounded transition-colors ${
-        active
-          ? 'bg-[rgb(var(--color-accent))] text-white'
-          : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))]'
-      }`}
-    >
-      {icon}
-    </button>
-  );
+interface YearGroup {
+  year: string;       // '2026'
+  months: MonthGroup[];
+}
 
-  const sep = () => <div className="w-px h-5 bg-[rgb(var(--color-border-default))] mx-1 self-center" />;
+function groupByYearAndMonth(reviews: Review[]): YearGroup[] {
+  const yearMap = new Map<string, Map<string, MonthGroup>>();
 
-  const changeFontSize = (direction: 'up' | 'down') => {
-    const cur = state.fontSize;
-    const idx = FONT_SIZES.indexOf(cur);
-    let next: number;
-    if (direction === 'up') {
-      next = idx === -1 ? FONT_SIZES[FONT_SIZES.indexOf(DEFAULT_SIZE) + 1] : FONT_SIZES[Math.min(idx + 1, FONT_SIZES.length - 1)];
-    } else {
-      next = idx === -1 ? FONT_SIZES[FONT_SIZES.indexOf(DEFAULT_SIZE) - 1] : FONT_SIZES[Math.max(idx - 1, 0)];
+  for (const review of reviews) {
+    const date = new Date(review.created_at);
+    const year = format(date, 'yyyy');
+    const key = format(date, 'yyyy-MM');
+    const monthLabel = format(date, 'MMMM');
+
+    if (!yearMap.has(year)) yearMap.set(year, new Map());
+    const months = yearMap.get(year)!;
+
+    if (!months.has(key)) {
+      months.set(key, { key, monthLabel, reviews: [] });
     }
-    editor.chain().focus().setFontSize(`${next}px`).run();
-  };
+    months.get(key)!.reviews.push(review);
+  }
+
+  return Array.from(yearMap.entries()).map(([year, months]) => ({
+    year,
+    months: Array.from(months.values()),
+  }));
+}
+
+function EntryCard({ review, onClick }: { review: Review; onClick: () => void }) {
+  const dateLabel = format(new Date(review.created_at), 'MMM d');
+  const preview = review.body ? stripHtml(review.body) : null;
 
   return (
-    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 px-6 py-2 bg-[rgb(var(--color-bg-surface))] border-b border-[rgb(var(--color-border-subtle))]">
-      <button
-        onClick={() => editor.chain().focus().undo().run()}
-        title="Undo"
-        className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
-      >
-        <Undo size={16} />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().redo().run()}
-        title="Redo"
-        className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
-      >
-        <Redo size={16} />
-      </button>
-
-      {sep()}
-
-      <button
-        onClick={() => changeFontSize('down')}
-        title="Decrease font size"
-        className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
-      >
-        <AArrowDown size={16} />
-      </button>
-      <span className="text-xs text-[rgb(var(--color-text-secondary))] w-7 text-center tabular-nums">
-        {state.fontSize}
+    <button
+      onClick={onClick}
+      className="w-44 shrink-0 text-left p-4 rounded-lg border border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-surface))] hover:border-[rgb(var(--color-border-default))] hover:bg-[rgb(var(--color-bg-elevated))] transition-colors flex flex-col gap-2"
+    >
+      <span className="text-xs text-[rgb(var(--color-text-secondary))]">{dateLabel}</span>
+      <span className="text-sm font-medium text-[rgb(var(--color-text-primary))] line-clamp-2 leading-snug">
+        {review.title ?? 'Untitled'}
       </span>
+      {preview && (
+        <span className="text-xs text-[rgb(var(--color-text-secondary))] line-clamp-2 leading-snug">
+          {preview}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function MonthSection({
+  group,
+  isOpen,
+  onToggle,
+  onCardClick,
+  onDelete,
+}: {
+  group: MonthGroup;
+  isOpen: boolean;
+  onToggle: () => void;
+  onCardClick: (id: string) => void;
+    onDelete: (id: string) => void;
+}) {
+  return (
+    <div>
       <button
-        onClick={() => changeFontSize('up')}
-        title="Increase font size"
-        className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
+        onClick={onToggle}
+        className="w-full flex items-center gap-4 py-2 group"
       >
-        <AArrowUp size={16} />
+        <span className={`text-4xl font-bold lowercase tracking-tight leading-none transition-colors shrink-0 ${
+          isOpen
+            ? 'text-[rgb(var(--color-text-primary))]'
+            : 'text-[rgb(var(--color-text-secondary))] group-hover:text-[rgb(var(--color-text-primary))]'
+        }`}>
+          {group.monthLabel}
+        </span>
+        <div className="flex-1 border-t border-[rgb(var(--color-border-subtle))]" />
       </button>
 
-      {sep()}
-
-      {btn(<Bold size={16} />, state.isBold, () => editor.chain().focus().toggleBold().run(), 'Bold')}
-      {btn(<Italic size={16} />, state.isItalic, () => editor.chain().focus().toggleItalic().run(), 'Italic')}
-      {btn(<Strikethrough size={16} />, state.isStrike, () => editor.chain().focus().toggleStrike().run(), 'Strikethrough')}
-      {btn(<Code size={16} />, state.isCode, () => editor.chain().focus().toggleCode().run(), 'Inline code')}
-
-      {sep()}
-
-      {btn(<Heading1 size={16} />, state.isH1, () => editor.chain().focus().toggleHeading({ level: 1 }).run(), 'Heading 1')}
-      {btn(<Heading2 size={16} />, state.isH2, () => editor.chain().focus().toggleHeading({ level: 2 }).run(), 'Heading 2')}
-      {btn(<Heading3 size={16} />, state.isH3, () => editor.chain().focus().toggleHeading({ level: 3 }).run(), 'Heading 3')}
-
-      {sep()}
-
-      {btn(<List size={16} />, state.isBulletList, () => editor.chain().focus().toggleList('bulletList', 'listItem').run(), 'Bullet list')}
-      {btn(<ListOrdered size={16} />, state.isOrderedList, () => editor.chain().focus().toggleOrderedList().run(), 'Ordered list')}
-      {btn(<Quote size={16} />, state.isBlockquote, () => editor.chain().focus().toggleBlockquote().run(), 'Blockquote')}
-      {btn(<Terminal size={16} />, state.isCodeBlock, () => editor.chain().focus().toggleCodeBlock().run(), 'Code block')}
-
-      {sep()}
-
-      <button
-        onClick={() => editor.chain().focus().setHorizontalRule().run()}
-        title="Divider"
-        className="p-1.5 rounded text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
+      {/* Accordion via CSS grid trick */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: isOpen ? '1fr' : '0fr',
+          transition: 'grid-template-rows 0.3s ease',
+        }}
       >
-        <SeparatorHorizontal size={16} />
-      </button>
+        <div style={{ overflow: 'hidden' }}>
+          <div className="flex gap-3 pt-4 pb-6 overflow-x-auto">
+            {group.reviews.map((review) => (
+              <div key={review.id} className='relative group/card'>
+                <EntryCard
+                  review={review}
+                  onClick={() => onCardClick(review.id)}
+                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(review.id);
+                  }}
+                  className="absolute top-2 right-2 p-1 rounded opacity-100 sm:opacity-0 sm:group-hover/card:opacity-100 text-[rgb(var(--color-text-secondary))] hover:text-red-400 hover:bg-[rgb(var(--color-bg-elevated))] transition-all"
+                  title="Delete"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
 export function Reviews() {
-  const [title, setTitle] = useState('');
-  const editor = useEditor({
-    extensions: [StarterKit, TextStyle, FontSize],
-    content: '<p></p>',
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-full prose-code:before:content-none prose-code:after:content-none prose-code:bg-[rgb(var(--color-bg-elevated))] prose-code:rounded prose-code:px-1 prose-code:font-mono prose-code:text-sm prose-pre:bg-[rgb(var(--color-bg-elevated))] prose-pre:text-[rgb(var(--color-text-primary))]',
-      },
+  const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
+
+  const currentMonthKey = format(new Date(), 'yyyy-MM');
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(
+    () => new Set([currentMonthKey])
+  );
+
+  const { data: reviews = [], isLoading } = useQuery({
+    queryKey: ['reviews'],
+    queryFn: getReviews,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteReview(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['reviews']
+      });
     },
   });
 
+  const createMutation = useMutation({
+    mutationFn: createReview,
+    onSuccess: (review) => {
+      queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      navigate(`/reviews/${review.id}`);
+    },
+  });
+
+  const yearGroups = groupByYearAndMonth(reviews);
+
+  function toggleMonth(key: string) {
+    if (key === currentMonthKey) return;
+    setExpandedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-      {editor && <Toolbar editor={editor} />}
-
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-8 py-10">
-          {editor && (
-            <BubbleMenu editor={editor}>
-              <div className="flex gap-0.5 bg-[rgb(var(--color-bg-elevated))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-lg p-1">
-                <button
-                  onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}
-                  className={`p-1.5 rounded ${editor.isActive('bold') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
-                >
-                  <Bold size={14} />
-                </button>
-                <button
-                  onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}
-                  className={`p-1.5 rounded ${editor.isActive('italic') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
-                >
-                  <Italic size={14} />
-                </button>
-                <button
-                  onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBlockquote().run(); }}
-                  className={`p-1.5 rounded ${editor.isActive('blockquote') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
-                >
-                  <Quote size={14} />
-                </button>
-              </div>
-            </BubbleMenu>
-          )}
-
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled"
-            className="w-full text-3xl font-bold bg-transparent border-none outline-none text-[rgb(var(--color-text-primary))] placeholder-[rgb(var(--color-text-secondary))] mb-6"
-          />
-          <EditorContent editor={editor} />
-        </div>
+    <div className="px-8 py-10">
+      {/* Page header */}
+      <div className="flex items-center justify-between mb-10">
+        <h1 className="text-lg font-semibold text-[rgb(var(--color-text-primary))]">Reviews</h1>
+        <button
+          onClick={() => createMutation.mutate()}
+          disabled={createMutation.isPending}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[rgb(var(--color-accent))] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
+        >
+          <PlusIcon size={15} />
+          New Entry
+        </button>
       </div>
+
+      {isLoading ? null : reviews.length === 0 ? (
+        <p className="text-[rgb(var(--color-text-secondary))] text-sm">
+          No entries yet. Click "New Entry" to start writing.
+        </p>
+      ) : (
+        <div className="space-y-8">
+          {yearGroups.map((yearGroup) => (
+            <div key={yearGroup.year}>
+              <p className="text-xs font-medium tracking-widest text-[rgb(var(--color-text-secondary))] mb-3">
+                {yearGroup.year}
+              </p>
+              <div className="space-y-1">
+                {yearGroup.months.map((group) => (
+                  <MonthSection
+                    key={group.key}
+                    group={group}
+                    isOpen={expandedMonths.has(group.key)}
+                    onToggle={() => toggleMonth(group.key)}
+                    onCardClick={(id) => navigate(`/reviews/${id}`)}
+                    onDelete={(id) => deleteMutation.mutate(id)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
