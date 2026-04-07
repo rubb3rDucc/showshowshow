@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { format } from 'date-fns';
-import { PlusIcon } from 'lucide-react';
-import { getReviews, createReview } from '../api/reviews';
+import { PlusIcon, Trash2 } from 'lucide-react';
+import { getReviews, createReview, deleteReview } from '../api/reviews';
 import type { Review } from '../api/reviews';
 
 function stripHtml(html: string): string {
@@ -72,11 +72,13 @@ function MonthSection({
   isOpen,
   onToggle,
   onCardClick,
+  onDelete,
 }: {
   group: MonthGroup;
   isOpen: boolean;
   onToggle: () => void;
   onCardClick: (id: string) => void;
+    onDelete: (id: string) => void;
 }) {
   return (
     <div>
@@ -105,11 +107,22 @@ function MonthSection({
         <div style={{ overflow: 'hidden' }}>
           <div className="flex gap-3 pt-4 pb-6 overflow-x-auto">
             {group.reviews.map((review) => (
-              <EntryCard
-                key={review.id}
-                review={review}
-                onClick={() => onCardClick(review.id)}
-              />
+              <div key={review.id} className='relative group/card'>
+                <EntryCard
+                  review={review}
+                  onClick={() => onCardClick(review.id)}
+                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(review.id);
+                  }}
+                  className="absolute top-2 right-2 p-1 rounded opacity-100 sm:opacity-0 sm:group-hover/card:opacity-100 text-[rgb(var(--color-text-secondary))] hover:text-red-400 hover:bg-[rgb(var(--color-bg-elevated))] transition-all"
+                  title="Delete"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             ))}
           </div>
         </div>
@@ -130,6 +143,15 @@ export function Reviews() {
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ['reviews'],
     queryFn: getReviews,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteReview(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['reviews']
+      });
+    },
   });
 
   const createMutation = useMutation({
@@ -189,6 +211,7 @@ export function Reviews() {
                     isOpen={expandedMonths.has(group.key)}
                     onToggle={() => toggleMonth(group.key)}
                     onCardClick={(id) => navigate(`/reviews/${id}`)}
+                    onDelete={(id) => deleteMutation.mutate(id)}
                   />
                 ))}
               </div>

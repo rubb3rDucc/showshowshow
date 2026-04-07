@@ -9,10 +9,12 @@ import type { Editor } from '@tiptap/react';
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Terminal, Undo, Redo, AArrowUp, AArrowDown,
-  SeparatorHorizontal, ArrowLeft,
+  SeparatorHorizontal, ArrowLeft, Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useReviewEditor } from '../hooks/useReviewEditor';
+import { useQueryClient } from '@tanstack/react-query';
+import { deleteReview } from '../api/reviews';
 
 const FONT_SIZES = [12, 13, 14, 15, 16, 18, 20, 24, 28, 32, 36, 48];
 const DEFAULT_SIZE = 14;
@@ -146,7 +148,8 @@ export function ReviewEditor() {
   const {
     review, isLoading, displayTitle,
     showModified, setTitle, setBodyHtml, setShowModified,
-  } = useReviewEditor(id);
+    handleDelete,
+  } = useReviewEditor(id, navigate);
 
   const editor = useEditor({
     extensions: [
@@ -218,7 +221,7 @@ export function ReviewEditor() {
           )}
 
           {/* Chrome: back arrow + date */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/reviews')}
               className="p-1 -ml-1 rounded text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] hover:bg-[rgb(var(--color-bg-elevated))] transition-colors"
@@ -226,6 +229,15 @@ export function ReviewEditor() {
             >
               <ArrowLeft size={18} />
             </button>
+
+            <button
+              onClick={handleDelete}
+              className="p-1 rounded text-[rgb(var(--color-text-secondary))] hover:text-red-400 hover:bg-[rgb(var(--color-bg-elevated))] transition-colors"
+              title="Delete review"
+            >
+              <Trash2 size={16} />
+            </button>
+
             {review && (
               <button
                 onClick={() => setShowModified(prev => !prev)}

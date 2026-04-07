@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getReview, updateReview } from '../api/reviews';
+import { deleteReview, getReview, updateReview } from '../api/reviews';
 import { useAutosave } from './useAutosave';
 
-export function useReviewEditor(id: string) {
+export function useReviewEditor(id: string, navigate: (path: string) => void) {
     const queryClient = useQueryClient();
 
     const {data: review, isLoading} = useQuery({
@@ -35,12 +35,19 @@ export function useReviewEditor(id: string) {
         { enabled: title !== null || bodyHtml !== null }   
     );
 
+    const handleDelete = async () => {
+        await deleteReview(id);
+        queryClient.invalidateQueries({ queryKey: ['reviews'] });
+        navigate('/reviews');
+    };
+
     return {
         review,
         isLoading,
         displayTitle,
         displayBodyHtml,
         showModified,
+        handleDelete,
         setTitle,
         setBodyHtml,
         setShowModified,
