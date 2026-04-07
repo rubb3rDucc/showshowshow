@@ -165,8 +165,11 @@ export function ReviewEditor() {
 
   // set editor content once review loads
   useEffect(() => {
-    if (editor && review && review.body && !editor.getText()) {
-      editor.commands.setContent(review.body);
+    if (editor && review) {
+      if (review.body && !editor.getText()) {
+        editor.commands.setContent(review.body);
+      }
+      editor.commands.focus();
     }
   }, [editor, review]);
 
