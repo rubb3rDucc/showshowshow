@@ -29,7 +29,6 @@ function Toolbar({ editor }: { editor: Editor }) {
       isBold: e.isActive('bold'),
       isItalic: e.isActive('italic'),
       isStrike: e.isActive('strike'),
-      isCode: e.isActive('code'),
       isH1: e.isActive('heading', { level: 1 }),
       isH2: e.isActive('heading', { level: 2 }),
       isH3: e.isActive('heading', { level: 3 }),
@@ -111,7 +110,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       {btn(<Bold size={16} />, state.isBold, () => editor.chain().focus().toggleBold().run(), 'Bold')}
       {btn(<Italic size={16} />, state.isItalic, () => editor.chain().focus().toggleItalic().run(), 'Italic')}
       {btn(<Strikethrough size={16} />, state.isStrike, () => editor.chain().focus().toggleStrike().run(), 'Strikethrough')}
-      {btn(<Code size={16} />, state.isCode, () => editor.chain().focus().toggleCode().run(), 'Inline code')}
+      {/* {btn(<Code size={16} />, state.isCode, () => editor.chain().focus().toggleCode().run(), 'Inline code')} */}
 
       {sep()}
 
@@ -182,24 +181,35 @@ export function ReviewEditor() {
           {editor && (
             <BubbleMenu editor={editor}>
               <div className="flex gap-0.5 bg-[rgb(var(--color-bg-elevated))] border border-[rgb(var(--color-border-default))] rounded-lg shadow-lg p-1">
+                {/* bold bold bold */}
                 <button
                   onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}
                   className={`p-1.5 rounded ${editor.isActive('bold') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
                 >
                   <Bold size={14} />
                 </button>
+                {/* italics */}
                 <button
                   onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}
                   className={`p-1.5 rounded ${editor.isActive('italic') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
                 >
                   <Italic size={14} />
                 </button>
+                {/* underline */}
                 <button
+                  onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleStrike().run(); }}
+                  className={`p-1.5 rounded ${editor.isActive('strikethrough') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
+                >
+                  <Strikethrough size={14} />
+                </button>
+                {/* headings */}
+
+                {/* <button
                   onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBlockquote().run(); }}
                   className={`p-1.5 rounded ${editor.isActive('blockquote') ? 'bg-[rgb(var(--color-accent))] text-white' : 'text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-page))]'}`}
                 >
                   <Quote size={14} />
-                </button>
+                </button> */}
               </div>
             </BubbleMenu>
           )}
