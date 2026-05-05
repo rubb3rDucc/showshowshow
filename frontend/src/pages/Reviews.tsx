@@ -3,13 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { format } from 'date-fns';
 import { PlusIcon, Trash2 } from 'lucide-react';
+import { generateText } from '@tiptap/react';
 import { getReviews, createReview } from '../api/reviews';
 import type { Review } from '../api/reviews';
 import { useDeleteReview } from '../hooks/useDeleteReview';
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').trim();
-}
+import { reviewEditorExtensions } from '../lib/reviewEditorExtensions';
 
 interface MonthGroup {
   key: string;        // 'yyyy-MM'
@@ -48,7 +46,7 @@ function groupByYearAndMonth(reviews: Review[]): YearGroup[] {
 
 function EntryCard({ review, onClick }: { review: Review; onClick: () => void }) {
   const dateLabel = format(new Date(review.created_at), 'MMM d');
-  const preview = review.body ? stripHtml(review.body) : null;
+  const preview = review.body ? generateText(review.body, reviewEditorExtensions) : null;
 
   return (
     <button

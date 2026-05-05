@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { JSONContent } from '@tiptap/react';
 import { getReview, updateReview } from '../api/reviews';
 import { useAutosave } from './useAutosave';
 import { useDeleteReview } from './useDeleteReview';
@@ -14,16 +15,16 @@ export function useReviewEditor(id: string, navigate: (path: string) => void) {
     });
 
     const [title, setTitle] = useState<string | null>(null);
-    const [bodyHtml, setBodyHtml] = useState<string | null>(null);
+    const [bodyJson, setBodyJson] = useState<JSONContent | null>(null);
     const [showModified, setShowModified] = useState(false);
     const [savedFlash, setSavedFlash] = useState(false);
 
     const displayTitle = title ?? review?.title ?? '';
-    const displayBodyHtml = bodyHtml ?? review?.body ?? '';
+    const displayBodyJson = bodyJson ?? review?.body ?? null;
 
     const saveMutation = useMutation({
-        mutationFn: ({t, b}: { t: string; b: string }) =>
-            updateReview(id, {title: t || undefined, body: b || undefined }),
+        mutationFn: ({t, b}: { t: string; b: JSONContent | null }) =>
+            updateReview(id, {title: t || undefined, body: b ?? undefined }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['reviews'] });
             queryClient.invalidateQueries({ queryKey: ['review', id] });
@@ -33,9 +34,9 @@ export function useReviewEditor(id: string, navigate: (path: string) => void) {
     });
 
     useAutosave(
-        {title, bodyHtml},
-        () => saveMutation.mutate({ t: displayTitle, b: displayBodyHtml }),
-        { enabled: title !== null || bodyHtml !== null }
+        {title, bodyJson},
+        () => saveMutation.mutate({ t: displayTitle, b: displayBodyJson }),
+        { enabled: title !== null || bodyJson !== null }
     );
 
     const saveStatus = saveMutation.isPending ? 'saving' : savedFlash ? 'saved' : 'idle';
@@ -47,12 +48,12 @@ export function useReviewEditor(id: string, navigate: (path: string) => void) {
         review,
         isLoading,
         displayTitle,
-        displayBodyHtml,
+        displayBodyJson,
         showModified,
         handleDelete,
         saveStatus,
         setTitle,
-        setBodyHtml,
+        setBodyJson,
         setShowModified,
     };
 }

@@ -2,10 +2,8 @@ import { useEffect } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
-import { StarterKit } from '@tiptap/starter-kit';
-import { TextStyle } from '@tiptap/extension-text-style';
-import { FontSize } from '@tiptap/extension-font-size';
 import type { Editor } from '@tiptap/react';
+import { reviewEditorExtensions } from '../lib/reviewEditorExtensions';
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Terminal, Undo, Redo, AArrowUp, AArrowDown,
@@ -155,23 +153,19 @@ export function ReviewEditor() {
 
   const {
     review, isLoading, displayTitle,
-    showModified, setTitle, setBodyHtml, setShowModified,
+    showModified, setTitle, setBodyJson, setShowModified,
     handleDelete, saveStatus,
   } = useReviewEditor(id, navigate);
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      TextStyle,
-      FontSize
-    ],
+    extensions: reviewEditorExtensions,
     content: '<p></p>',
     editorProps: {
       attributes: {
         class: 'prose prose-sm max-w-none focus:outline-none min-h-full prose-code:before:content-none prose-code:after:content-none prose-code:bg-[rgb(var(--color-bg-elevated))] prose-code:rounded prose-code:px-1 prose-code:font-mono prose-code:text-sm prose-pre:bg-[rgb(var(--color-bg-elevated))] prose-pre:text-[rgb(var(--color-text-primary))]',
       },
     },
-    onUpdate: ({ editor: e }) => setBodyHtml(e.getHTML()),
+    onUpdate: ({ editor: e }) => setBodyJson(e.getJSON()),
   });
 
   // set editor content once review loads
