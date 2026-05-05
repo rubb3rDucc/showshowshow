@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
@@ -168,13 +168,15 @@ export function ReviewEditor() {
     onUpdate: ({ editor: e }) => setBodyJson(e.getJSON()),
   });
 
-  // set editor content once review loads
+  // set editor content + focus body once per review id (not on every autosave refetch)
+  const focusedForId = useRef<string | null>(null);
   useEffect(() => {
-    if (editor && review) {
-      if (review.body && !editor.getText()) {
+    if (editor && review && focusedForId.current !== review.id) {
+      if (review.body) {
         editor.commands.setContent(review.body);
       }
       editor.commands.focus();
+      focusedForId.current = review.id;
     }
   }, [editor, review]);
 
