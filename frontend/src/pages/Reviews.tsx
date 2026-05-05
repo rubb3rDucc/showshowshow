@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { format } from 'date-fns';
 import { PlusIcon, Trash2 } from 'lucide-react';
-import { getReviews, createReview, deleteReview } from '../api/reviews';
+import { getReviews, createReview } from '../api/reviews';
 import type { Review } from '../api/reviews';
+import { useDeleteReview } from '../hooks/useDeleteReview';
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim();
@@ -145,14 +146,7 @@ export function Reviews() {
     queryFn: getReviews,
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteReview(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['reviews']
-      });
-    },
-  });
+  const confirmDelete = useDeleteReview();
 
   const createMutation = useMutation({
     mutationFn: createReview,
@@ -211,7 +205,7 @@ export function Reviews() {
                     isOpen={expandedMonths.has(group.key)}
                     onToggle={() => toggleMonth(group.key)}
                     onCardClick={(id) => navigate(`/reviews/${id}`)}
-                    onDelete={(id) => deleteMutation.mutate(id)}
+                    onDelete={confirmDelete}
                   />
                 ))}
               </div>

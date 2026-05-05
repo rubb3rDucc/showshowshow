@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { deleteReview, getReview, updateReview } from '../api/reviews';
+import { getReview, updateReview } from '../api/reviews';
 import { useAutosave } from './useAutosave';
+import { useDeleteReview } from './useDeleteReview';
 
 export function useReviewEditor(id: string, navigate: (path: string) => void) {
     const queryClient = useQueryClient();
@@ -39,11 +40,8 @@ export function useReviewEditor(id: string, navigate: (path: string) => void) {
 
     const saveStatus = saveMutation.isPending ? 'saving' : savedFlash ? 'saved' : 'idle';
 
-    const handleDelete = async () => {
-        await deleteReview(id);
-        queryClient.invalidateQueries({ queryKey: ['reviews'] });
-        navigate('/reviews');
-    };
+    const confirmDelete = useDeleteReview({ onSuccess: () => navigate('/reviews') });
+    const handleDelete = () => confirmDelete(id);
 
     return {
         review,
