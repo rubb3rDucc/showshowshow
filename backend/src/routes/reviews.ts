@@ -118,6 +118,6 @@ export const reviewsRoutes = async (fastify: FastifyInstance) => {
       throw new NotFoundError('Review not found');
     }
 
-    return reply.code(204).send();
+    return reply.send({ success: true });
   });
 };
