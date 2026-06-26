@@ -90,12 +90,12 @@ export function LibraryCard({
             src={item.content.posterUrl}
             alt={item.content.title}
             loading="lazy"
-            className="w-full h-full object-cover
+            className="w-full h-full object-cover rounded-[inherit]
                        transition-transform duration-500 ease-out
                        group-hover:scale-110"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center 
+          <div className="w-full h-full flex items-center justify-center rounded-[inherit]
                           bg-gradient-to-br from-gray-100 to-gray-200">
             <Tv className="w-12 h-12 text-gray-400" />
           </div>

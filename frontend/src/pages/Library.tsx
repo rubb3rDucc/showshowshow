@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Container, Button, Text, Loader, Center } from '@mantine/core';
 import { Plus } from 'lucide-react';
 import { useLocation } from 'wouter';
@@ -8,7 +8,7 @@ import { captureApiError } from '../lib/posthog';
 import { LibraryFilters } from '../components/library/LibraryFilters';
 import { LibraryCard } from '../components/library/LibraryCard';
 import { LibraryDetailModal } from '../components/library/LibraryDetailModal';
-import { getLibrary, removeFromLibrary, updateLibraryItem } from '../api/library';
+import { getLibrary, removeFromLibrary, updateLibraryItem, checkLibrary } from '../api/library';
 import { addToQueue } from '../api/content';
 import { libraryItemToUI } from '../utils/library.utils';
 import type {
@@ -27,6 +27,27 @@ export function Library() {
   const [sortBy, setSortBy] = useState<LibrarySortOption>('recently_added');
   const [selectedItem, setSelectedItem] = useState<LibraryItemUI | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Deep-link: open a specific content's detail when navigated with ?open=<content_id>
+  // (used by Home widgets like "Up next"). Fetched directly so it resolves regardless of
+  // the current list filter or pagination.
+  const openContentId = useMemo(
+    () => new URLSearchParams(window.location.search).get('open'),
+    []
+  );
+  const [openApplied, setOpenApplied] = useState(false);
+  const { data: openCheck } = useQuery({
+    queryKey: ['library', 'open', openContentId],
+    queryFn: () => checkLibrary(openContentId!),
+    enabled: !!openContentId,
+    staleTime: 60_000,
+  });
+  // Open the detail modal once the deep-linked item resolves (adjust-state-during-render).
+  if (!openApplied && openCheck?.library_item) {
+    setOpenApplied(true);
+    setSelectedItem(libraryItemToUI(openCheck.library_item));
+    setIsModalOpen(true);
+  }
 
   // Fetch library items with infinite scroll
   const {

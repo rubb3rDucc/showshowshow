@@ -1,7 +1,8 @@
 import { apiCall } from './client';
-import type { 
-  LibraryItem, 
-  LibraryStatsAPI, 
+import type {
+  LibraryItem,
+  LibraryStatsAPI,
+  WeeklyStats,
   EpisodeStatusItem,
   CreateLibraryItemRequest,
   UpdateLibraryItemRequest,
@@ -54,6 +55,13 @@ export async function getLibrary(
  */
 export async function getLibraryStats(): Promise<LibraryStatsAPI> {
   return apiCall<LibraryStatsAPI>('/api/library/stats');
+}
+
+/**
+ * Get this-week stats (rolling 7-day window) with prior-week comparison
+ */
+export async function getWeeklyStats(): Promise<WeeklyStats> {
+  return apiCall<WeeklyStats>('/api/library/stats/weekly');
 }
 
 /**

@@ -2,6 +2,7 @@ import { db } from '../db/index.js';
 import { searchTMDB, getShowDetails, getMovieDetails, getSeason, getImageUrl, getContentType, getDefaultDuration, getShowContentRatings, getMovieReleaseDates, extractUSRating } from '../lib/tmdb.js';
 import { searchJikan, jikanSearchToSearchResult, getAnimeDetails, getAnimeEpisodes, jikanToContentFormat } from '../lib/jikan.js';
 import { normalizeRating } from '../lib/rating-utils.js';
+import { dbTypeToApiType } from '../lib/content-type.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import { parseIntWithDefault } from '../lib/utils.js';
 import { authenticateClerk } from '../plugins/clerk-auth.js';
@@ -344,19 +345,19 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       .where('tmdb_id', '=', tmdbIdNum)
       .executeTakeFirst();
 
-    // If type is specified and existing content doesn't match, delete and re-fetch
+    // If a type was requested and the cached row is the OTHER TMDB type (rare tv/movie
+    // id collision), re-fetch as the requested type by UPDATING the existing row in
+    // place (same id) below — never delete it. Deleting would cascade through
+    // user_library/queue/schedule (ON DELETE CASCADE) and silently wipe user data.
+    let replaceContentId: string | null = null;
     if (existing && type) {
-      const existingType = existing.content_type === 'show' ? 'series' : 'movie';
-      if (existingType !== type) {
-        console.log(`Content ${tmdbIdNum} exists as ${existingType} but ${type} requested. Deleting and re-fetching...`);
-        
-        // Delete related data first
-        await db.deleteFrom('episodes').where('content_id', '=', existing.id).execute();
-        await db.deleteFrom('queue').where('content_id', '=', existing.id).execute();
-        await db.deleteFrom('schedule').where('content_id', '=', existing.id).execute();
-        await db.deleteFrom('content').where('id', '=', existing.id).execute();
-        
-        // Continue to fetch new content below
+      if (dbTypeToApiType(existing.content_type) !== type) {
+        request.log.warn(
+          { tmdbId: tmdbIdNum, cachedType: existing.content_type, requestedType: type, contentId: existing.id },
+          'content cached under the wrong TMDB type; correcting in place (no delete)'
+        );
+        replaceContentId = existing.id;
+        // fall through to fetch the correct type and update the row below
       } else {
         // Type matches, return existing
         return reply.send(existing);
@@ -497,17 +498,32 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       }
     }
 
-    // Save to database
-    const saved = await db
-      .insertInto('content')
-      .values({
-        id: crypto.randomUUID(),
-        ...content,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    // Save to database. When correcting a wrong-type cache hit, UPDATE the existing
+    // row in place (preserving its id and all user_library/queue/schedule references);
+    // otherwise insert a fresh row.
+    let saved;
+    if (replaceContentId) {
+      // The cached episodes belonged to the old (wrong) type — clear them (cache only,
+      // not user data). They'll be re-fetched on demand for the corrected type.
+      await db.deleteFrom('episodes').where('content_id', '=', replaceContentId).execute();
+      saved = await db
+        .updateTable('content')
+        .set({ ...content, updated_at: new Date() })
+        .where('id', '=', replaceContentId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    } else {
+      saved = await db
+        .insertInto('content')
+        .values({
+          id: crypto.randomUUID(),
+          ...content,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    }
 
     // Store network associations for TV shows from TMDB
     // Only associate with networks that already exist in our database (user-curated)
