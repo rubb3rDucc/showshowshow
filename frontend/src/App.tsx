@@ -43,7 +43,6 @@ const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.S
 const Stats = lazy(() => import('./pages/Stats').then(m => ({ default: m.Stats })));
 const PersonDetail = lazy(() => import('./pages/PersonDetail').then(m => ({ default: m.PersonDetail })));
 const ContentDetail = lazy(() => import('./pages/ContentDetail').then(m => ({ default: m.ContentDetail })));
-const ProtoSchedule = lazy(() => import('./pages/ProtoSchedule').then(m => ({ default: m.ProtoSchedule })));
 
 // Loading fallback for lazy loaded pages
 function PageLoader() {
@@ -166,11 +165,6 @@ function App() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/clerk-test" component={ClerkTest} />
-        <Route path="/proto/schedule">
-          <Suspense fallback={<PageLoader />}>
-            <ProtoSchedule />
-          </Suspense>
-        </Route>
 
         {/* Protected routes */}
         <Route path="/">
