@@ -21,6 +21,10 @@
     "@mantine/dates": "^8.3.18",
     "@mantine/form": "^8.3.18",
     "@mantine/hooks": "^8.3.18",
+    "@schedule-x/calendar": "^4.6.0",
+    "@schedule-x/events-service": "^4.6.0",
+    "@schedule-x/react": "^4.1.0",
+    "@schedule-x/theme-default": "^4.6.0",
     "@tanstack/react-query": "^5.95.0",
     "@tiptap/extension-bubble-menu": "^3.20.4",
     "@tiptap/extension-font-size": "3.0.0-next.3",
@@ -33,6 +37,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "sonner": "^2.0.7",
+    "temporal-polyfill": "^1.0.1",
     "terser": "^5.46.1",
     "wouter": "^3.9.0",
     "zustand": "^5.0.12"

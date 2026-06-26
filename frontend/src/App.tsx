@@ -34,6 +34,7 @@ import { Browse } from './pages/Browse';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
 import { Networks } from './pages/Networks';
 import { ClerkTest } from './pages/ClerkTest';
+import { ProtoSchedule } from './pages/ProtoSchedule';
 import { flags } from './flags';
 const Reviews = lazy(() => import('./pages/Reviews').then(m => ({ default: m.Reviews })));
 const ReviewEditor = lazy(() => import('./pages/ReviewEditor').then(m => ({ default: m.ReviewEditor })));
@@ -164,6 +165,7 @@ function App() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/clerk-test" component={ClerkTest} />
+        <Route path="/proto/schedule" component={ProtoSchedule} />
 
         {/* Protected routes */}
         <Route path="/">
