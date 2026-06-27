@@ -1,5 +1,7 @@
-import { Modal, Text, Group, Badge } from '@mantine/core';
+import { Modal } from '@mantine/core';
 import { Calendar, Hash } from 'lucide-react';
+import { formatFullDate } from '../../utils/format';
+import { Button } from '../common/Button';
 
 interface EpisodeDetailModalProps {
   opened: boolean;
@@ -21,22 +23,16 @@ export function EpisodeDetailModal({
   if (!episode) return null;
 
   const episodeTitle = episode.title || `Episode ${episode.episode_number}`;
-  const formattedAirDate = episode.air_date
-    ? new Date(episode.air_date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : null;
+  const formattedAirDate = episode.air_date ? formatFullDate(episode.air_date) : null;
 
   return (
     <Modal
       opened={opened}
       onClose={onClose}
       title={
-        <Text fw={700} size="lg">
+        <span className="text-base font-medium text-[rgb(var(--color-text-primary))]">
           Episode Details
-        </Text>
+        </span>
       }
       centered
       size="lg"
@@ -45,50 +41,35 @@ export function EpisodeDetailModal({
     >
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-[rgb(var(--color-text-primary))] mb-2">
+          <h2 className="text-2xl font-bold tracking-tight text-[rgb(var(--color-text-primary))] mb-3">
             {episodeTitle}
           </h2>
 
-          <Group gap="xs" className="mb-4">
-            <Badge
-              size="lg"
-              radius="sm"
-              color="gray"
-              variant="light"
-              leftSection={<Hash size={14} />}
-            >
-              Season {episode.season}, Episode {episode.episode_number}
-            </Badge>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[rgb(var(--color-text-secondary))]">
+            <span className="inline-flex items-center gap-1">
+              <Hash size={14} /> Season {episode.season}, Episode {episode.episode_number}
+            </span>
             {formattedAirDate && (
-              <Badge
-                size="lg"
-                radius="sm"
-                color="gray"
-                variant="light"
-                leftSection={<Calendar size={14} />}
-              >
-                {formattedAirDate}
-              </Badge>
+              <span className="inline-flex items-center gap-1">
+                <Calendar size={14} /> {formattedAirDate}
+              </span>
             )}
-          </Group>
+          </div>
         </div>
 
-        <div className="bg-[rgb(var(--color-bg-page))] p-4 rounded-md border border-gray-100">
-          <Text size="sm" c="dimmed" fw={600} mb="xs">
+        <div className="bg-[rgb(var(--color-bg-page))] p-4 rounded-lg border border-[rgb(var(--color-border-default))]">
+          <p className="text-xs font-medium text-[rgb(var(--color-text-tertiary))] mb-2">
             Synopsis
-          </Text>
-          <Text className="leading-relaxed text-gray-700">
+          </p>
+          <p className="text-[15px] leading-relaxed text-[rgb(var(--color-text-primary))]">
             {episode.overview || 'No description available for this episode.'}
-          </Text>
+          </p>
         </div>
 
         <div className="flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-900 text-white font-bold rounded hover:bg-gray-800 transition-colors text-sm tracking-wide"
-          >
+          <Button variant="default" onClick={onClose}>
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

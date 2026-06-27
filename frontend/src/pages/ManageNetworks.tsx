@@ -16,7 +16,7 @@ export function ManageNetworks() {
   // const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   // const [networkToDelete, setNetworkToDelete] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
-  const searchTimeoutRef = useRef<number | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Get existing networks
   const { data: existingNetworks, isLoading } = useQuery({
