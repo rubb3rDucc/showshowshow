@@ -911,11 +911,12 @@ export async function generateScheduleFromQueue(
   timeSlots: string[],
   options: Omit<GenerateScheduleOptions, 'userId' | 'showIds' | 'startDate' | 'endDate' | 'timeSlots'> = {}
 ) {
-  // Get shows from queue
+  // Get shows from queue (skip items the user has paused from scheduling)
   const queueItems = await db
     .selectFrom('queue')
     .select('content_id')
     .where('user_id', '=', userId)
+    .where('is_active', '=', true)
     .orderBy('position', 'asc')
     .execute();
 
