@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useClerk } from '@clerk/clerk-react';
 import { Button, Burger, Drawer, Stack, Divider } from "@mantine/core";
+import { flags } from '../../flags';
 
 export function Navigation() {
   const [location] = useLocation();
@@ -12,6 +13,7 @@ export function Navigation() {
     { path: '/', label: 'Home' },
     { path: '/browse', label: 'Browse' },
     { path: '/library', label: 'Library' },
+    ...(flags.reviews ? [{ path: '/reviews', label: 'Reviews' }] : []),
     { path: '/lineup', label: 'Lineup' },
     { path: '/stats', label: 'Stats' },
     { path: '/settings', label: 'Settings' },

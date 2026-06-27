@@ -15,7 +15,7 @@ export function Stats() {
   // Fetch library items
   const { data: libraryItems = [], isLoading: isLoadingLibrary } = useQuery({
     queryKey: ['library'],
-    queryFn: () => getLibrary(),
+    queryFn: () => getLibrary().then(r => r.items),
   });
 
   // Fetch library stats

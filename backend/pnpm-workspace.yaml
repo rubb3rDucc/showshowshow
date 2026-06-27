@@ -1,0 +1,18 @@
+# pnpm settings. Since pnpm 11, these live here instead of the package.json
+# "pnpm" field (which pnpm 11 silently ignores).
+
+# CVE-pinning overrides for transitive dependencies.
+overrides:
+  esbuild: '>=0.28.1'
+  picomatch: '>=4.0.4'
+  vite: '^7.3.5'
+  postcss: '>=8.5.10'
+  fast-uri: '>=3.1.2'
+  uuid: '>=11.1.1'
+  js-cookie: '>=3.0.7'
+
+# pnpm 11 ignores dependency build scripts unless explicitly allowed here.
+allowBuilds:
+  bcrypt: true # native bindings — required for password hashing
+  esbuild: true # fetches its platform binary — required for the build
+  '@clerk/shared': true

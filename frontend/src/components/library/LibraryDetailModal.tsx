@@ -1,9 +1,14 @@
-import { useState, useEffect, useCallback, useRef, useEffectEvent } from 'react';
-import { Modal, Drawer, Textarea, Button, Badge, Menu, ActionIcon, Text, useMantineTheme } from '@mantine/core';
+import { useState, useEffect, useRef, useEffectEvent } from 'react';
+import { Modal, Drawer, useMantineTheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-import { MoreVertical, Star } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
+import { X, ListPlus, Trash2, ExternalLink } from 'lucide-react';
 import type { LibraryItemUI, LibraryStatus } from '../../types/library.types';
+import { getContentByTmdbId } from '../../api/content';
 import { EpisodeTracker } from './EpisodeTracker';
+import { Button } from '../common/Button';
+import { StarRating } from '../common/StarRating';
 
 interface LibraryDetailModalProps {
   item: LibraryItemUI | null;
@@ -14,129 +19,18 @@ interface LibraryDetailModalProps {
   onRemove: (id: string) => void;
 }
 
-const STATUS_OPTIONS: { value: LibraryStatus; label: string; color: string }[] = [
-  {
-    value: 'watching',
-    label: 'Watching',
-    color: 'bg-blue-500',
-  },
-  {
-    value: 'completed',
-    label: 'Completed',
-    color: 'bg-green-500',
-  },
-  {
-    value: 'dropped',
-    label: 'Dropped',
-    color: 'bg-red-500',
-  },
-  {
-    value: 'plan_to_watch',
-    label: 'Plan to Watch',
-    color: 'bg-gray-500',
-  },
+const STATUS_OPTIONS: { value: LibraryStatus; label: string }[] = [
+  { value: 'watching', label: 'Watching' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'plan_to_watch', label: 'Plan to watch' },
+  { value: 'dropped', label: 'Dropped' },
 ];
 
-interface NotesSectionProps {
-  notes: string;
-  status: LibraryStatus;
-  score: number | null;
-  onNotesChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onStatusChange: (status: LibraryStatus) => void;
-  onScoreChange: (score: number | null) => void;
-  onToggle: () => void;
+/** Upgrade a TMDB image URL to full resolution; pass non-TMDB urls through. */
+function toOriginal(url: string | null): string | null {
+  if (!url) return null;
+  return url.replace(/\/t\/p\/w\d+\//, '/t/p/original/');
 }
-
-// Notes Section Component (Magic Patterns style) - Moved outside to prevent re-creation
-const NotesSection = ({
-  notes,
-  score,
-  onNotesChange,
-  onScoreChange,
-}: NotesSectionProps) => {
-  return (
-    <div className="border-b border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-surface))] w-full">
-      <div className="w-full flex items-center justify-between p-3 md:p-4">
-        <span className="font-semibold text-base text-[rgb(var(--color-text-primary))]">Notes</span>
-      </div>
-
-      <div className="p-4 md:p-4 pt-0 space-y-3 md:space-y-3 w-full">
-        {/* Score Selector */}
-        <div>
-          <label className="block text-sm font-semibold text-[rgb(var(--color-text-secondary))] mb-2">
-            Score
-          </label>
-          <div className="flex flex-wrap gap-1">
-            {/* Star rating with 44x44 touch targets */}
-            <div className="flex items-center gap-0.5 overflow-x-auto">
-              <button
-                onClick={() => onScoreChange(null)}
-                className={`
-                  min-w-[44px] min-h-[44px] text-sm border border-[rgb(var(--color-border-default))] font-semibold
-                  transition-all flex items-center justify-center
-                  ${score === null
-                    ? 'bg-[rgb(var(--color-accent))] text-white border-[rgb(var(--color-accent))]'
-                    : 'bg-[rgb(var(--color-bg-surface))] text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))]'
-                  }
-                  `}
-                style={{ borderRadius: '4px' }}
-                aria-label="No score"
-              >
-                —
-              </button>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                <button
-                  key={num}
-                  onClick={() => onScoreChange(num)}
-                  className={`
-                    min-w-[44px] min-h-[44px] flex items-center justify-center
-                      ${score && score >= num
-                      ? 'text-amber-500'
-                      : 'text-gray-300 dark:text-gray-600'
-                    }
-      hover:text-amber-400 transition-colors
-    `}
-                  aria-label={`Rate ${num} stars`}
-                >
-                  <Star size={20} fill={score && score >= num ? 'currentColor' : 'none'} />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Notes */}
-        <div>
-          <label className="block text-sm font-semibold text-[rgb(var(--color-text-secondary))] mb-2">
-            Notes
-          </label>
-          <Textarea
-            placeholder="Add your notes about this show..."
-            value={notes}
-            resize="vertical"
-            onChange={onNotesChange}
-            minRows={3}
-            maxLength={250}
-            classNames={{
-              input: 'border border-[rgb(var(--color-border-default))] focus:border-[rgb(var(--color-accent))] bg-[rgb(var(--color-bg-surface))] text-[rgb(var(--color-text-primary))] font-normal placeholder:text-[rgb(var(--color-text-tertiary))]',
-            }}
-            styles={{
-              input: {
-                borderRadius: '4px',
-                fontSize: '14px',
-              },
-            }}
-          />
-          <div className="text-right mt-1">
-            <span className="text-sm font-normal text-[rgb(var(--color-text-tertiary))]">
-              {notes.length}/250
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export function LibraryDetailModal({
   item,
@@ -148,100 +42,66 @@ export function LibraryDetailModal({
 }: LibraryDetailModalProps) {
   const theme = useMantineTheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.md})`);
+  const [, setLocation] = useLocation();
 
-  const [status, setStatus] = useState<LibraryStatus>(
-    item?.status || 'plan_to_watch',
-  );
-  
+  const [status, setStatus] = useState<LibraryStatus>(item?.status || 'plan_to_watch');
   const [score, setScore] = useState<number | null>(item?.score || null);
-  const [notes, setNotes] = useState(item?.notes || '');
-  const [notesSectionOpened, setNotesSectionOpened] = useState(false);
-  
-  const onStatusChange = useEffectEvent((item: LibraryStatus) => {
-    setStatus(item);
-  });
-  const onScoreChange = useEffectEvent((item: number | null) => {
-    setScore(item);
-  });
-  const onNotesChange = useEffectEvent((item: string) => {
-    setNotes(item);
-  });
+  const [posterZoom, setPosterZoom] = useState(false);
+
+  const onStatusChange = useEffectEvent((s: LibraryStatus) => setStatus(s));
+  const onScoreChange = useEffectEvent((s: number | null) => setScore(s));
 
   const autoSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSavedRef = useRef<{
-    status: LibraryStatus;
-    score: number | null;
-    notes: string | null;
-  } | null>(null);
+  const lastSavedRef = useRef<{ status: LibraryStatus; score: number | null } | null>(null);
 
-  // Reset form when item changes
+  // Reset form when the item changes
   useEffect(() => {
     if (item) {
       onStatusChange(item.status as LibraryStatus);
       onScoreChange(item.score || null);
-      onNotesChange(item.notes || '');
-
-      lastSavedRef.current = {
-        status: item.status,
-        score: item.score,
-        notes: item.notes || null,
-      };
+      lastSavedRef.current = { status: item.status, score: item.score };
     }
   }, [item]);
 
-  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNotes(e.currentTarget.value);
-  }, []);
-
+  // Debounced autosave (status + score only — notes deprecated by reviews)
   useEffect(() => {
     if (!item) return;
 
-    const nextPayload = {
-      status,
-      score,
-      notes: notes || null,
-    };
-
-    // Avoid saving if nothing changed
+    const next = { status, score };
     const last = lastSavedRef.current;
-    const hasChanged =
-      !last ||
-      last.status !== nextPayload.status ||
-      last.score !== nextPayload.score ||
-      last.notes !== nextPayload.notes;
-
+    const hasChanged = !last || last.status !== next.status || last.score !== next.score;
     if (!hasChanged) return;
 
-    // Debounce save
-    if (autoSaveTimeout.current) {
-      clearTimeout(autoSaveTimeout.current);
-    }
-
+    if (autoSaveTimeout.current) clearTimeout(autoSaveTimeout.current);
     autoSaveTimeout.current = setTimeout(() => {
-      onSave({
-        id: item.id,
-        ...nextPayload,
-      });
-
-      lastSavedRef.current = nextPayload;
-    }, 300); // Quick save for better UX
+      onSave({ id: item.id, ...next });
+      lastSavedRef.current = next;
+    }, 300);
 
     return () => {
-      if (autoSaveTimeout.current) {
-        clearTimeout(autoSaveTimeout.current);
-      }
+      if (autoSaveTimeout.current) clearTimeout(autoSaveTimeout.current);
     };
+  }, [item, status, score, onSave]);
 
-    // onSave({
-    //   id: item.id,
-    //   status,
-    //   score: score,
-    //   notes: notes || null,
-    // });
-    // onClose();
-  }, [item, status, score, notes, onSave]);
+  const tmdbId = item?.content.tmdbId ?? null;
+  const apiType: 'tv' | 'movie' = item?.content.contentType === 'movie' ? 'movie' : 'tv';
+
+  // Pull backdrop + overview (not in the library payload) when we have a TMDB id
+  const { data: fullContent } = useQuery({
+    queryKey: ['content', apiType, tmdbId],
+    queryFn: () => getContentByTmdbId(tmdbId!, apiType),
+    enabled: isOpen && !!tmdbId,
+    staleTime: 5 * 60_000,
+  });
 
   if (!item) return null;
+
+  const posterUrl = fullContent?.poster_url ?? item.content.posterUrl;
+  const backdropUrl = fullContent?.backdrop_url ?? null;
+  const overview = fullContent?.overview ?? item.content.description ?? null;
+  const watched = item.progress?.episodesWatched ?? 0;
+  const total = item.progress?.totalEpisodes ?? 0;
+  const isShow = item.content.contentType === 'show';
 
   const handleRemove = () => {
     if (confirm('Remove this item from your library?')) {
@@ -250,289 +110,179 @@ export function LibraryDetailModal({
     }
   };
 
-  const handleMarkShowWatched = () => {
-    setStatus('completed');
-    // Note: This would ideally mark all episodes as watched too
-    // For now, just update status
-  };
+  const content = (
+    <div className="bg-[rgb(var(--color-bg-page))] flex flex-col w-full">
+      {/* ===== Cinematic hero ===== */}
+      <div className="relative">
+        <div className="absolute inset-0 overflow-hidden bg-gray-900">
+          {backdropUrl ? (
+            <img src={backdropUrl} alt="" aria-hidden className="w-full h-full object-cover object-center" />
+          ) : posterUrl ? (
+            <img
+              src={posterUrl}
+              alt=""
+              aria-hidden
+              className="w-full h-full object-cover object-center blur-2xl scale-110 opacity-70"
+            />
+          ) : null}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[rgb(var(--color-bg-page))] via-black/45 to-black/25" />
+        </div>
 
-  // Header Component (Magic Patterns ShowCardHeader style)
-  const ShowCardHeader = () => {
-    // const progress = item.content.contentType === 'show' && item.progress
-    // ? item.progress.percentage
-    // : 0;
+        {/* Close */}
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-3 right-3 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+        >
+          <X size={18} />
+        </button>
 
-    // const progress = item.content.contentType === 'show' && item.progress
-    const watchedEpisodes = item.progress?.episodesWatched || 0;
-    const totalEpisodes = item.progress?.totalEpisodes || 0;
-
-    return (
-      <div className="bg-[rgb(var(--color-bg-surface))] p-4 sm:p-6 md:p-8 border-b border-[rgb(var(--color-border-subtle))]">
-        <div className="flex justify-between items-start gap-3 sm:gap-4">
-          <div className="flex gap-3 sm:gap-4 items-start flex-1 min-w-0">
-            {/* Poster - Responsive sizing */}
-            <div className="w-12 h-20 xs:w-4 xs:h-10 sm:w-24 sm:h-32 md:w-28 md:h-36 lg:w-32 lg:h-44 bg-gray-900 flex-shrink-0 overflow-hidden">
-              {item.content.posterUrl ? (
+        <div className="relative px-4 sm:px-6 pt-12 sm:pt-16 pb-5">
+          <div className="flex gap-4 sm:gap-6 items-end">
+            {/* Poster (click to zoom) */}
+            <button
+              onClick={() => posterUrl && setPosterZoom(true)}
+              className="flex-shrink-0 group"
+              aria-label="View full-size poster"
+              disabled={!posterUrl}
+            >
+              {posterUrl ? (
                 <img
-                  src={item.content.posterUrl}
+                  src={posterUrl}
                   alt={item.content.title}
-                  loading="lazy"
-                  className="w-full h-full object-cover"
+                  className="w-28 sm:w-40 aspect-[2/3] object-cover rounded-lg shadow-2xl ring-1 ring-black/20 group-hover:ring-2 group-hover:ring-white/50 transition-all"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-white text-[10px] sm:text-xs font-medium px-1 text-center">
-                  POSTER
+                <div className="w-28 sm:w-40 aspect-[2/3] rounded-lg bg-gray-700 flex items-center justify-center text-gray-300 text-xs font-semibold">
+                  NO POSTER
                 </div>
               )}
-            </div>
+            </button>
 
-            <div className="flex flex-col gap-2 flex-1 min-w-0">
-              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-[rgb(var(--color-text-primary))] leading-tight break-words">
+            {/* Identity */}
+            <div className="flex-1 min-w-0 text-white pb-1 [text-shadow:0_2px_12px_rgba(0,0,0,0.7)]">
+              <h1 className="text-2xl sm:text-4xl font-bold tracking-tight leading-tight break-words">
                 {item.content.title}
               </h1>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge
-                  size="sm"
-                  color="dark"
-                  variant="filled"
-                  className="font-medium text-xs"
-                  styles={{
-                    root: {
-                      borderRadius: '4px',
-                      backgroundColor: '#000000',
-                      color: '#ffffff',
-                    },
-                  }}
-                >
-                  {item.content.contentType === 'movie' ? 'FILM' : 'SHOW'}
-                </Badge>
-                {item.content.contentType === 'show' && item.progress && (
-                  <Text
-                    size="sm"
-                    fw={500}
-                    c="dimmed"
-                  >
-                    {watchedEpisodes}/{totalEpisodes} ep
-                  </Text>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/85">
+                <span className="px-1.5 py-0.5 border border-white/40 rounded text-xs font-semibold">
+                  {isShow ? 'SHOW' : 'FILM'}
+                </span>
+                {isShow && total > 0 && (
+                  <span>
+                    {watched}/{total} ep
+                  </span>
                 )}
-              </div>
-
-              <Button
-                size="sm"
-                color="black"
-                fullWidth
-                className="bg-gray-900 hover:bg-gray-800 text-white font-medium"
-                styles={{
-                  root: {
-                    borderRadius: '4px',
-                    fontSize: '13px',
-                    padding: '8px 12px',
-                    minHeight: '40px',
-                  },
-                }}
-                onClick={() => onAddToQueue(item)}
-              >
-                + Queue
-              </Button>
-
-              {/* Progress Bar */}
-              {/* <div className="flex flex-wrap items-center gap-2">
-
-                {item.content.contentType === 'show' && item.progress && (
-                  <div className="w-full max-w-[150px] sm:max-w-[200px] bg-gray-200 h-1.5 sm:h-2 overflow-hidden mt-1">
-                    <div
-                      className="bg-gray-900 h-full transition-all duration-500 ease-out"
-                      style={{
-                        width: `${item.progress.episodesWatched / item.progress.totalEpisodes * 100}%`,
-                      }}
-                    />
-                  </div>
-                )}
-
-                {item.content.contentType === 'show' && item.progress && (
-                  <div>
-                    <p className="text-xs text-[rgb(var(--color-text-tertiary))]">{`${item.progress.percentage}%`}</p>
-                  </div>
-                )}
-              </div> */}
-{/* 
-<div className="flex flex-wrap gap-2">
-                {STATUS_OPTIONS.map((option) => (
+                {tmdbId && (
                   <button
-                    key={option.value}
-                    onClick={() => onStatusChange(option.value)}
-                    className={`
-                      min-h-[40px] px-4 py-2 text-sm border border-gray-300 font-medium
-                      transition-all
-                      ${status === option.value
-                        ? `${option.color} text-white border-transparent`
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                      }
-                    `}
-                    style={{ borderRadius: 0 }}
+                    onClick={() =>
+                      setLocation(`/content/${apiType}/${tmdbId}?from=lib&cid=${item.contentId}`)
+                    }
+                    className="inline-flex items-center gap-1 font-semibold text-white hover:underline"
                   >
-                    {option.label}
+                    <ExternalLink size={14} /> View full page
                   </button>
-                ))}
-              </div> */}
-
-              {/* Status selector - full width grid with touch targets */}
-              <div className="w-full mt-2">
-                <span className="text-sm text-[rgb(var(--color-text-tertiary))] block mb-1">Status:</span>
-                <div className="grid grid-cols-2 gap-1 w-full">
-                  {STATUS_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setStatus(option.value)}
-                      className={`
-                        min-h-[44px] font-medium transition-all
-                        ${status === option.value
-                          ? `${option.color} text-white`
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }
-                      `}
-                      style={{
-                        borderRadius: '4px',
-                        fontSize: '13px',
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+                )}
               </div>
             </div>
-
           </div>
-
-          <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            <Badge
-              size="sm"
-              color="dark"
-              variant="filled"
-              className="font-medium text-xs"
-              styles={{
-                root: {
-                  borderRadius: '4px',
-                  backgroundColor: '#000000',
-                  color: '#ffffff',
-                },
-              }}
-            >
-              {STATUS_OPTIONS.find(o => o.value === status)?.label || status.toUpperCase()}
-            </Badge>
-
-            <Menu position="bottom-end" shadow="sm" width={200}>
-              <Menu.Target>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  size="md"
-                  className="text-[rgb(var(--color-text-secondary))] hover:bg-[rgb(var(--color-bg-elevated))]"
-                  aria-label="Show actions"
-                  styles={{
-                    root: {
-                      borderRadius: '4px',
-                    },
-                  }}
-                >
-                  <MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" />
-                </ActionIcon>
-              </Menu.Target>
-
-              <Menu.Dropdown
-                className="border border-[rgb(var(--color-border-subtle))]"
-                style={{
-                  borderRadius: '4px',
-                }}
-              >
-                <Menu.Label className="text-xs font-medium">
-                  Actions
-                </Menu.Label>
-                {item.content.contentType === 'show' && (
-                  <Menu.Item
-                    onClick={handleMarkShowWatched}
-                    className="font-medium text-gray-700 text-sm"
-                  >
-                    Mark all watched
-                  </Menu.Item>
-                )}
-                <Menu.Item
-                  onClick={() => onAddToQueue(item)}
-                  className="font-medium text-gray-700 text-sm"
-                >
-                  Add to Queue
-                </Menu.Item>
-                <Menu.Divider />
-                <Menu.Item
-                  color="red"
-                  onClick={handleRemove}
-                  className="font-medium text-sm"
-                >
-                  Remove from library
-                </Menu.Item>
-                <Menu.Divider />
-                <Menu.Item
-                  onClick={onClose}
-                  className="font-medium text-gray-700 text-sm"
-                >
-                  Close
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-          </div>
-
         </div>
-
       </div>
-    );
-  };
 
-  // Render content directly (not as a component to avoid render-time creation)
-  const renderContent = () => (
-    <div className="bg-[rgb(var(--color-bg-surface))] flex flex-col w-full">
+      {/* ===== Body ===== */}
+      <div className="px-4 sm:px-6 py-5 space-y-5">
+        {/* Synopsis */}
+        {overview && (
+          <p className="text-[15px] leading-relaxed text-[rgb(var(--color-text-primary))]">{overview}</p>
+        )}
 
-
-      {/* Show Card Header */}
-      <ShowCardHeader />
-
-
-      {/* Notes Section */}
-      <NotesSection
-        notes={notes}
-        status={status}
-        score={score}
-        // notesSectionOpened={notesSectionOpened}
-        onNotesChange={handleNotesChange}
-        onStatusChange={setStatus}
-        onScoreChange={setScore}
-        onToggle={() => setNotesSectionOpened(!notesSectionOpened)}
-      />
-
-
-      {/* Episode Tracker for TV Shows */}
-      {item.content.contentType === 'show' && (
-        <div className="w-full">
-          <EpisodeTracker
-            libraryItem={item}
-            onEpisodeUpdate={(season, episode) => {
-              // Update current episode position
-              onSave({
-                id: item.id,
-                currentSeason: season,
-                currentEpisode: episode,
-              });
-            }}
-          />
+        {/* Status */}
+        <div>
+          <p className="text-xs font-medium text-[rgb(var(--color-text-tertiary))] mb-2">Status</p>
+          <div className="grid grid-cols-2 gap-2">
+            {STATUS_OPTIONS.map((opt) => {
+              const active = status === opt.value;
+              return (
+                <Button
+                  key={opt.value}
+                  variant={active ? 'primary' : 'default'}
+                  onClick={() => setStatus(opt.value)}
+                  className="w-full"
+                >
+                  {opt.label}
+                </Button>
+              );
+            })}
+          </div>
         </div>
-      )}
 
+        {/* Score */}
+        <div>
+          <p className="text-xs font-medium text-[rgb(var(--color-text-tertiary))] mb-2">Your score</p>
+          <StarRating value={score ?? 0} count={10} onChange={(v) => setScore(v || null)} size={28} />
+        </div>
 
+        {/* Actions — labeled + spaced so a stray tap while rating doesn't hit a button.
+            Kept near the top so they're discoverable without scrolling the episode list. */}
+        <div className="pt-2 border-t border-[rgb(var(--color-border-subtle))]">
+          <p className="text-xs font-medium text-[rgb(var(--color-text-tertiary))] mb-2">Actions</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Button
+              variant="primary"
+              leftIcon={<ListPlus size={16} />}
+              onClick={() => onAddToQueue(item)}
+              className="w-full"
+            >
+              Add to Lineup
+            </Button>
+            <Button
+              variant="danger"
+              leftIcon={<Trash2 size={16} />}
+              onClick={handleRemove}
+              className="w-full"
+            >
+              Remove from library
+            </Button>
+          </div>
+        </div>
+
+        {/* Episode tracker (shows) */}
+        {isShow && (
+          <div className="pt-1">
+            <p className="text-xs font-medium text-[rgb(var(--color-text-tertiary))] mb-2">Episodes</p>
+            <EpisodeTracker
+              libraryItem={item}
+              onEpisodeUpdate={(season, episode) =>
+                onSave({ id: item.id, currentSeason: season, currentEpisode: episode })
+              }
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Full-size poster lightbox */}
+      <Modal
+        opened={posterZoom}
+        onClose={() => setPosterZoom(false)}
+        withCloseButton={false}
+        padding={0}
+        size="auto"
+        centered
+        classNames={{ content: 'bg-transparent shadow-none', body: 'p-0' }}
+      >
+        {posterUrl && (
+          <img
+            src={toOriginal(posterUrl) ?? posterUrl}
+            alt={item.content.title}
+            onClick={() => setPosterZoom(false)}
+            className="max-h-[90vh] w-auto rounded-lg cursor-zoom-out"
+          />
+        )}
+      </Modal>
     </div>
   );
 
-  // Mobile: Use Drawer (bottom sheet)
   if (isMobile) {
     return (
       <Drawer
@@ -542,42 +292,25 @@ export function LibraryDetailModal({
         size="auto"
         padding={0}
         withCloseButton={false}
-        closeOnClickOutside={true}
-        closeOnEscape={true}
-        trapFocus={true}
         classNames={{
-          content: 'border-t border-gray-200 bg-white',
+          content: 'bg-[rgb(var(--color-bg-page))]',
           body: 'p-0 flex flex-col w-full',
         }}
         styles={{
           content: {
             borderTopLeftRadius: '1rem',
             borderTopRightRadius: '1rem',
-            width: '100%',
             maxWidth: '100%',
-            maxHeight: '85vh',
-            height: 'auto',
-            margin: 'auto',
-          },
-          body: {
-            width: '100%',
             maxHeight: '90vh',
-            overflowY: 'auto',
           },
+          body: { maxHeight: '90vh', overflowY: 'auto' },
         }}
       >
-        {/* Drag handle for mobile */}
-        {isMobile && (
-          <div className="flex justify-center pt-2 pb-1">
-            <div className="w-12 h-1 bg-gray-300 rounded-full" />
-          </div>
-        )}
-        {renderContent()}
+        {content}
       </Drawer>
     );
   }
 
-  // Desktop: Use Modal (centered)
   return (
     <Modal
       opened={isOpen}
@@ -586,25 +319,13 @@ export function LibraryDetailModal({
       padding={0}
       centered
       withCloseButton={false}
-      classNames={{
-        content: 'border border-gray-200 bg-white shadow-xl',
-        body: 'p-0 w-full',
-      }}
+      classNames={{ content: 'bg-[rgb(var(--color-bg-page))] shadow-xl', body: 'p-0 w-full' }}
       styles={{
-        content: {
-          width: '100%',
-          maxWidth: '800px',
-          maxHeight: '90vh',
-          height: 'auto',
-        },
-        body: {
-          width: '100%',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        },
+        content: { width: '100%', maxWidth: '760px', maxHeight: '90vh' },
+        body: { maxHeight: '90vh', overflowY: 'auto' },
       }}
     >
-      {renderContent()}
+      {content}
     </Modal>
   );
 }

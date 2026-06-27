@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, Loader, Text, Tabs  } from '@mantine/core';
-import { ListVideo, Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { LibraryItemUI } from '../../types/library.types';
 import { getEpisodesByContentId } from '../../api/content';
 import { getEpisodeStatuses, markEpisode, markSeason, markAllEpisodes } from '../../api/library';
 import { EpisodeDetailModal } from './EpisodeDetailModal';
+import { Button } from '../common/Button';
 
 interface EpisodeTrackerProps {
   libraryItem: LibraryItemUI;
@@ -22,52 +22,24 @@ interface SeasonTabsProps {
 
 function SeasonTabs({ seasons, activeSeason, onSeasonChange }: SeasonTabsProps) {
   return (
-    <div className="pb-4">
-      <Tabs
-        value={activeSeason.toString()}
-        onChange={(val) => onSeasonChange(parseInt(val || '1'))}
-        variant="pills"
-        classNames={{
-          list: 'gap-2',
-          tab: 'border border-gray-300 font-medium data-[active]:bg-gray-900 data-[active]:text-white data-[active]:border-gray-900 hover:bg-gray-100 transition-colors',
-        }}
-        styles={{
-          tab: {
-            borderRadius: '4px',
-          },
-        }}
-      >
-        <Tabs.List>
-          {Array.from({ length: seasons }, (_, i) => i + 1).map((season) => (
-            <Tabs.Tab
-              key={season}
-              value={season.toString()}
-            >
-              Season {season}
-            </Tabs.Tab>
-          ))}
-        </Tabs.List>
-      </Tabs>
+    <div className="flex gap-2 flex-wrap">
+      {Array.from({ length: seasons }, (_, i) => i + 1).map((season) => {
+        const active = activeSeason === season;
+        return (
+          <button
+            key={season}
+            onClick={() => onSeasonChange(season)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
+              active
+                ? 'bg-[#646cff] text-white border-[#646cff]'
+                : 'border-[rgb(var(--color-border-default))] text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] hover:border-[rgb(var(--color-text-tertiary))]'
+            }`}
+          >
+            Season {season}
+          </button>
+        );
+      })}
     </div>
-    // <div className="border-b border-[rgb(var(--color-border-subtle))] overflow-x-auto">
-    //   <div className="flex gap-2 min-w-max">
-    //     {Array.from({ length: seasons }, (_, i) => i + 1).map((season) => (
-    //       <button
-    //         key={season}
-    //         onClick={() => onSeasonChange(season)}
-    //         className={`
-    //           px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0
-    //           ${activeSeason === season
-    //             ? 'bg-blue-600 text-blue-100'
-    //             : 'border-transparent text-gray-100 hover:text-blue-700'
-    //           }
-    //         `}
-    //       >
-    //         Season {season}
-    //       </button>
-    //     ))}
-    //   </div>
-    // </div>
   );
 }
 
@@ -94,18 +66,18 @@ interface EpisodeListProps {
 
 function EpisodeList({ episodes, watchedEpisodes, onToggleWatched, season, isLoading, onViewDetails }: EpisodeListProps) {
   return (
-    <ul className="divide-y divide-gray-200 border border-[rgb(var(--color-border-subtle))] overflow-hidden" style={{ borderRadius: '4px' }}>
+    <ul className="divide-y divide-[rgb(var(--color-border-subtle))] border border-[rgb(var(--color-border-subtle))] overflow-hidden rounded-md">
       {episodes.map((episode) => {
         const episodeKey = `s${season}e${episode.episode_number}`;
         const isWatched = watchedEpisodes.has(episodeKey);
         const episodeTitle = episode.title || `Episode ${episode.episode_number}`;
-        
+
         return (
           <li
             key={episode.episode_number}
             className={`
-              group relative flex items-center gap-4 p-3 md:p-4 transition-colors  hover:bg-gray-50
-              ${isWatched ? 'bg-gray-50/50' : 'bg-white'}
+              group relative flex items-center gap-4 p-3 md:p-4 transition-colors hover:bg-[rgb(var(--color-bg-page))]
+              ${isWatched ? 'bg-[rgb(var(--color-bg-page))]/50' : 'bg-[rgb(var(--color-bg-surface))]'}
             `}
           >
             {/* Checkbox - green square when watched, no icon */}
@@ -122,10 +94,13 @@ function EpisodeList({ episodes, watchedEpisodes, onToggleWatched, season, isLoa
               type="button"
               tabIndex={-1}
               className={`
-                flex-shrink-0 w-8 h-8 md:w-10 md:h-10 border border-gray-300 transition-all duration-200 focus:outline-none
-                ${isWatched ? 'bg-green-600 border-green-600' : 'bg-white hover:bg-gray-50'}
+                flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-md border transition-all duration-200 focus:outline-none
+                ${
+                  isWatched
+                    ? 'bg-emerald-600 border-emerald-600'
+                    : 'bg-[rgb(var(--color-bg-surface))] border-[rgb(var(--color-border-default))] hover:bg-[rgb(var(--color-bg-page))]'
+                }
               `}
-              style={{ borderRadius: '4px' }}
               aria-label={`Mark ${episodeTitle} as ${isWatched ? 'unwatched' : 'watched'}`}
               aria-pressed={isWatched}
               disabled={isLoading}
@@ -157,7 +132,7 @@ function EpisodeList({ episodes, watchedEpisodes, onToggleWatched, season, isLoa
               </div>
 
               {onViewDetails && (
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 group-hover:text-[rgb(var(--color-text-secondary))] px-2 hidden md:block">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity text-[rgb(var(--color-text-tertiary))] group-hover:text-[rgb(var(--color-text-secondary))] px-2 hidden md:block">
                   <Info size={18} />
                   <span className="sr-only">View details</span>
                 </div>
@@ -442,39 +417,24 @@ export function EpisodeTracker({
 
   if (isLoadingEpisodes) {
     return (
-      <div className="bg-[rgb(var(--color-bg-surface))]">
-        <div className="flex justify-center items-center p-8">
-          <Loader size="sm" />
-        </div>
+      <div className="flex justify-center items-center py-8 text-[rgb(var(--color-text-tertiary))]">
+        <Loader2 size={20} className="animate-spin" />
       </div>
     );
   }
 
   if (seasonEpisodes.length === 0) {
     return (
-      <div className="bg-[rgb(var(--color-bg-surface))]">
-        <div className="p-6 md:p-8">
-          <Text size="sm" c="dimmed">
-            No episodes found for Season {selectedSeason}
-          </Text>
-        </div>
-      </div>
+      <p className="block py-4 text-sm text-[rgb(var(--color-text-tertiary))]">
+        No episodes found for Season {selectedSeason}
+      </p>
     );
   }
 
   return (
-    <div className="bg-[rgb(var(--color-bg-surface))] w-full">
-      {/* Header */}
-      {/* <div className="w-full flex items-center p-4 md:p-4 border-b border-[rgb(var(--color-border-subtle))]"> */}
-      <div className="w-full flex items-center p-4 md:p-4">
-        <div className="flex items-center gap-3">
-          <ListVideo size={18} className="text-[rgb(var(--color-text-secondary))]" />
-          <span className="font-medium text-[rgb(var(--color-text-primary))]">Episode tracker</span>
-        </div>
-      </div>
-
-      {/* Content - Always Visible */}
-      <div className="p-6 md:p-8 space-y-6 w-full">
+    <div className="w-full">
+      {/* Content - the section heading is provided by the consumer (modal/page) */}
+      <div className="space-y-4 w-full">
           {/* Season Tabs */}
           {seasons > 1 && (
             <SeasonTabs
@@ -485,19 +445,9 @@ export function EpisodeTracker({
           )}
 
           {/* Bulk Actions */}
-          {/* mark entire show as watched */}
           <Button
-            fullWidth
-            color="dark"
-            className="bg-gray-900 hover:bg-gray-800 font-medium"
-            styles={{
-              root: {
-                borderRadius: '4px',
-                fontSize: 'clamp(12px, 2.5vw, 14px)',
-                padding: '12px 16px',
-                minHeight: '44px',
-              },
-            }}
+            variant="primary"
+            className="w-full min-h-[44px]"
             onClick={handleMarkAllWatched}
             loading={markAllMutation.isPending}
           >
@@ -507,34 +457,16 @@ export function EpisodeTracker({
           {/* Season buttons */}
           <div className="grid grid-cols-2 gap-2">
             <Button
-              variant="outline"
-              color="dark"
-              className="font-medium border-[rgb(var(--color-border-default))] hover:bg-[rgb(var(--color-bg-page))]"
-              styles={{
-                root: {
-                  borderRadius: '4px',
-                  fontSize: 'clamp(10px, 2vw, 13px)',
-                  padding: '8px 6px',
-                  minHeight: '40px',
-                },
-              }}
+              variant="default"
+              className="w-full min-h-[40px]"
               onClick={handleMarkSeasonWatched}
               loading={markSeasonMutation.isPending}
             >
               Mark Season {selectedSeason} as Watched
             </Button>
             <Button
-              variant="outline"
-              color="dark"
-              className="font-medium border-[rgb(var(--color-border-default))] hover:bg-[rgb(var(--color-bg-page))]"
-              styles={{
-                root: {
-                  borderRadius: '4px',
-                  fontSize: 'clamp(10px, 2vw, 13px)',
-                  padding: '8px 6px',
-                  minHeight: '40px',
-                },
-              }}
+              variant="default"
+              className="w-full min-h-[40px]"
               onClick={handleMarkSeasonUnwatched}
               loading={markSeasonMutation.isPending}
             >
@@ -582,9 +514,9 @@ export function EpisodeTracker({
                 {progress}%
               </div>
             </div>
-            <div className="w-full bg-gray-200 h-2 overflow-hidden" style={{ height: '8px', flexShrink: 0, borderRadius: '4px' }}>
+            <div className="w-full bg-[rgb(var(--color-border-default))] h-2 overflow-hidden rounded" style={{ height: '8px', flexShrink: 0 }}>
               <div
-                className="bg-gray-900 h-full transition-all duration-500 ease-out"
+                className="bg-[#646cff] h-full transition-all duration-500 ease-out"
                 style={{
                   width: `${progress}%`,
                 }}
