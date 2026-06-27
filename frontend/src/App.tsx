@@ -42,6 +42,7 @@ const ReviewEditor = lazy(() => import('./pages/ReviewEditor').then(m => ({ defa
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const Stats = lazy(() => import('./pages/Stats').then(m => ({ default: m.Stats })));
 const PersonDetail = lazy(() => import('./pages/PersonDetail').then(m => ({ default: m.PersonDetail })));
+const ContentDetail = lazy(() => import('./pages/ContentDetail').then(m => ({ default: m.ContentDetail })));
 
 // Loading fallback for lazy loaded pages
 function PageLoader() {
@@ -247,6 +248,16 @@ function App() {
             <Layout>
               <Suspense fallback={<PageLoader />}>
                 <PersonDetail />
+              </Suspense>
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/content/:type/:tmdbId">
+          <ProtectedRoute>
+            <Layout>
+              <Suspense fallback={<PageLoader />}>
+                <ContentDetail />
               </Suspense>
             </Layout>
           </ProtectedRoute>

@@ -149,9 +149,15 @@ export function Browse() {
   };
 
   const handleContentClick = (item: NetworkContentItem) => {
+    // Network content is always TV shows; go straight to the detail page when we
+    // have a TMDB id, falling back to the quick-look modal otherwise.
+    if (item.tmdb_id) {
+      setLocation(`/content/tv/${item.tmdb_id}`);
+      return;
+    }
     const normalizedItem = {
       ...item,
-      content_type: 'show' as const, // Network content is always TV shows
+      content_type: 'show' as const,
       backdrop_url: null,
     };
     setSelectedContent(normalizedItem);
