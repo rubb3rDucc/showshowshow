@@ -1,3 +1,4 @@
+import { Link } from 'wouter';
 import type { ScheduleItem } from '../../types/api';
 import { NowCard } from './NowCard';
 import { ScheduleRow } from './ScheduleRow';
@@ -78,6 +79,11 @@ export function TonightSection({
           <p className="text-base text-[rgb(var(--color-text-secondary))]">
             Nothing planned.
           </p>
+          <Link href="/lineup">
+            <span className="mt-2 inline-block text-sm text-[#646cff] hover:underline cursor-pointer">
+              + Plan something
+            </span>
+          </Link>
         </div>
       )}
 
@@ -237,6 +243,17 @@ export function TonightSection({
             </>
           )}
         </>
+      )}
+
+      {/* Always-available affordance to build/extend the lineup */}
+      {hasAnyContent && (
+        <div className="mt-8 text-right">
+          <Link href="/lineup">
+            <span className="text-sm text-[rgb(var(--color-text-tertiary))] hover:text-[#646cff] cursor-pointer transition-colors">
+              + Plan something
+            </span>
+          </Link>
+        </div>
       )}
     </section>
   );

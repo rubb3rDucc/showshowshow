@@ -16,6 +16,7 @@ export function libraryItemToUI(item: LibraryItem): LibraryItemUI {
     updatedAt: new Date(item.updated_at),
     lastWatchedAt: item.last_watched_at ? new Date(item.last_watched_at) : null,
     content: {
+      tmdbId: item.content.tmdb_id,
       title: item.content.title,
       posterUrl: item.content.poster_url,
       contentType: item.content.content_type,

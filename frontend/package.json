@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": "22.x"
+  },
   "files": [
     "dist"
   ],
@@ -42,15 +46,6 @@
     "wouter": "^3.9.0",
     "zustand": "^5.0.12"
   },
-  "pnpm": {
-    "overrides": {
-      "minimatch": ">=10.2.1",
-      "picomatch": ">=4.0.4",
-      "brace-expansion": ">=5.0.5",
-      "dompurify": ">=3.4.0",
-      "protobufjs": ">=7.5.5"
-    }
-  },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@tailwindcss/typography": "^0.5.19",
@@ -67,6 +62,6 @@
     "tailwindcss": "^3.4.19",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.1",
-    "vite": "^7.3.2"
+    "vite": "^7.3.5"
   }
 }

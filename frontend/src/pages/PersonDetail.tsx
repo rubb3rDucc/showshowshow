@@ -1,32 +1,15 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Container, Button, Loader, Center, Tabs } from '@mantine/core';
-import { useParams } from 'wouter';
+import { useParams, useLocation } from 'wouter';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { useState, useMemo } from 'react';
-import { toast } from 'sonner';
 import { getPersonDetails, type PersonFilmographyItem } from '../api/people';
-import { addToLibrary } from '../api/library';
-import { addToQueue, getContentByTmdbId } from '../api/content';
-import { ContentDetailModal } from '../components/browse/ContentDetailModal';
 
 export function PersonDetail() {
   const params = useParams<{ tmdbId: string }>();
-  const [selectedContent, setSelectedContent] = useState<{
-    id: number;
-    tmdb_id: number;
-    title: string;
-    poster_url: string | null;
-    backdrop_url: string | null;
-    overview: string;
-    first_air_date?: string;
-    release_date?: string;
-    vote_average?: number;
-    content_type: 'show' | 'movie';
-  } | null>(null);
-  const [contentModalOpen, setContentModalOpen] = useState(false);
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<string | null>('acting');
   const [showFullBio, setShowFullBio] = useState(false);
-  const queryClient = useQueryClient();
 
   const { tmdbId } = params;
 
@@ -37,89 +20,10 @@ export function PersonDetail() {
     enabled: !!tmdbId,
   });
 
-  // Add to library mutation
-  const addToLibraryMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedContent) throw new Error('No content selected');
-      
-      const contentType = selectedContent.content_type === 'show' ? 'tv' : 'movie';
-      const tmdbId = selectedContent.id || selectedContent.tmdb_id;
-      
-      // Get or cache content (getContentByTmdbId automatically caches if needed)
-      const content = await getContentByTmdbId(tmdbId, contentType);
-      
-      if (!content || !content.id) {
-        throw new Error('Failed to fetch or cache content. Please try again.');
-      }
-      
-      return addToLibrary({
-        content_id: content.id,
-        status: 'plan_to_watch' as const,
-      });
-    },
-    onSuccess: () => {
-      toast.success('Added to library!');
-      queryClient.invalidateQueries({ queryKey: ['library'] });
-      setContentModalOpen(false);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to add to library');
-    },
-  });
-
-  // Add to queue mutation
-  const addToQueueMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedContent) throw new Error('No content selected');
-      
-      const contentType = selectedContent.content_type === 'show' ? 'tv' : 'movie';
-      const tmdbId = selectedContent.id || selectedContent.tmdb_id;
-      
-      // Get or cache content (getContentByTmdbId automatically caches if needed)
-      const content = await getContentByTmdbId(tmdbId, contentType);
-      
-      if (!content || !content.id) {
-        throw new Error('Failed to fetch or cache content. Please try again.');
-      }
-      
-      return addToQueue({
-        content_id: content.id,
-        season: selectedContent.content_type === 'show' ? 1 : null,
-        episode: selectedContent.content_type === 'show' ? 1 : null,
-      });
-    },
-    onSuccess: () => {
-      toast.success('Added to lineup!');
-      queryClient.invalidateQueries({ queryKey: ['queue'] });
-      setContentModalOpen(false);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to add to lineup');
-    },
-  });
-
   const handleContentClick = (item: PersonFilmographyItem) => {
-    const normalizedItem = {
-      id: item.id,
-      tmdb_id: item.tmdb_id || item.id,
-      title: item.title || item.name || 'Unknown Title',
-      poster_url: item.poster_url || (item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null),
-      backdrop_url: null,
-      overview: item.overview || '',
-      first_air_date: item.first_air_date,
-      release_date: item.release_date,
-      content_type: (item.media_type === 'tv' || item.content_type === 'show') ? 'show' as const : 'movie' as const,
-    };
-    setSelectedContent(normalizedItem);
-    setContentModalOpen(true);
-  };
-
-  const handleAddToLibrary = () => {
-    addToLibraryMutation.mutate();
-  };
-
-  const handleAddToQueue = () => {
-    addToQueueMutation.mutate();
+    const id = item.tmdb_id || item.id;
+    const type = item.media_type === 'tv' || item.content_type === 'show' ? 'tv' : 'movie';
+    setLocation(`/content/${type}/${id}`);
   };
 
   // Get primary department tabs (must be before conditional returns)
@@ -409,17 +313,6 @@ export function PersonDetail() {
           </Tabs>
         </div>
       </Container>
-
-      {/* Content detail modal */}
-      <ContentDetailModal
-        content={selectedContent}
-        isOpen={contentModalOpen}
-        onClose={() => setContentModalOpen(false)}
-        onAddToLibrary={handleAddToLibrary}
-        onAddToQueue={handleAddToQueue}
-        isAddingToLibrary={addToLibraryMutation.isPending}
-        isAddingToQueue={addToQueueMutation.isPending}
-      />
     </div>
   );
 }

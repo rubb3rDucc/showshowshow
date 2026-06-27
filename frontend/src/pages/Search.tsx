@@ -23,8 +23,10 @@ import type { LibraryStatus } from '../types/library.types';
 export function Search() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [query, setQuery] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  // Prefill from a ?q= param so other surfaces (e.g. the Home quick-add) can hand off a search.
+  const initialQuery = new URLSearchParams(window.location.search).get('q')?.trim() ?? '';
+  const [query, setQuery] = useState(initialQuery);
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
   const [includeAdult] = useState(false);
   const [animeOnly, setAnimeOnly] = useState(false);
@@ -454,8 +456,12 @@ export function Search() {
                   key={itemKey}
                   item={result}
                   onClick={() => {
-                    setSelectedContent(result);
-                    setModalOpen(true);
+                    if (result.tmdb_id) {
+                      setLocation(`/content/${result.content_type === 'movie' ? 'movie' : 'tv'}/${result.tmdb_id}`);
+                    } else {
+                      setSelectedContent(result);
+                      setModalOpen(true);
+                    }
                   }}
                   isInQueue={isInQueue(result)}
                   titlePreference={titlePreference}

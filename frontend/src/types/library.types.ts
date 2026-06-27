@@ -43,6 +43,7 @@ export interface LibraryItem {
   // Joined data from backend
   content: {
     id: string;
+    tmdb_id: number | null;
     title: string;
     poster_url: string | null;
     content_type: 'show' | 'movie';
@@ -56,6 +57,33 @@ export interface LibraryItem {
     percentage: number; // 0-100
   };
   last_watched_display?: string; // Human-readable: "2 days ago", "Never watched"
+}
+
+// Weekly recap stats (from GET /api/library/stats/weekly)
+export interface WeeklyActivityItem {
+  content_id: string;
+  title: string;
+  poster_url: string | null;
+  content_type: 'show' | 'movie';
+  type: 'completed';
+  timestamp: string;
+}
+
+export interface WeeklyStats {
+  period: 'last_7_days';
+  as_of: string;
+  episodes_watched: number;
+  movies_watched: number;
+  watch_minutes: number;
+  finished: number;
+  active_days: number;
+  previous: {
+    episodes_watched: number;
+    movies_watched: number;
+    watch_minutes: number;
+    finished: number;
+  };
+  recent_activity: WeeklyActivityItem[];
 }
 
 // API response format (from backend)
@@ -131,6 +159,7 @@ export interface LibraryItemUI {
   updatedAt: Date;
   lastWatchedAt: Date | null;
   content: {
+    tmdbId: number | null;
     title: string;
     posterUrl: string | null;
     contentType: 'show' | 'movie';
