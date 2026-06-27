@@ -34,11 +34,15 @@ import { Browse } from './pages/Browse';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
 import { Networks } from './pages/Networks';
 import { ClerkTest } from './pages/ClerkTest';
+import { flags } from './flags';
+const Reviews = lazy(() => import('./pages/Reviews').then(m => ({ default: m.Reviews })));
+const ReviewEditor = lazy(() => import('./pages/ReviewEditor').then(m => ({ default: m.ReviewEditor })));
 
 // Lazy loaded pages (less frequently accessed)
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const Stats = lazy(() => import('./pages/Stats').then(m => ({ default: m.Stats })));
 const PersonDetail = lazy(() => import('./pages/PersonDetail').then(m => ({ default: m.PersonDetail })));
+const ContentDetail = lazy(() => import('./pages/ContentDetail').then(m => ({ default: m.ContentDetail })));
 
 // Loading fallback for lazy loaded pages
 function PageLoader() {
@@ -248,6 +252,39 @@ function App() {
             </Layout>
           </ProtectedRoute>
         </Route>
+
+        <Route path="/content/:type/:tmdbId">
+          <ProtectedRoute>
+            <Layout>
+              <Suspense fallback={<PageLoader />}>
+                <ContentDetail />
+              </Suspense>
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        {flags.reviews && (
+          <>
+            <Route path="/reviews">
+              <ProtectedRoute>
+                <Layout>
+                  <Suspense fallback={<PageLoader />}>
+                    <Reviews />
+                  </Suspense>
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+            <Route path="/reviews/:id">
+              <ProtectedRoute>
+                <Layout>
+                  <Suspense fallback={<PageLoader />}>
+                    <ReviewEditor />
+                  </Suspense>
+                </Layout>
+              </ProtectedRoute>
+            </Route>
+          </>
+        )}
 
         {/* 404 redirect */}
         <Route>
