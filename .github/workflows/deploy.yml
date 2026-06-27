@@ -3,9 +3,15 @@ name: Deploy
 # CI owns the order: run DB migrations first, and only trigger the DigitalOcean
 # deploy if they succeed. Requires DO App Platform autodeploy-on-push to be turned
 # OFF (otherwise DO also deploys on push and races this workflow).
+#
+# Deploys are intentional, not per-merge: merges accumulate on master, and prod
+# ships only when you (a) click "Run workflow" or (b) publish a GitHub Release.
+# This batches releases (fewer App Platform builds = lower bill) and gives a
+# deliberate QA point before code reaches users.
 on:
-  push:
-    branches: [master]
+  workflow_dispatch: # manual "Run workflow" button (deploys current master)
+  release:
+    types: [published] # publishing a GitHub Release ships that point in master
 
 # Never run two deploys (and their migrations) at once.
 concurrency:
