@@ -89,6 +89,7 @@ export interface QueueItem {
   position: number;
   season?: number | null;
   episode?: number | null;
+  is_active?: boolean; // false = stays in the lineup but the generator skips it
   created_at: string;
   // Joined data from backend
   tmdb_id?: number;
@@ -143,7 +144,7 @@ export interface GenerateScheduleRequest {
   end_time?: string;
   time_slot_duration?: number; // in minutes (default: 30)
   timezone_offset?: string; // Timezone offset like "-05:00" (EST) or "+00:00" (UTC)
-  rotation_type?: 'round_robin' | 'random';
+  rotation_type?: 'round_robin' | 'random' | 'round_robin_double';
   include_reruns?: boolean;
   episode_filters?: Record<
     string,

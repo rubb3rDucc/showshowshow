@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { Temporal } from 'temporal-polyfill';
 import { useNextCalendarApp, ScheduleXCalendar } from '@schedule-x/react';
 import { createViewDay, createViewWeek } from '@schedule-x/calendar';
@@ -6,13 +6,10 @@ import { createEventsServicePlugin } from '@schedule-x/events-service';
 import { X } from 'lucide-react';
 import '@schedule-x/theme-default/dist/index.css';
 import './schedulex-proto.css';
-import { BASE_DATE, sxLineup } from './mockSchedule';
-import { eventsService, removeEvent } from './sxEvents';
-import { scheduleItemsToEvents, firstEventDate, timeRangeLabel, type SxCalendarEvent } from './scheduleAdapter';
+import { scheduleItemsToEvents, firstEventDate } from './scheduleAdapter';
 import type { ScheduleItem } from '../types/api';
 
-// Schedule-X v4 requires Temporal event times; render in UTC so wall-clock matches.
-const zdt = (hhmm: string) => Temporal.ZonedDateTime.from(`${BASE_DATE}T${hhmm}:00[UTC]`);
+const today = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, local
 
 type SxEvent = {
   id: string;
@@ -24,6 +21,11 @@ type SxEvent = {
 };
 
 const stop = (e: React.MouseEvent) => e.stopPropagation();
+
+// How a block's remove button behaves — supplied by the page (deleteScheduleItem).
+// Context reaches TimeGridEvent through Schedule-X's portal because the portaled
+// component is a React-descendant of <ScheduleXCalendar>.
+const RemoveContext = createContext<(id: string) => void>(() => {});
 
 // Accent palette drawn from the app's existing colors (home widgets / CATEGORY_META):
 // violet, sky, rose, amber, orange, emerald, teal, indigo.
@@ -43,6 +45,7 @@ function accentForId(id: string): string {
 function TimeGridEvent({ calendarEvent }: { calendarEvent: SxEvent }) {
   const watched = calendarEvent.watched ?? false; // read-only styling from real data
   const compact = (calendarEvent.durationMin ?? 60) <= 15;
+  const onRemove = useContext(RemoveContext);
 
   return (
     <div
@@ -65,7 +68,7 @@ function TimeGridEvent({ calendarEvent }: { calendarEvent: SxEvent }) {
       {/* Remove: subtle gray X, top-right, always present. */}
       <button
         onMouseDown={stop}
-        onClick={(e) => { stop(e); removeEvent(calendarEvent.id); }}
+        onClick={(e) => { stop(e); onRemove(calendarEvent.id); }}
         title="Remove"
         aria-label="Remove"
         className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
@@ -76,50 +79,43 @@ function TimeGridEvent({ calendarEvent }: { calendarEvent: SxEvent }) {
   );
 }
 
-const mockEvents = (): SxCalendarEvent[] =>
-  sxLineup.map((e) => {
-    const start = zdt(e.start);
-    const end = zdt(e.end);
-    return {
-      id: e.id,
-      title: e.title,
-      description: e.description,
-      start,
-      end,
-      timeLabel: timeRangeLabel(start, end),
-      durationMin: Math.round((end.epochMilliseconds - start.epochMilliseconds) / 60000),
-    };
-  });
-
 /**
- * Single-timeline calendar.
- * - No `items`: renders mockSchedule.ts (visual sign-off / drawer interactions).
- * - `items` provided: renders REAL backend schedule data via the adapter, so time
- *   boundaries (midnight crossover, window, timezone) can be tested for real.
- * Remount with a `key` when the data set changes so events/selectedDate re-seed.
+ * Single-timeline calendar over real backend schedule items. The adapter handles
+ * local wall-clock, durations, and midnight crossover. Remount with a `key` when the
+ * data set changes so events/selectedDate re-seed.
  */
-export function ScheduleXProto({ items, selectedDate }: { items?: ScheduleItem[]; selectedDate?: string } = {}) {
-  const isReal = !!items;
-  const events = items ? scheduleItemsToEvents(items) : mockEvents();
-  const initialDate = selectedDate ?? firstEventDate(events) ?? BASE_DATE;
+export function ScheduleXProto({
+  items,
+  selectedDate,
+  onRemove,
+  view = 'day',
+}: {
+  items: ScheduleItem[];
+  selectedDate?: string;
+  onRemove?: (id: string) => void;
+  view?: 'day' | 'week';
+}) {
+  const events = scheduleItemsToEvents(items);
+  const initialDate = selectedDate ?? firstEventDate(events) ?? today();
 
-  // Mock mode reuses the shared singleton so the page's Add/Clear controls drive this
-  // calendar. Real mode gets its own events-service — reusing one Schedule-X plugin
-  // instance across two calendar configs can stop events from loading.
-  const ownService = useMemo(() => (isReal ? createEventsServicePlugin() : null), [isReal]);
+  // Each instance gets its own events-service — reusing one Schedule-X plugin
+  // instance across calendar configs can stop events from loading.
+  const ownService = useMemo(() => createEventsServicePlugin(), []);
 
   const calendar = useNextCalendarApp({
     views: [createViewDay(), createViewWeek()],
-    defaultView: 'day',
+    defaultView: view,
     selectedDate: Temporal.PlainDate.from(initialDate),
     weekOptions: { gridHeight: 2880 }, // 120px/hour — matches the Lineup builder's slot sizing
-    plugins: [ownService ?? eventsService],
+    plugins: [ownService],
     events,
   });
 
   return (
-    <div className="h-[700px] rounded-lg border border-[rgb(var(--color-border-default))] overflow-hidden bg-white">
-      <ScheduleXCalendar calendarApp={calendar} customComponents={{ timeGridEvent: TimeGridEvent }} />
-    </div>
+    <RemoveContext.Provider value={onRemove ?? (() => {})}>
+      <div className="h-[700px] rounded-lg border border-[rgb(var(--color-border-default))] overflow-hidden bg-white">
+        <ScheduleXCalendar calendarApp={calendar} customComponents={{ timeGridEvent: TimeGridEvent }} />
+      </div>
+    </RemoveContext.Provider>
   );
 }

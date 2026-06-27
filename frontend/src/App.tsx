@@ -28,7 +28,6 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Search } from './pages/Search';
-import { Queue } from './pages/Queue';
 import { Library } from './pages/Library';
 import { Browse } from './pages/Browse';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
@@ -165,7 +164,15 @@ function App() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/clerk-test" component={ClerkTest} />
-        <Route path="/proto/schedule" component={ProtoSchedule} />
+
+          {/* Flag-independent preview of the scheduling workspace (needs auth for real data) */}
+          <Route path="/proto/schedule">
+            <ProtectedRoute>
+              <Layout>
+                <ProtoSchedule />
+              </Layout>
+            </ProtectedRoute>
+          </Route>
 
         {/* Protected routes */}
         <Route path="/">
@@ -195,7 +202,7 @@ function App() {
         <Route path="/lineup">
           <ProtectedRoute>
             <Layout>
-              <Queue />
+                <ProtoSchedule />
             </Layout>
           </ProtectedRoute>
         </Route>
