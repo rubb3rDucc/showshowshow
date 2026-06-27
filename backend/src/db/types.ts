@@ -250,4 +250,12 @@ export interface Database {
     error_message: string | null;
     created_at: Date;
   };
+  reviews: {
+    id: string;
+    user_id: string;
+    title: string | null;
+    body: Record<string, any> | null;
+    created_at: Date;
+    updated_at: Date;
+  };
 }

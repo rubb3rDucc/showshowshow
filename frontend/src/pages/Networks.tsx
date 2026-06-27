@@ -82,7 +82,7 @@ export function Networks() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [networkToDelete, setNetworkToDelete] = useState<{ id: string; name: string } | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const searchTimeoutRef = useRef<number | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Get existing networks
   const { data: allNetworks, isLoading } = useQuery({

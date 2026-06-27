@@ -1,7 +1,8 @@
 import { apiCall } from './client';
-import type { 
-  LibraryItem, 
-  LibraryStatsAPI, 
+import type {
+  LibraryItem,
+  LibraryStatsAPI,
+  WeeklyStats,
   EpisodeStatusItem,
   CreateLibraryItemRequest,
   UpdateLibraryItemRequest,
@@ -10,25 +11,43 @@ import type {
   MarkAllEpisodesRequest,
 } from '../types/library.types';
 
+export interface LibraryPagination {
+  page: number;
+  limit: number;
+  total_items: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+export interface LibraryResponse {
+  items: LibraryItem[];
+  pagination: LibraryPagination;
+}
+
 /**
  * Get user's library items
  * @param status - Filter by status (optional)
  * @param type - Filter by type: 'show' | 'movie' (optional)
  * @param search - Search query (optional)
+ * @param page - Page number (default: 1)
+ * @param limit - Items per page (default: 50)
  */
 export async function getLibrary(
   status?: string,
   type?: 'show' | 'movie',
-  search?: string
-): Promise<LibraryItem[]> {
+  search?: string,
+  page: number = 1,
+  limit: number = 50
+): Promise<LibraryResponse> {
   const params = new URLSearchParams();
   if (status) params.append('status', status);
   if (type) params.append('type', type);
   if (search) params.append('search', search);
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
 
-  const queryString = params.toString();
-  const response = await apiCall<{ items: LibraryItem[]; pagination: unknown }>(`/api/library${queryString ? `?${queryString}` : ''}`);
-  return response.items;
+  return apiCall<LibraryResponse>(`/api/library?${params}`);
 }
 
 /**
@@ -36,6 +55,13 @@ export async function getLibrary(
  */
 export async function getLibraryStats(): Promise<LibraryStatsAPI> {
   return apiCall<LibraryStatsAPI>('/api/library/stats');
+}
+
+/**
+ * Get this-week stats (rolling 7-day window) with prior-week comparison
+ */
+export async function getWeeklyStats(): Promise<WeeklyStats> {
+  return apiCall<WeeklyStats>('/api/library/stats/weekly');
 }
 
 /**

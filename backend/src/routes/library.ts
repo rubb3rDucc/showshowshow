@@ -43,6 +43,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         'user_library.created_at',
         'user_library.updated_at',
         'content.id as content_id',
+        'content.tmdb_id',
         'content.title',
         'content.poster_url',
         'content.content_type',
@@ -94,6 +95,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         ...item,
         content: {
           id: item.content_id,
+          tmdb_id: item.tmdb_id,
           title: item.title,
           poster_url: item.poster_url,
           content_type: item.content_type,
@@ -154,6 +156,124 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       shows: stats?.shows || 0,
       movies: stats?.movies || 0,
       total_episodes_watched: stats?.total_episodes_watched || 0,
+    });
+  });
+
+  // Get this-week stats (rolling 7-day window) with prior-week comparison
+  fastify.get('/api/library/stats/weekly', { preHandler: authenticateClerk }, async (request, reply) => {
+    if (!request.user) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+
+    const userId = request.user.userId;
+    const now = new Date();
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const prevStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    // Episodes watched / accurate watch-minutes / active days.
+    // library_episode_status is the complete episode-watch record (both the schedule and
+    // library mark-watched paths write it); join episodes for real durations.
+    const epStats = await db
+      .selectFrom('library_episode_status as les')
+      .leftJoin('episodes as e', (join) =>
+        join
+          .onRef('e.content_id', '=', 'les.content_id')
+          .onRef('e.season', '=', 'les.season')
+          .onRef('e.episode_number', '=', 'les.episode')
+      )
+      .leftJoin('content as c', 'c.id', 'les.content_id')
+      .select([
+        sql<number>`COUNT(*) FILTER (WHERE les.watched_at >= ${weekStart})::int`.as('episodes_cur'),
+        sql<number>`COUNT(*) FILTER (WHERE les.watched_at < ${weekStart})::int`.as('episodes_prev'),
+        sql<number>`COALESCE(SUM(COALESCE(e.duration, c.default_duration, 30)) FILTER (WHERE les.watched_at >= ${weekStart}), 0)::int`.as('minutes_cur'),
+        sql<number>`COALESCE(SUM(COALESCE(e.duration, c.default_duration, 30)) FILTER (WHERE les.watched_at < ${weekStart}), 0)::int`.as('minutes_prev'),
+      ])
+      .where('les.user_id', '=', userId)
+      .where('les.status', '=', 'watched')
+      .where('les.watched_at', '>=', prevStart)
+      .executeTakeFirst();
+
+    // Movies have no episode rows: completion + runtime come from user_library + content.
+    const movieStats = await db
+      .selectFrom('user_library as ul')
+      .innerJoin('content as c', 'c.id', 'ul.content_id')
+      .select([
+        sql<number>`COUNT(*) FILTER (WHERE ul.completed_at >= ${weekStart})::int`.as('movies_cur'),
+        sql<number>`COUNT(*) FILTER (WHERE ul.completed_at < ${weekStart})::int`.as('movies_prev'),
+        sql<number>`COALESCE(SUM(c.default_duration) FILTER (WHERE ul.completed_at >= ${weekStart}), 0)::int`.as('movie_minutes_cur'),
+        sql<number>`COALESCE(SUM(c.default_duration) FILTER (WHERE ul.completed_at < ${weekStart}), 0)::int`.as('movie_minutes_prev'),
+      ])
+      .where('ul.user_id', '=', userId)
+      .where('c.content_type', '=', 'movie')
+      .where('ul.completed_at', '>=', prevStart)
+      .executeTakeFirst();
+
+    // Active days = distinct days with ANY viewing this week (episodes OR films).
+    const activeDaysResult = await sql<{ active_days: number }>`
+      SELECT COUNT(DISTINCT d)::int AS active_days FROM (
+        SELECT DATE(watched_at) AS d FROM library_episode_status
+          WHERE user_id = ${userId} AND status = 'watched' AND watched_at >= ${weekStart}
+        UNION
+        SELECT DATE(ul.completed_at) AS d FROM user_library ul
+          INNER JOIN content c ON c.id = ul.content_id
+          WHERE ul.user_id = ${userId} AND c.content_type = 'movie' AND ul.completed_at >= ${weekStart}
+      ) days
+    `.execute(db);
+    const activeDays = activeDaysResult.rows[0]?.active_days || 0;
+
+    // Titles finished (shows + movies) this week vs last week.
+    const finishedStats = await db
+      .selectFrom('user_library')
+      .select([
+        sql<number>`COUNT(*) FILTER (WHERE completed_at >= ${weekStart})::int`.as('finished_cur'),
+        sql<number>`COUNT(*) FILTER (WHERE completed_at < ${weekStart})::int`.as('finished_prev'),
+      ])
+      .where('user_id', '=', userId)
+      .where('completed_at', '>=', prevStart)
+      .executeTakeFirst();
+
+    // Recent activity feed: finished-only for now (ratings have no reliable timestamp).
+    const recent = await db
+      .selectFrom('user_library as ul')
+      .innerJoin('content as c', 'c.id', 'ul.content_id')
+      .select([
+        'ul.content_id as content_id',
+        'c.title as title',
+        'c.poster_url as poster_url',
+        'c.content_type as content_type',
+        'ul.completed_at as completed_at',
+      ])
+      .where('ul.user_id', '=', userId)
+      .where('ul.completed_at', '>=', weekStart)
+      .orderBy('ul.completed_at', 'desc')
+      .limit(6)
+      .execute();
+
+    const watchMinutesCur = (epStats?.minutes_cur || 0) + (movieStats?.movie_minutes_cur || 0);
+    const watchMinutesPrev = (epStats?.minutes_prev || 0) + (movieStats?.movie_minutes_prev || 0);
+
+    return reply.send({
+      period: 'last_7_days',
+      as_of: now.toISOString(),
+      episodes_watched: epStats?.episodes_cur || 0,
+      movies_watched: movieStats?.movies_cur || 0,
+      watch_minutes: watchMinutesCur,
+      finished: finishedStats?.finished_cur || 0,
+      active_days: activeDays,
+      previous: {
+        episodes_watched: epStats?.episodes_prev || 0,
+        movies_watched: movieStats?.movies_prev || 0,
+        watch_minutes: watchMinutesPrev,
+        finished: finishedStats?.finished_prev || 0,
+      },
+      recent_activity: recent.map((r) => ({
+        content_id: r.content_id,
+        title: r.title,
+        poster_url: r.poster_url,
+        content_type: r.content_type,
+        type: 'completed' as const,
+        timestamp: r.completed_at,
+      })),
     });
   });
 
@@ -361,6 +481,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         'user_library.created_at',
         'user_library.updated_at',
         'content.id as content_id',
+        'content.tmdb_id',
         'content.title',
         'content.poster_url',
         'content.content_type',
@@ -383,6 +504,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         ...libraryItem,
         content: {
           id: libraryItem.content_id,
+          tmdb_id: libraryItem.tmdb_id,
           title: libraryItem.title,
           poster_url: libraryItem.poster_url,
           content_type: libraryItem.content_type,
