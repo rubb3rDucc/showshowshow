@@ -31,6 +31,9 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "@clerk/backend": "^2.33.3",
     "@fastify/cors": "^11.2.0",
