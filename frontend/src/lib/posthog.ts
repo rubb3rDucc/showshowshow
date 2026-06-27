@@ -31,7 +31,11 @@ export function initPostHog(): boolean {
       api_host: host,
       capture_pageview: true,
       capture_pageleave: true,
-      autocapture: false, // Disable autocapture to reduce noise
+      autocapture: false, // Disable interaction autocapture to reduce noise
+      // Auto-capture uncaught errors + unhandled promise rejections as
+      // Error Tracking issues (correct $exception_list format). Without this,
+      // anything not caught by the React ErrorBoundary is invisible.
+      capture_exceptions: true,
       persistence: 'localStorage',
       // Respect Do Not Track
       respect_dnt: true,
@@ -73,21 +77,16 @@ export function captureException(
   }
 
   try {
-    const properties: Record<string, unknown> = {
-      $exception_type: error.name,
-      $exception_message: error.message,
-      $exception_stack_trace: error.stack,
+    // Use the SDK method (not capture('$exception', ...)) so PostHog builds the
+    // correct $exception_list format. This is what creates an Error Tracking
+    // *issue*, which is what alerts fire on.
+    posthog.captureException(error, {
       source: 'frontend',
-      url: window.location.href,
-      userAgent: navigator.userAgent,
+      ...(context?.componentStack
+        ? { $exception_component_stack: context.componentStack }
+        : {}),
       ...context?.extra,
-    };
-
-    if (context?.componentStack) {
-      properties.$exception_component_stack = context.componentStack;
-    }
-
-    posthog.capture('$exception', properties);
+    });
   } catch {
     // Don't let PostHog errors break the app
   }
