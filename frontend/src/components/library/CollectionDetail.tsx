@@ -198,7 +198,7 @@ export function CollectionDetail({
   return (
     <div>
       {/* Cinematic banner — full-bleed, slideshow of the list's posters */}
-      <div className="relative overflow-hidden -mt-8 -mx-4 md:-mx-6 lg:-mx-8 mb-8" style={{ background: '#15161a' }}>
+      <div className="relative overflow-hidden -mt-8 -mx-4 md:-mx-6 lg:-mx-8 mb-5" style={{ background: '#15161a' }}>
         {heroPosters.map((url, i) => (
           <div
             key={i}
@@ -217,7 +217,7 @@ export function CollectionDetail({
             a vertical fade into the page background so the banner melts into the grid. */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-[rgb(var(--color-bg-page))] via-black/45 to-black/25" />
-        <div className="relative z-10 flex flex-col justify-between gap-10 px-4 md:px-6 lg:px-8 pt-8 pb-20 min-h-[300px]">
+        <div className="relative z-10 flex flex-col justify-between gap-10 px-4 md:px-6 lg:px-8 pt-8 pb-6 min-h-[220px]">
           <div className="flex items-start justify-between gap-3">
             <button
               type="button"
