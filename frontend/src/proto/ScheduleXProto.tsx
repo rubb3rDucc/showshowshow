@@ -103,7 +103,9 @@ export function ScheduleXProto({
   // Seeds the calendar on first render; afterwards live updates flow through the effect
   // below (set()) rather than a remount, so editing an item doesn't rebuild the grid.
   const events = scheduleItemsToEvents(items);
-  const initialDate = selectedDate ?? firstEventDate(events) ?? today();
+  // `||` (not `??`) so an empty-string selectedDate falls through to a real date —
+  // Temporal.PlainDate.from('') throws "can't parse empty string as date-time".
+  const initialDate = selectedDate || firstEventDate(events) || today();
 
   // Stable plugin instances — these are wired into the calendar at creation, so they must
   // not be recreated (a fresh instance wouldn't be attached). Reusing one plugin across

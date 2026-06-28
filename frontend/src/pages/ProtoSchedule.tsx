@@ -208,16 +208,21 @@ export function ProtoSchedule() {
           </div>
           {/* One date control for the whole page: which day + how many days. Both drive
               the heading, the fetched range, and the calendar together. */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-end gap-2">
             <TextInput
               size="sm"
               type="date"
+              label="Date"
               value={date}
-              onChange={(e) => setDate(e.currentTarget.value)}
+              // Ignore empty values: spinning a native date input past a month's last
+              // day (e.g. Jun 30 -> 31) briefly emits "", which would crash the calendar
+              // ("can't parse empty string as date-time"). Keep the previous date instead.
+              onChange={(e) => { const v = e.currentTarget.value; if (v) setDate(v); }}
               aria-label="Schedule date"
             />
             <Select
               size="sm"
+              label="Show"
               data={DATE_RANGES}
               value={dateRange}
               onChange={(v) => setDateRange(v || 'tonight')}
