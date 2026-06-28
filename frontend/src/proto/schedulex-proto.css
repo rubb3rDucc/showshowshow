@@ -1,0 +1,37 @@
+/*
+ * Schedule-X's React component renders its own `.sx-react-calendar-wrapper`
+ * element which has NO intrinsic height — the height MUST live on this element
+ * (per the docs), not just an outer div. Give it 100% of our bounded box so the
+ * week/day grid (sized by weekOptions.gridHeight) has something to scroll within.
+ */
+.sx-react-calendar-wrapper {
+  height: 100%;
+}
+
+/*
+ * Day/week header ("SAT 28") ships with tall padding + an extra-large date in a
+ * 2em circle, eating vertical space above the grid. Tighten the column padding and
+ * shrink the date number (and its today-circle) so the header is more compact.
+ */
+.sx-react-calendar-wrapper .sx__week-grid__date {
+  padding: 6px 0;
+}
+.sx-react-calendar-wrapper .sx__week-grid__date-number {
+  font-size: var(--sx-font-medium);
+  height: 1.5em;
+  width: 1.5em;
+}
+
+/*
+ * The custom TimeGridEvent draws its own white card (border, padding). Strip the
+ * theme wrapper's padding/background/rounding so the card fills the slot cleanly
+ * instead of nesting inside the default event chrome.
+ */
+.sx-react-calendar-wrapper .sx__time-grid-event {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  /* Floor short events (a 15-min block is only ~30px at 120px/hour) so the card
+     has room for its content instead of clipping into a rounded sliver. */
+  min-height: 34px;
+}

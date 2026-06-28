@@ -89,6 +89,20 @@ export async function removeFromQueue(queueItemId: string): Promise<void> {
 }
 
 /**
+ * Toggle whether a queue item participates in schedule generation.
+ * Keeps the item in the lineup; the generator skips it when is_active is false.
+ */
+export async function setQueueItemActive(
+  queueItemId: string,
+  isActive: boolean
+): Promise<{ success: boolean; is_active: boolean }> {
+  return apiCall(`/api/queue/${queueItemId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_active: isActive }),
+  });
+}
+
+/**
  * Reorder queue items
  * @param itemIds - Array of queue item IDs in desired order
  */

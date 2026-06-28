@@ -1,0 +1,84 @@
+name: Deploy
+
+# CI owns the order: run DB migrations first, and only trigger the DigitalOcean
+# deploy if they succeed. Requires DO App Platform autodeploy-on-push to be turned
+# OFF (otherwise DO also deploys on push and races this workflow).
+#
+# Deploys are intentional, not per-merge: merges accumulate on master, and prod
+# ships only when you (a) click "Run workflow" or (b) publish a GitHub Release.
+# This batches releases (fewer App Platform builds = lower bill) and gives a
+# deliberate QA point before code reaches users.
+on:
+  workflow_dispatch: # manual "Run workflow" button (deploys current master)
+  release:
+    types: [published] # publishing a GitHub Release ships that point in master
+
+# Never run two deploys (and their migrations) at once.
+concurrency:
+  group: deploy-master
+  cancel-in-progress: false
+
+# Least privilege by default: the GITHUB_TOKEN gets nothing unless a job opts in.
+permissions: {}
+
+jobs:
+  migrate:
+    name: Run DB migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10 # a hung migration fails the job instead of stalling forever
+    # Gate prod secrets behind a GitHub Environment (add required reviewers there).
+    environment: production
+    permissions:
+      contents: read # only to check out the repo
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11.9.0 # match backend packageManager
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22 # match engines.node
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Migrate
+        run: pnpm run migrate:up
+        env:
+          # Use the DIRECT Supabase connection (port 5432), NOT the pooler (6543).
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NODE_ENV: production # enables SSL in the pool config
+
+  deploy:
+    name: Trigger DigitalOcean deploy
+    needs: migrate # only deploys if migrations passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    permissions: {} # doctl authenticates with a secret, not the GITHUB_TOKEN
+    steps:
+      - name: Install doctl
+        uses: digitalocean/action-doctl@3cb3953159719656269e044e0e24ca16dd2a690f # v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      # Two separate DO apps (backend + frontend). Deploy both in parallel; --wait
+      # blocks until each finishes and exits non-zero on failure. We capture each
+      # job's status so a failure in either surfaces as a failed Action (your alert).
+      - name: Deploy backend + frontend
+        env:
+          DO_BACKEND_APP_ID: ${{ secrets.DO_BACKEND_APP_ID }}
+          DO_FRONTEND_APP_ID: ${{ secrets.DO_FRONTEND_APP_ID }}
+        run: |
+          doctl apps create-deployment "$DO_BACKEND_APP_ID" --wait & back=$!
+          doctl apps create-deployment "$DO_FRONTEND_APP_ID" --wait & front=$!
+          rc=0
+          wait "$back" || rc=1
+          wait "$front" || rc=1
+          exit $rc

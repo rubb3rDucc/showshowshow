@@ -22,6 +22,7 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
         'queue.position',
         'queue.season',
         'queue.episode',
+        'queue.is_active',
         'queue.created_at',
         'content.id as content_id',
         'content.tmdb_id',
@@ -106,6 +107,7 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
         episode: episode ?? null,
         position: newPosition,
         synced: false,
+        is_active: true,
         created_at: new Date(),
       })
       .returningAll()
@@ -149,6 +151,35 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Remove item from queue
+  // Toggle whether a queue item participates in schedule generation
+  fastify.patch('/api/queue/:id', { preHandler: requireActiveSubscription }, async (request, reply) => {
+    if (!request.user) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+
+    const userId = request.user.userId;
+    const { id } = request.params as { id: string };
+    const { is_active } = request.body as { is_active?: boolean };
+
+    if (typeof is_active !== 'boolean') {
+      throw new ValidationError('is_active (boolean) is required');
+    }
+
+    const updated = await db
+      .updateTable('queue')
+      .set({ is_active })
+      .where('id', '=', id)
+      .where('user_id', '=', userId)
+      .returning('id')
+      .executeTakeFirst();
+
+    if (!updated) {
+      throw new NotFoundError('Queue item not found');
+    }
+
+    return reply.send({ success: true, is_active });
+  });
+
   fastify.delete('/api/queue/:id', { preHandler: requireActiveSubscription }, async (request, reply) => {
     if (!request.user) {
       return reply.code(401).send({ error: 'Unauthorized' });

@@ -44,7 +44,7 @@ const fastify = Fastify({
 fastify.decorate('db', db);
 
 // Health check endpoint
-fastify.get('/health', async () => {
+fastify.get('/health', async (_request, reply) => {
   const health: {
     status: 'ok' | 'degraded' | 'error';
     timestamp: string;
@@ -122,6 +122,14 @@ fastify.get('/health', async () => {
       error: error.name === 'AbortError' ? 'Timeout' : error.message,
     };
     if (health.status === 'ok') health.status = 'degraded';
+  }
+
+  // Fail the check only on a critical dependency (DB) so a broken deploy is held
+  // back by the rolling health check. A 'degraded' status from a third-party
+  // (TMDB/Jikan) outage stays 200 — an external blip must not fail our own health
+  // gate and take the site down with it.
+  if (health.status === 'error') {
+    reply.code(503);
   }
 
   return health;

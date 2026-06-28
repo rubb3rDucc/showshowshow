@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from 'react';
+import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { Button, Stack, Text, Title, Card } from '@mantine/core';
 import { captureException } from '../../lib/posthog';
 
@@ -10,6 +10,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  componentStack: string | null;
 }
 
 /**
@@ -19,14 +20,19 @@ interface State {
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, componentStack: null };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    this.setState({ componentStack: errorInfo.componentStack || null });
+
+    // Always log to the console so the failure is diagnosable in production too
+    console.error('[ErrorBoundary] Uncaught render error:', error, errorInfo.componentStack);
+
     // Send to PostHog for error tracking
     captureException(error, {
       componentStack: errorInfo.componentStack || undefined,
@@ -37,7 +43,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, componentStack: null });
   };
 
   handleReload = () => {
@@ -65,10 +71,35 @@ export class ErrorBoundary extends Component<Props, State> {
               <Text size="sm" c="dimmed" ta="center">
                 An unexpected error occurred. Try refreshing the page or click retry below.
               </Text>
-              {import.meta.env.DEV && this.state.error && (
-                <Text size="xs" c="red" className="font-mono break-all">
-                  {this.state.error.message}
-                </Text>
+              {this.state.error && (
+                <details className="w-full" open style={{ width: '100%' }}>
+                  <summary
+                    className="text-xs cursor-pointer"
+                    style={{ color: 'rgba(255,255,255,0.5)' }}
+                  >
+                    Error details
+                  </summary>
+                  <Text
+                    size="xs"
+                    c="red"
+                    className="font-mono"
+                    component="pre"
+                    style={{
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      userSelect: 'text',
+                      maxHeight: '40vh',
+                      overflowY: 'auto',
+                      marginTop: '8px',
+                    }}
+                  >
+                    {this.state.error.message}
+                    {this.state.error.stack ? `\n\n${this.state.error.stack}` : ''}
+                    {this.state.componentStack
+                      ? `\n\nComponent stack:${this.state.componentStack}`
+                      : ''}
+                  </Text>
+                </details>
               )}
               <div className="flex gap-3 mt-2">
                 <Button

@@ -80,6 +80,7 @@ export interface Database {
     episode: number | null;
     position: number;
     synced: boolean;
+    is_active: boolean;
     created_at: Date;
   };
   programming_blocks: {

@@ -28,12 +28,12 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Search } from './pages/Search';
-import { Queue } from './pages/Queue';
 import { Library } from './pages/Library';
 import { Browse } from './pages/Browse';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
 import { Networks } from './pages/Networks';
 import { ClerkTest } from './pages/ClerkTest';
+import { ProtoSchedule } from './pages/ProtoSchedule';
 import { flags } from './flags';
 const Reviews = lazy(() => import('./pages/Reviews').then(m => ({ default: m.Reviews })));
 const ReviewEditor = lazy(() => import('./pages/ReviewEditor').then(m => ({ default: m.ReviewEditor })));
@@ -166,6 +166,15 @@ function App() {
         <Route path="/register" component={Register} />
         <Route path="/clerk-test" component={ClerkTest} />
 
+          {/* Flag-independent preview of the scheduling workspace (needs auth for real data) */}
+          <Route path="/proto/schedule">
+            <ProtectedRoute>
+              <Layout>
+                <ProtoSchedule />
+              </Layout>
+            </ProtectedRoute>
+          </Route>
+
         {/* Protected routes */}
         <Route path="/">
           <ProtectedRoute>
@@ -194,7 +203,7 @@ function App() {
         <Route path="/lineup">
           <ProtectedRoute>
             <Layout>
-              <Queue />
+                <ProtoSchedule />
             </Layout>
           </ProtectedRoute>
         </Route>
