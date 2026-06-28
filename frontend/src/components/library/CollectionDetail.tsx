@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { ArrowLeft, Plus, Trash2, MoreHorizontal, Pencil, AlignLeft, ListOrdered, Check, Share2, ClipboardList } from 'lucide-react';
-import { Menu, ActionIcon, Button } from '@mantine/core';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Plus, Trash2, MoreHorizontal, Pencil, AlignLeft, ListOrdered, Check, Share2, ClipboardList, Tv, X } from 'lucide-react';
+import { Menu, Button } from '@mantine/core';
 import { toast } from 'sonner';
 import {
   DndContext,
@@ -21,7 +21,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { Collection } from '../../hooks/useCollections';
 import type { LibraryItemUI } from '../../types/library.types';
-import { LibraryPosterCard } from './LibraryPosterCard';
 import { ShareListModal } from './ShareListModal';
 
 interface CollectionDetailProps {
@@ -38,7 +37,59 @@ interface CollectionDetailProps {
   onAddTitles: () => void;
 }
 
-const GRID = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6';
+const GRID = 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4';
+
+/** Captionless poster tile: art only, rank badge (ranked), title on hover, remove on hover. */
+function DetailTile({
+  item,
+  rank,
+  onOpen,
+  onRemove,
+}: {
+  item: LibraryItemUI;
+  rank?: number;
+  onOpen: (i: LibraryItemUI) => void;
+  onRemove?: (contentId: string) => void;
+}) {
+  const { content } = item;
+  return (
+    <div className="group relative">
+      <button type="button" onClick={() => onOpen(item)} className="block w-full text-left">
+        <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-[rgb(var(--color-bg-elevated))]">
+          {content.posterUrl ? (
+            <img src={content.posterUrl} alt={content.title} loading="lazy" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Tv className="w-7 h-7 text-[rgb(var(--color-text-tertiary))]" />
+            </div>
+          )}
+          {/* Title revealed on hover/focus */}
+          <div className="absolute inset-0 flex items-end p-2 bg-gradient-to-t from-black/85 via-black/15 to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200">
+            <span className="text-xs font-medium text-white leading-tight line-clamp-2">{content.title}</span>
+          </div>
+        </div>
+      </button>
+      {rank !== undefined && (
+        <span className="absolute top-1.5 left-1.5 min-w-[22px] h-[22px] px-1 inline-flex items-center justify-center rounded-md bg-black/65 text-white text-xs font-semibold tabular-nums">
+          {rank}
+        </span>
+      )}
+      {onRemove && (
+        <button
+          type="button"
+          aria-label="Remove from list"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(item.contentId);
+          }}
+          className="absolute top-1.5 right-1.5 w-6 h-6 inline-flex items-center justify-center rounded-md bg-black/55 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/75"
+        >
+          <X size={13} />
+        </button>
+      )}
+    </div>
+  );
+}
 
 function SortableItem({
   item,
@@ -64,7 +115,7 @@ function SortableItem({
       {...attributes}
       {...listeners}
     >
-      <LibraryPosterCard item={item} rank={rank} onOpen={onOpen} onRemove={onRemove} />
+      <DetailTile item={item} rank={rank} onOpen={onOpen} onRemove={onRemove} />
     </div>
   );
 }
@@ -87,6 +138,16 @@ export function CollectionDetail({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // Slideshow of the list's posters as the blurred banner backdrop.
+  const heroPosters = items.map((i) => i.content.posterUrl).filter((u): u is string => !!u).slice(0, 8);
+  const [bgIndex, setBgIndex] = useState(0);
+  useEffect(() => {
+    if (heroPosters.length <= 1) return;
+    const id = setInterval(() => setBgIndex((i) => (i + 1) % heroPosters.length), 4500);
+    return () => clearInterval(id);
+  }, [heroPosters.length]);
+  const activeIndex = heroPosters.length ? bgIndex % heroPosters.length : 0;
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -133,72 +194,95 @@ export function CollectionDetail({
 
   return (
     <div>
-      {/* Sub-header */}
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-1 mb-3 text-sm font-medium text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
-      >
-        <ArrowLeft size={15} />
-        Lists
-      </button>
-
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div className="min-w-0">
-          <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-[rgb(var(--color-text-primary))]">
-            {collection.name}
-          </h2>
-          {collection.description && (
-            <p className="text-sm text-[rgb(var(--color-text-secondary))] mt-1 max-w-2xl">
-              {collection.description}
-            </p>
-          )}
-          <p className="text-sm text-[rgb(var(--color-text-secondary))] mt-1">
-            {items.length} {items.length === 1 ? 'title' : 'titles'}
-            {collection.ranked ? ' · ranked' : ''}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button
-            size="sm"
-            className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80"
-            leftSection={<Plus size={15} />}
-            onClick={onAddTitles}
-          >
-            Add titles
-          </Button>
-          <Menu shadow="sm" width={200} position="bottom-end">
-            <Menu.Target>
-              <ActionIcon variant="subtle" color="gray" size="lg" aria-label="List options">
-                <MoreHorizontal size={18} />
-              </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item leftSection={<Pencil size={15} />} onClick={handleRename}>
-                Rename
-              </Menu.Item>
-              <Menu.Item leftSection={<AlignLeft size={15} />} onClick={handleEditDescription}>
-                {collection.description ? 'Edit description' : 'Add description'}
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<ListOrdered size={15} />}
-                rightSection={collection.ranked ? <Check size={14} /> : null}
-                onClick={() => onToggleRanked(!collection.ranked)}
+      {/* Cinematic banner — full-bleed, slideshow of the list's posters */}
+      <div className="relative overflow-hidden -mt-8 -mx-4 md:-mx-6 lg:-mx-8 mb-8" style={{ background: '#15161a' }}>
+        {heroPosters.map((url, i) => (
+          <div
+            key={i}
+            className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
+            style={{
+              backgroundImage: `url(${url})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: 'blur(44px) brightness(0.7)',
+              transform: 'scale(1.18)',
+              opacity: i === activeIndex ? 1 : 0,
+            }}
+          />
+        ))}
+        {/* Same gradient recipe as the content modal: left-dark for the title +
+            a vertical fade into the page background so the banner melts into the grid. */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgb(var(--color-bg-page))] via-black/45 to-black/25" />
+        <div className="relative z-10 flex flex-col justify-between gap-10 px-4 md:px-6 lg:px-8 pt-8 pb-20 min-h-[300px]">
+          <div className="flex items-start justify-between gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex items-center gap-1 text-sm font-medium text-white/90 hover:text-white transition-colors"
+              style={{ textShadow: '0 1px 8px rgba(0,0,0,.5)' }}
+            >
+              <ArrowLeft size={15} />
+              Lists
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onAddTitles}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 text-white text-sm font-medium hover:bg-white/25 transition-colors"
               >
-                Ranked
-              </Menu.Item>
-              <Menu.Item leftSection={<Share2 size={15} />} onClick={() => setShareOpen(true)} disabled={items.length === 0}>
-                Share as image…
-              </Menu.Item>
-              <Menu.Item leftSection={<ClipboardList size={15} />} onClick={handleCopyText} disabled={items.length === 0}>
-                Copy as text
-              </Menu.Item>
-              <Menu.Divider />
-              <Menu.Item color="red" leftSection={<Trash2 size={15} />} onClick={handleDelete}>
-                Delete list
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
+                <Plus size={15} />
+                Add titles
+              </button>
+              <Menu shadow="sm" width={210} position="bottom-end">
+                <Menu.Target>
+                  <button
+                    type="button"
+                    aria-label="List options"
+                    className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-white bg-white/10 hover:bg-white/20 transition-colors"
+                  >
+                    <MoreHorizontal size={20} />
+                  </button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item leftSection={<Pencil size={15} />} onClick={handleRename}>
+                    Rename
+                  </Menu.Item>
+                  <Menu.Item leftSection={<AlignLeft size={15} />} onClick={handleEditDescription}>
+                    {collection.description ? 'Edit description' : 'Add description'}
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<ListOrdered size={15} />}
+                    rightSection={collection.ranked ? <Check size={14} /> : null}
+                    onClick={() => onToggleRanked(!collection.ranked)}
+                  >
+                    Ranked
+                  </Menu.Item>
+                  <Menu.Item leftSection={<Share2 size={15} />} onClick={() => setShareOpen(true)} disabled={items.length === 0}>
+                    Share as image…
+                  </Menu.Item>
+                  <Menu.Item leftSection={<ClipboardList size={15} />} onClick={handleCopyText} disabled={items.length === 0}>
+                    Copy as text
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item color="red" leftSection={<Trash2 size={15} />} onClick={handleDelete}>
+                    Delete list
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{collection.name}</h2>
+            {collection.description && (
+              <p className="text-sm text-white/75 mt-1.5 max-w-2xl line-clamp-2">{collection.description}</p>
+            )}
+            <p className="text-sm text-white/55 mt-2">
+              {items.length} {items.length === 1 ? 'title' : 'titles'}
+              {collection.ranked ? ' · ranked' : ''}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -206,11 +290,7 @@ export function CollectionDetail({
       {items.length === 0 ? (
         <div className="bg-[rgb(var(--color-bg-surface))] rounded-lg p-12 text-center border border-[rgb(var(--color-border-default))]">
           <p className="text-sm text-[rgb(var(--color-text-secondary))] mb-4">This list is empty.</p>
-          <Button
-            className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80"
-            leftSection={<Plus size={16} />}
-            onClick={onAddTitles}
-          >
+          <Button className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80" leftSection={<Plus size={16} />} onClick={onAddTitles}>
             Add titles
           </Button>
         </div>
@@ -219,13 +299,7 @@ export function CollectionDetail({
           <SortableContext items={items.map((i) => i.contentId)} strategy={rectSortingStrategy}>
             <div className={GRID}>
               {items.map((item, idx) => (
-                <SortableItem
-                  key={item.contentId}
-                  item={item}
-                  rank={idx + 1}
-                  onOpen={onOpenItem}
-                  onRemove={onRemoveItem}
-                />
+                <SortableItem key={item.contentId} item={item} rank={idx + 1} onOpen={onOpenItem} onRemove={onRemoveItem} />
               ))}
             </div>
           </SortableContext>
@@ -233,17 +307,12 @@ export function CollectionDetail({
       ) : (
         <div className={GRID}>
           {items.map((item) => (
-            <LibraryPosterCard key={item.contentId} item={item} onOpen={onOpenItem} onRemove={onRemoveItem} />
+            <DetailTile key={item.contentId} item={item} onOpen={onOpenItem} onRemove={onRemoveItem} />
           ))}
         </div>
       )}
 
-      <ShareListModal
-        opened={shareOpen}
-        onClose={() => setShareOpen(false)}
-        collection={collection}
-        items={items}
-      />
+      <ShareListModal opened={shareOpen} onClose={() => setShareOpen(false)} collection={collection} items={items} />
     </div>
   );
 }

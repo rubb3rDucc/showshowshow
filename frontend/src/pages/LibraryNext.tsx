@@ -240,9 +240,14 @@ export function LibraryNext() {
     );
   }
 
+  // When a list is open, hide the Library header + tabs so the list is the focus.
+  const inListDetail = tab === 'lists' && !!openList;
+
   return (
     <>
       <PageContainer>
+        {!inListDetail && (
+        <>
         <PageHeader
           title="Library"
           subtitle={`${totalItems} ${totalItems === 1 ? 'title' : 'titles'}`}
@@ -289,6 +294,8 @@ export function LibraryNext() {
             ) : undefined
           }
         />
+        </>
+        )}
 
         {tab === 'lists' ? (
           openList ? (
