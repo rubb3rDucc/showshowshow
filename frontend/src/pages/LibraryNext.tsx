@@ -318,20 +318,17 @@ export function LibraryNext() {
           counts={counts}
           right={
             tab === 'library' ? (
-              <>
-                <LibraryFilterControls
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  filterStatus={filterStatus}
-                  onFilterStatusChange={setFilterStatus}
-                  filterType={filterType}
-                  onFilterTypeChange={setFilterType}
-                  sortBy={sortBy}
-                  onSortChange={setSortBy}
-                />
-                <span className="w-px h-4 bg-[rgb(var(--color-border-default))]" aria-hidden />
-                <PosterSizeControl value={wallSize.size} onChange={wallSize.setSize} />
-              </>
+              <LibraryFilterControls
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                filterStatus={filterStatus}
+                onFilterStatusChange={setFilterStatus}
+                filterType={filterType}
+                onFilterTypeChange={setFilterType}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                trailing={<PosterSizeControl value={wallSize.size} onChange={wallSize.setSize} />}
+              />
             ) : undefined
           }
         />

@@ -42,7 +42,7 @@ export function LibraryTabs({ value, onChange, counts, right }: LibraryTabsProps
           );
         })}
       </div>
-      {right && <div className="flex items-center gap-3 pb-2">{right}</div>}
+      {right && <div className="w-full sm:w-auto pb-2">{right}</div>}
     </div>
   );
 }

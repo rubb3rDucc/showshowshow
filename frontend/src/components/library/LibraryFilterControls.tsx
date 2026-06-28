@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { Menu } from '@mantine/core';
 import { Search, X, ChevronDown } from 'lucide-react';
 import type { LibraryFilterType, LibrarySortOption, LibraryStatus } from '../../types/library.types';
@@ -14,6 +14,8 @@ interface LibraryFilterControlsProps {
   onFilterTypeChange: (value: LibraryFilterType) => void;
   sortBy: LibrarySortOption;
   onSortChange: (value: LibrarySortOption) => void;
+  /** Optional trailing control (e.g. poster size), separated by a divider on ≥sm. */
+  trailing?: ReactNode;
 }
 
 const STATUS_LABELS: Record<LibraryStatusFilter, string> = {
@@ -40,7 +42,7 @@ const SORT_OPTIONS: { value: LibrarySortOption; label: string }[] = [
 ];
 
 const triggerClass =
-  'inline-flex items-center gap-1 text-[rgb(var(--color-text-tertiary))] hover:text-[rgb(var(--color-text-primary))] transition-colors';
+  'inline-flex items-center gap-1 whitespace-nowrap text-[rgb(var(--color-text-tertiary))] hover:text-[rgb(var(--color-text-primary))] transition-colors';
 
 /**
  * Quiet, borderless filter controls for the tabs row: an expandable search icon
@@ -55,6 +57,7 @@ export function LibraryFilterControls({
   onFilterTypeChange,
   sortBy,
   onSortChange,
+  trailing,
 }: LibraryFilterControlsProps) {
   const [open, setOpen] = useState(searchQuery.length > 0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -66,7 +69,7 @@ export function LibraryFilterControls({
   const sortLabel = SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? 'Sort';
 
   return (
-    <div className="flex items-center gap-3 text-sm">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
       {open ? (
         <div className="flex items-center gap-1.5 text-[rgb(var(--color-text-secondary))]">
           <Search size={15} />
@@ -157,6 +160,13 @@ export function LibraryFilterControls({
           ))}
         </Menu.Dropdown>
       </Menu>
+
+      {trailing && (
+        <>
+          <span className="hidden sm:inline-block w-px h-4 bg-[rgb(var(--color-border-default))]" aria-hidden />
+          {trailing}
+        </>
+      )}
     </div>
   );
 }
