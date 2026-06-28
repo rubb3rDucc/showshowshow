@@ -128,17 +128,38 @@ export function ScheduleXProto({
     events,
   });
 
-  // Keep events in sync WITHOUT remounting: set() swaps the event set in place, so add/
-  // remove no longer rebuilds the grid or resets scroll. Scroll to the first item only on
-  // the initial populate (empty -> loaded) so later edits keep the user's scroll position.
-  // Re-runs only when the schedule's content changes, not on every render.
+  // Keep events in sync WITHOUT remounting AND without repainting the whole grid: diff the
+  // items against the last sync and only add/update/remove the events that changed, so
+  // deleting one item removes just that block (set() replaced every event and flickered).
+  // prevSigs starts null: the calendar is already seeded with the first render's events, so
+  // the first run just records them. Scroll to the first item only on the initial populate.
   const didInitialScroll = useRef(false);
+  const prevSigs = useRef<Map<string, string> | null>(null);
   const itemsSig = items.map((i) => `${i.id}|${i.scheduled_time}|${i.duration}|${i.watched ? 1 : 0}`).join(',');
   useEffect(() => {
-    const evts = scheduleItemsToEvents(items);
-    ownService.set(evts);
-    if (!didInitialScroll.current && evts.length > 0) {
-      const t = firstEventTime(evts);
+    const sigOf = (it: ScheduleItem) =>
+      `${it.scheduled_time}|${it.duration}|${it.watched ? 1 : 0}|${it.title}|${it.season}|${it.episode}`;
+    const nextSigs = new Map(items.map((it) => [it.id, sigOf(it)] as const));
+
+    if (prevSigs.current === null) {
+      prevSigs.current = nextSigs; // already seeded at creation — don't re-add
+    } else {
+      const eventById = new Map(scheduleItemsToEvents(items).map((e) => [e.id, e] as const));
+      for (const id of prevSigs.current.keys()) {
+        if (!nextSigs.has(id)) ownService.remove(id); // gone -> remove just this block
+      }
+      for (const [id, sig] of nextSigs) {
+        const ev = eventById.get(id);
+        if (!ev) continue;
+        const prev = prevSigs.current.get(id);
+        if (prev === undefined) ownService.add(ev);
+        else if (prev !== sig) ownService.update(ev);
+      }
+      prevSigs.current = nextSigs;
+    }
+
+    if (!didInitialScroll.current && items.length > 0) {
+      const t = firstEventTime(scheduleItemsToEvents(items));
       if (t) requestAnimationFrame(() => scrollController.scrollTo(`${t.slice(0, 2)}:00`));
       didInitialScroll.current = true;
     }
