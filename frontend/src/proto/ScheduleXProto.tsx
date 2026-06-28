@@ -3,10 +3,11 @@ import { Temporal } from 'temporal-polyfill';
 import { useNextCalendarApp, ScheduleXCalendar } from '@schedule-x/react';
 import { createViewDay, createViewWeek } from '@schedule-x/calendar';
 import { createEventsServicePlugin } from '@schedule-x/events-service';
+import { createScrollControllerPlugin } from '@schedule-x/scroll-controller';
 import { X } from 'lucide-react';
 import '@schedule-x/theme-default/dist/index.css';
 import './schedulex-proto.css';
-import { scheduleItemsToEvents, firstEventDate } from './scheduleAdapter';
+import { scheduleItemsToEvents, firstEventDate, firstEventTime } from './scheduleAdapter';
 import type { ScheduleItem } from '../types/api';
 
 const today = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, local
@@ -89,25 +90,37 @@ export function ScheduleXProto({
   selectedDate,
   onRemove,
   view = 'day',
+  windowStart,
 }: {
   items: ScheduleItem[];
   selectedDate?: string;
   onRemove?: (id: string) => void;
   view?: 'day' | 'week';
+  /** 24h "HH:MM" the schedule window opens at — where the timeline scrolls when there are no events yet. */
+  windowStart?: string;
 }) {
   const events = scheduleItemsToEvents(items);
   const initialDate = selectedDate ?? firstEventDate(events) ?? today();
 
-  // Each instance gets its own events-service — reusing one Schedule-X plugin
-  // instance across calendar configs can stop events from loading.
+  // Open the timeline on the first scheduled item (floored to its hour for a little
+  // headroom) instead of the top of the day; fall back to the window start when empty.
+  const firstTime = firstEventTime(events);
+  const initialScroll = firstTime ? `${firstTime.slice(0, 2)}:00` : (windowStart ?? '06:00');
+
+  // Each instance gets its own plugins — reusing one Schedule-X plugin instance across
+  // calendar configs can stop events from loading. Re-seed scroll when the target changes.
   const ownService = useMemo(() => createEventsServicePlugin(), []);
+  const scrollController = useMemo(
+    () => createScrollControllerPlugin({ initialScroll }),
+    [initialScroll]
+  );
 
   const calendar = useNextCalendarApp({
     views: [createViewDay(), createViewWeek()],
     defaultView: view,
     selectedDate: Temporal.PlainDate.from(initialDate),
     weekOptions: { gridHeight: 2880 }, // 120px/hour — matches the Lineup builder's slot sizing
-    plugins: [ownService],
+    plugins: [ownService, scrollController],
     events,
   });
 

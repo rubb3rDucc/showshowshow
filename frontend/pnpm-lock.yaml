@@ -55,6 +55,9 @@ importers:
       '@schedule-x/react':
         specifier: ^4.1.0
         version: 4.1.0(@schedule-x/calendar@4.6.0(@preact/signals@2.9.2(preact@10.29.0))(preact@10.29.0)(temporal-polyfill@1.0.1))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@schedule-x/scroll-controller':
+        specifier: ^4.6.0
+        version: 4.6.0(@preact/signals@2.9.2(preact@10.29.0))
       '@schedule-x/theme-default':
         specifier: ^4.6.0
         version: 4.6.0
@@ -821,6 +824,11 @@ packages:
       '@schedule-x/calendar': ^3.1.0 || ^4.0.0
       react: ^16.7.0 || ^17 || ^18 || ^19
       react-dom: ^16.7.0 || ^17 || ^18 || ^19
+
+  '@schedule-x/scroll-controller@4.6.0':
+    resolution: {integrity: sha512-bJsNrwdX3KD6/vsovZgCNeGBboa++RgXg6ZJTKEAFOcNb/SeMYf4EhX66+pEhCe0JPfvzjoWEBpSj0fSCcoUcg==}
+    peerDependencies:
+      '@preact/signals': ^2.0.2
 
   '@schedule-x/theme-default@4.6.0':
     resolution: {integrity: sha512-SM3bcvROJeG7ScH14lBIHZSTOBTR8h+oTswbpx1gpscddUfQfAnu7cFW4OJJI+ii+Si1IdTd4T3+rrnKd4HDDg==}
@@ -2776,6 +2784,10 @@ snapshots:
       '@schedule-x/calendar': 4.6.0(@preact/signals@2.9.2(preact@10.29.0))(preact@10.29.0)(temporal-polyfill@1.0.1)
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
+
+  '@schedule-x/scroll-controller@4.6.0(@preact/signals@2.9.2(preact@10.29.0))':
+    dependencies:
+      '@preact/signals': 2.9.2(preact@10.29.0)
 
   '@schedule-x/theme-default@4.6.0': {}
 

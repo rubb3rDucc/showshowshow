@@ -386,6 +386,7 @@ export function ProtoSchedule() {
             items={items}
             selectedDate={date}
             view={view}
+            windowStart={`${pad(Math.floor(startMin / 60) % 24)}:${pad(startMin % 60)}`}
             onRemove={(id) => deleteMutation.mutate(id)}
           />
         </section>
