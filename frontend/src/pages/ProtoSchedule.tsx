@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocalStorage } from '@mantine/hooks';
-import { Container, Button, Collapse, Select, TextInput } from '@mantine/core';
+import { Container, Button, Collapse, Select, TextInput, Menu, Modal } from '@mantine/core';
 import {
   CalendarPlus,
   SlidersHorizontal,
@@ -48,6 +48,18 @@ const startOfWeek = (ymd: string) => {
   const [y, m, d] = ymd.split('-').map(Number);
   const dow = new Date(y, m - 1, d).getDay(); // 0=Sun..6=Sat
   return addDays(ymd, -((dow + 6) % 7)); // days back to Monday
+};
+// Inclusive list of YYYY-MM-DD days from `from` to `to` (lexicographic compare is safe for ISO dates).
+const daysBetween = (from: string, to: string): string[] => {
+  if (!from || !to || from > to) return [];
+  const out: string[] = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) out.push(d);
+  return out;
+};
+// "2026-06-28" -> "Sat Jun 28" for compact menu rows.
+const formatShortDate = (ymd: string) => {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 };
 
 const ACCENT = '#646cff';
@@ -110,6 +122,10 @@ export function ProtoSchedule() {
   const [rotation, setRotation] = useLocalStorage({ key: 'lineup.rotation', defaultValue: 'turns' });
   const [dateRange, setDateRange] = useLocalStorage({ key: 'lineup.dateRange', defaultValue: 'tonight' });
   const [date, setDate] = useState(todayStr());
+  // Custom-range clear dialog (pick any from/to span to wipe).
+  const [clearRangeOpen, setClearRangeOpen] = useState(false);
+  const [clearFrom, setClearFrom] = useState(todayStr());
+  const [clearTo, setClearTo] = useState(todayStr());
   // Per-show season/episode selection persists too (same store) -> generator episode_filters.
   const [episodeFilters, setEpisodeFilters] = useLocalStorage<Record<string, EpisodeFilter>>({
     key: 'lineup.episodeFilters',
@@ -166,12 +182,12 @@ export function ProtoSchedule() {
     onError: () => toast.error('Could not generate a schedule'),
   });
 
-  // Wipe every day the timeline covers so generate can run fresh (generate appends).
+  // Clear a specific set of days (one day, the whole range, or a custom span).
   const clearMutation = useMutation({
-    mutationFn: () => Promise.all(dates.map((d) => clearScheduleForDate(d))),
-    onSuccess: () => {
+    mutationFn: (daysToClear: string[]) => Promise.all(daysToClear.map((d) => clearScheduleForDate(d))),
+    onSuccess: (_res, daysToClear) => {
       invalidateDay();
-      toast.success(rangeDays > 1 ? 'Cleared range' : 'Cleared');
+      toast.success(daysToClear.length > 1 ? `Cleared ${daysToClear.length} days` : 'Cleared');
     },
     onError: () => toast.error('Could not clear'),
   });
@@ -377,13 +393,45 @@ export function ProtoSchedule() {
               Schedule
             </h3>
             {itemCount > 0 && (
-              <button
-                onClick={() => clearMutation.mutate()}
-                disabled={clearMutation.isPending}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-[rgb(var(--color-text-tertiary))] hover:text-red-500 transition-colors disabled:opacity-50"
-              >
-                <Trash2 size={13} /> {rangeDays > 1 ? 'Clear range' : 'Clear day'}
-              </button>
+              <Menu position="bottom-end" shadow="md" width={220}>
+                <Menu.Target>
+                  <button
+                    disabled={clearMutation.isPending}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[rgb(var(--color-text-tertiary))] hover:text-red-500 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 size={13} /> Clear
+                    <ChevronDown size={13} />
+                  </button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  {/* Per-day rows for the days the timeline currently covers */}
+                  {rangeDays > 1 && (
+                    <>
+                      <Menu.Label>Clear a day</Menu.Label>
+                      {dates.map((d) => (
+                        <Menu.Item key={d} leftSection={<Trash2 size={13} />} onClick={() => clearMutation.mutate([d])}>
+                          {formatShortDate(d)}
+                        </Menu.Item>
+                      ))}
+                      <Menu.Divider />
+                      <Menu.Item color="red" leftSection={<Trash2 size={13} />} onClick={() => clearMutation.mutate(dates)}>
+                        Clear whole range
+                      </Menu.Item>
+                    </>
+                  )}
+                  {rangeDays === 1 && (
+                    <Menu.Item color="red" leftSection={<Trash2 size={13} />} onClick={() => clearMutation.mutate([date])}>
+                      Clear this day
+                    </Menu.Item>
+                  )}
+                  <Menu.Item
+                    leftSection={<CalendarPlus size={13} />}
+                    onClick={() => { setClearFrom(rangeStart); setClearTo(addDays(rangeStart, rangeDays - 1)); setClearRangeOpen(true); }}
+                  >
+                    Custom range…
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
             )}
           </div>
 
@@ -410,6 +458,30 @@ export function ProtoSchedule() {
         {/* ===== The lineup / content drawer ===== */}
         <RealLineupDrawer episodeFilters={episodeFilters} onFilterChange={onFilterChange} />
       </Container>
+
+      {/* Custom-range clear dialog */}
+      <Modal opened={clearRangeOpen} onClose={() => setClearRangeOpen(false)} title="Clear a date range" centered size="sm">
+        <div className="flex items-end gap-2">
+          <TextInput size="sm" type="date" label="From" value={clearFrom} onChange={(e) => { const v = e.currentTarget.value; if (v) setClearFrom(v); }} className="flex-1" />
+          <TextInput size="sm" type="date" label="To" value={clearTo} onChange={(e) => { const v = e.currentTarget.value; if (v) setClearTo(v); }} className="flex-1" />
+        </div>
+        <p className="text-xs text-[rgb(var(--color-text-tertiary))] mt-2">
+          {daysBetween(clearFrom, clearTo).length > 0
+            ? `Clears ${daysBetween(clearFrom, clearTo).length} day${daysBetween(clearFrom, clearTo).length === 1 ? '' : 's'}.`
+            : 'Pick a valid range (From on or before To).'}
+        </p>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button size="sm" variant="default" onClick={() => setClearRangeOpen(false)}>Cancel</Button>
+          <Button
+            size="sm"
+            color="red"
+            disabled={daysBetween(clearFrom, clearTo).length === 0 || clearMutation.isPending}
+            onClick={() => { clearMutation.mutate(daysBetween(clearFrom, clearTo)); setClearRangeOpen(false); }}
+          >
+            Clear range
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
