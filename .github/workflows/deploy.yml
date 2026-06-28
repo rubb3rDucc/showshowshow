@@ -50,7 +50,7 @@ jobs:
           NODE_ENV: production # enables SSL in the pool config
 
   deploy:
-    name: Trigger DigitalOcean deploy
+    name: Trigger DigitalOcean deploy (backend)
     needs: migrate # only deploys if migrations passed
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -62,17 +62,60 @@ jobs:
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
-      # Two separate DO apps (backend + frontend). Deploy both in parallel; --wait
-      # blocks until each finishes and exits non-zero on failure. We capture each
-      # job's status so a failure in either surfaces as a failed Action (your alert).
-      - name: Deploy backend + frontend
+      # Backend runs on DO App Platform. --wait blocks until the deploy finishes and
+      # exits non-zero on failure, surfacing as a failed Action (your alert).
+      # (Frontend moved to Cloudflare Pages — see the deploy-frontend job below.)
+      - name: Deploy backend
         env:
           DO_BACKEND_APP_ID: ${{ secrets.DO_BACKEND_APP_ID }}
-          DO_FRONTEND_APP_ID: ${{ secrets.DO_FRONTEND_APP_ID }}
-        run: |
-          doctl apps create-deployment "$DO_BACKEND_APP_ID" --wait & back=$!
-          doctl apps create-deployment "$DO_FRONTEND_APP_ID" --wait & front=$!
-          rc=0
-          wait "$back" || rc=1
-          wait "$front" || rc=1
-          exit $rc
+        run: doctl apps create-deployment "$DO_BACKEND_APP_ID" --wait
+
+  deploy-frontend:
+    name: Build & deploy frontend (Cloudflare Pages)
+    needs: migrate # ship the UI in lockstep with the backend, only after migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read # only to check out the repo
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11.9.0 # match frontend packageManager
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22 # match engines.node
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # VITE_* are build-time: they must be present here, NOT in Cloudflare (we use
+      # Wrangler direct upload, so Cloudflare never builds).
+      - name: Build
+        run: pnpm build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+          VITE_POSTHOG_API_KEY: ${{ secrets.VITE_POSTHOG_API_KEY }}
+          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST }}
+          VITE_POSTHOG_ENABLE_DEV: ${{ vars.VITE_POSTHOG_ENABLE_DEV }}
+          VITE_GIPHY_API_KEY: ${{ secrets.VITE_GIPHY_API_KEY }}
+          VITE_ENABLE_REVIEWS: ${{ vars.VITE_ENABLE_REVIEWS }}
+          VITE_ENABLE_SCHEDULE_V: ${{ vars.VITE_ENABLE_SCHEDULE_V }}
+
+      # --branch must equal the Cloudflare Pages project's Production branch for this
+      # to publish as a production deployment (set the project's prod branch to main).
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: frontend
+          command: pages deploy dist --project-name=showshowshow-frontend --branch=main
