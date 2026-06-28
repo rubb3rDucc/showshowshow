@@ -73,6 +73,9 @@ jobs:
       - name: Lint
         working-directory: frontend
         run: pnpm run lint
+      - name: Test
+        working-directory: frontend
+        run: pnpm test
       - name: Build
         working-directory: frontend
         run: pnpm build
