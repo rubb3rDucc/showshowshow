@@ -1,0 +1,9 @@
+# Ported from frontend/nginx.conf. Cloudflare handles gzip/brotli automatically.
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+
+# Vite emits content-hashed assets here — safe to cache forever.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

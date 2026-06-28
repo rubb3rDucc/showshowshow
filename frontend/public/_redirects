@@ -1,0 +1,2 @@
+# SPA fallback: serve index.html for all client-side routes (replaces nginx try_files).
+/*    /index.html   200

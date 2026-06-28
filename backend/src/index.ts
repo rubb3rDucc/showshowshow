@@ -197,6 +197,8 @@ const start = async () => {
       ? [
           frontendUrl, // Main app domain
           ...(landingPageUrl ? [landingPageUrl] : []), // Landing page domain
+          // Cloudflare Pages preview deployments (per-PR QA URLs)
+          /^https:\/\/[a-z0-9-]+\.showshowshow-frontend\.pages\.dev$/,
         ]
       : [
           'http://localhost:4173',  // Preview Build frontend

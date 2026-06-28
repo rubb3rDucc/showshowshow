@@ -1,0 +1,87 @@
+name: Frontend preview (Cloudflare Pages)
+
+# Build the SPA for every PR that touches the frontend and publish a Cloudflare
+# Pages PREVIEW deployment (a unique *.pages.dev URL). This is the pre-prod QA
+# gate: eyeball the change on a real URL before merging. Previews are free and
+# unlimited on Cloudflare Pages.
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/preview.yml'
+
+# One preview per PR; cancel superseded runs.
+concurrency:
+  group: preview-${{ github.event.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  preview:
+    name: Build & deploy preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Secrets are required; PRs from forks don't get them. This repo's PRs are
+    # same-repo, so secrets are available.
+    environment: production
+    permissions:
+      contents: read # check out the repo
+      pull-requests: write # post the preview URL as a PR comment
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11.9.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # Preview build points at the prod API (backend CORS allows *.pages.dev).
+      - name: Build
+        run: pnpm build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+          VITE_POSTHOG_API_KEY: ${{ secrets.VITE_POSTHOG_API_KEY }}
+          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST }}
+          VITE_POSTHOG_ENABLE_DEV: ${{ vars.VITE_POSTHOG_ENABLE_DEV }}
+          VITE_GIPHY_API_KEY: ${{ secrets.VITE_GIPHY_API_KEY }}
+          VITE_ENABLE_REVIEWS: ${{ vars.VITE_ENABLE_REVIEWS }}
+          VITE_ENABLE_SCHEDULE_V: ${{ vars.VITE_ENABLE_SCHEDULE_V }}
+
+      # --branch=pr-<n> (not the prod branch) → published as a preview deployment.
+      - name: Deploy preview to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: frontend
+          command: pages deploy dist --project-name=showshowshow-frontend --branch=pr-${{ github.event.number }}
+
+      - name: Comment preview URL on PR
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        with:
+          script: |
+            const url = "${{ steps.deploy.outputs.deployment-url }}";
+            if (!url) return;
+            const body = `🔎 **Frontend preview:** ${url}`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const existing = comments.find(c => c.body && c.body.includes('Frontend preview:'));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
