@@ -17,7 +17,7 @@ import { RealLineupDrawer } from '../proto/RealLineupDrawer';
 import type { EpisodeFilter } from '../proto/LineupEpisodePicker';
 import { getSchedule, deleteScheduleItem, generateScheduleFromQueue, clearScheduleForDate } from '../api/schedule';
 import { getTimeOfDayLabel } from '../utils/format';
-import type { GenerateScheduleRequest } from '../types/api';
+import type { GenerateScheduleRequest, ScheduleItem } from '../types/api';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const todayStr = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, local
@@ -163,11 +163,23 @@ export function ProtoSchedule() {
   // Generate/clear can touch several days, so refresh the whole schedule cache.
   const invalidateDay = () => queryClient.invalidateQueries({ queryKey: ['schedule'] });
 
-  // Remove a placed item: persist, then refetch so the timeline reflects it.
+  // Remove a placed item OPTIMISTICALLY: drop it from the cache immediately (no refetch),
+  // so the timeline just removes that one block instead of reloading the whole schedule
+  // (the refetch was the "refresh"/flicker on delete). Roll back if the server call fails.
   const deleteMutation = useMutation({
     mutationFn: deleteScheduleItem,
-    onSuccess: invalidateDay,
-    onError: () => toast.error('Could not remove that item'),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['schedule'] });
+      const prev = queryClient.getQueriesData<ScheduleItem[]>({ queryKey: ['schedule'] });
+      queryClient.setQueriesData<ScheduleItem[]>({ queryKey: ['schedule'] }, (old) =>
+        old ? old.filter((it) => it.id !== id) : old
+      );
+      return { prev };
+    },
+    onError: (_e, _id, ctx) => {
+      ctx?.prev?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      toast.error('Could not remove that item');
+    },
   });
 
   // Fill the timeline from the user's backend queue for the active date(s).
