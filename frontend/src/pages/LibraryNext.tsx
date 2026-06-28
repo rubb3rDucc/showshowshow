@@ -15,7 +15,7 @@ import { CollectionsView } from '../components/library/CollectionsView';
 import { CollectionDetail } from '../components/library/CollectionDetail';
 import { NewListModal } from '../components/library/NewListModal';
 import { AddToListModal } from '../components/library/AddToListModal';
-import { useCollections } from '../hooks/useCollections';
+import { useCollections, itemKey, type CollectionItem } from '../hooks/useCollections';
 import { getLibrary, removeFromLibrary, updateLibraryItem, checkLibrary } from '../api/library';
 import { addToQueue } from '../api/content';
 import { libraryItemToUI } from '../utils/library.utils';
@@ -107,17 +107,36 @@ export function LibraryNext() {
     [data]
   );
 
-  const itemByContentId = useMemo(() => {
+  // Snapshot library content for list entries + a lookup so a list item that IS
+  // in the library opens the detail modal (vs. routing to the content page).
+  const librarySnapshots = useMemo<CollectionItem[]>(
+    () =>
+      libraryItemsUI
+        .filter((i) => i.content.tmdbId != null)
+        .map((i) => ({
+          tmdbId: i.content.tmdbId as number,
+          type: i.content.contentType === 'show' ? 'tv' : 'movie',
+          title: i.content.title,
+          posterUrl: i.content.posterUrl,
+        })),
+    [libraryItemsUI]
+  );
+
+  const libraryByKey = useMemo(() => {
     const map = new Map<string, LibraryItemUI>();
-    for (const item of libraryItemsUI) map.set(item.contentId, item);
+    for (const item of libraryItemsUI) {
+      if (item.content.tmdbId == null) continue;
+      const type = item.content.contentType === 'show' ? 'tv' : 'movie';
+      map.set(itemKey({ tmdbId: item.content.tmdbId, type }), item);
+    }
     return map;
   }, [libraryItemsUI]);
 
   // Seed example lists once real library data is available (no-op if lists exist).
   const { seedIfEmpty } = collectionsApi;
   useEffect(() => {
-    if (libraryItemsUI.length > 0) seedIfEmpty(libraryItemsUI.map((i) => i.contentId));
-  }, [libraryItemsUI, seedIfEmpty]);
+    if (librarySnapshots.length > 0) seedIfEmpty(librarySnapshots);
+  }, [librarySnapshots, seedIfEmpty]);
 
   // Mutations (copied from the live Library page)
   const removeMutation = useMutation({
@@ -226,11 +245,16 @@ export function LibraryNext() {
 
   // Collection helpers
   const openList = openListId ? collectionsApi.collections.find((c) => c.id === openListId) ?? null : null;
-  const resolvePosters = (contentIds: string[]) =>
-    contentIds.map((cid) => itemByContentId.get(cid)?.content.posterUrl ?? null);
-  const openListItems: LibraryItemUI[] = openList
-    ? openList.itemContentIds.map((cid) => itemByContentId.get(cid)).filter((x): x is LibraryItemUI => Boolean(x))
-    : [];
+
+  // Open a list entry: in-library → existing detail modal; otherwise → content page.
+  const handleOpenListItem = (item: CollectionItem) => {
+    const libItem = libraryByKey.get(itemKey(item));
+    if (libItem) {
+      handleViewDetails(libItem);
+    } else {
+      setLocation(`/content/${item.type}/${item.tmdbId}`);
+    }
+  };
 
   if (isLoadingLibrary) {
     return (
@@ -301,11 +325,11 @@ export function LibraryNext() {
           openList ? (
             <CollectionDetail
               collection={openList}
-              items={openListItems}
+              items={openList.items}
               onBack={() => setOpenListId(null)}
-              onOpenItem={handleViewDetails}
-              onRemoveItem={(cid) => collectionsApi.removeItem(openList.id, cid)}
-              onReorder={(ids) => collectionsApi.reorderItems(openList.id, ids)}
+              onOpenItem={handleOpenListItem}
+              onRemoveItem={(key) => collectionsApi.removeItem(openList.id, key)}
+              onReorder={(keys) => collectionsApi.reorderItems(openList.id, keys)}
               onToggleRanked={(ranked) => collectionsApi.setRanked(openList.id, ranked)}
               onRename={(name) => collectionsApi.renameList(openList.id, name)}
               onSetDescription={(desc) => collectionsApi.setDescription(openList.id, desc)}
@@ -318,7 +342,6 @@ export function LibraryNext() {
           ) : (
             <CollectionsView
               collections={collectionsApi.collections}
-              resolvePosters={resolvePosters}
               onOpen={setOpenListId}
               onNew={() => setNewListOpen(true)}
             />
@@ -386,8 +409,8 @@ export function LibraryNext() {
           onClose={() => setAddToListOpen(false)}
           listName={openList.name}
           libraryItems={libraryItemsUI}
-          existingContentIds={openList.itemContentIds}
-          onAdd={(ids) => collectionsApi.addItems(openList.id, ids)}
+          existingKeys={openList.items.map(itemKey)}
+          onAdd={(items) => collectionsApi.addItems(openList.id, items)}
         />
       )}
     </>

@@ -6,16 +6,36 @@ import { useCallback, useEffect, useState } from 'react';
  * throwaway layer to be replaced by `/api/lists` (T3-2). Do not build real
  * features on this shape without the backend.
  */
+
+/**
+ * A list entry is a self-contained content SNAPSHOT, not a reference to a
+ * library row — so titles that aren't in the user's library (added via TMDB
+ * search) still render, and every entry stays addressable by `{ tmdbId, type }`.
+ * That addressability is what later lets a list feed the scheduler / be cached.
+ */
+export interface CollectionItem {
+  tmdbId: number;
+  type: 'tv' | 'movie';
+  title: string;
+  posterUrl: string | null;
+}
+
 export interface Collection {
   id: string;
   name: string;
   description?: string;
   ranked: boolean;
-  itemContentIds: string[];
+  items: CollectionItem[];
   createdAt: number;
 }
 
-const STORAGE_KEY = 'ssss:collections:prototype:v1';
+/** Stable identity for a list entry (used for dedupe, removal, dnd ids). */
+export function itemKey(item: Pick<CollectionItem, 'tmdbId' | 'type'>): string {
+  return `${item.type}:${item.tmdbId}`;
+}
+
+// Bumped to v2 for the snapshot item model (v1 stored library content-id refs).
+const STORAGE_KEY = 'ssss:collections:prototype:v2';
 
 function load(): Collection[] {
   try {
@@ -57,7 +77,7 @@ export function useCollections() {
       name: name.trim() || 'Untitled list',
       description: description?.trim() || undefined,
       ranked,
-      itemContentIds: [],
+      items: [],
       createdAt: Date.now(),
     };
     setCollections((prev) => [...prev, list]);
@@ -70,39 +90,48 @@ export function useCollections() {
   const setRanked = useCallback((id: string, ranked: boolean) => update(id, (c) => ({ ...c, ranked })), [update]);
 
   const addItems = useCallback(
-    (id: string, contentIds: string[]) =>
-      update(id, (c) => ({
-        ...c,
-        itemContentIds: [...c.itemContentIds, ...contentIds.filter((cid) => !c.itemContentIds.includes(cid))],
-      })),
+    (id: string, items: CollectionItem[]) =>
+      update(id, (c) => {
+        const have = new Set(c.items.map(itemKey));
+        const fresh = items.filter((it) => !have.has(itemKey(it)));
+        return { ...c, items: [...c.items, ...fresh] };
+      }),
     [update]
   );
 
   const removeItem = useCallback(
-    (id: string, contentId: string) =>
-      update(id, (c) => ({ ...c, itemContentIds: c.itemContentIds.filter((cid) => cid !== contentId) })),
+    (id: string, key: string) => update(id, (c) => ({ ...c, items: c.items.filter((it) => itemKey(it) !== key) })),
     [update]
   );
 
-  const reorderItems = useCallback((id: string, contentIds: string[]) => update(id, (c) => ({ ...c, itemContentIds: contentIds })), [update]);
+  const reorderItems = useCallback(
+    (id: string, keys: string[]) =>
+      update(id, (c) => {
+        const byKey = new Map(c.items.map((it) => [itemKey(it), it]));
+        const next = keys.map((k) => byKey.get(k)).filter((it): it is CollectionItem => Boolean(it));
+        // Keep any items not present in `keys` (defensive) appended in original order.
+        const seen = new Set(keys);
+        for (const it of c.items) if (!seen.has(itemKey(it))) next.push(it);
+        return { ...c, items: next };
+      }),
+    [update]
+  );
 
   /**
    * Seed a couple of example lists from real library content the first time the
    * page loads with data, so the prototype looks populated. No-op if any lists exist.
    */
-  const seedIfEmpty = useCallback((sampleContentIds: string[]) => {
-    if (sampleContentIds.length === 0) return;
+  const seedIfEmpty = useCallback((sample: CollectionItem[]) => {
+    if (sample.length === 0) return;
     setCollections((prev) => {
       if (prev.length > 0) return prev;
-      const comfort = sampleContentIds.slice(0, 6);
-      const ranked = sampleContentIds.slice(0, Math.min(10, sampleContentIds.length));
       return [
         {
           id: newId(),
           name: 'Comfort shows',
           description: 'The ones I put on when I just want to relax.',
           ranked: false,
-          itemContentIds: comfort,
+          items: sample.slice(0, 6),
           createdAt: Date.now(),
         },
         {
@@ -110,7 +139,7 @@ export function useCollections() {
           name: 'Top 10 this year',
           description: 'My favourites so far, ranked.',
           ranked: true,
-          itemContentIds: ranked,
+          items: sample.slice(0, Math.min(10, sample.length)),
           createdAt: Date.now() + 1,
         },
       ];

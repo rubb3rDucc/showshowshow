@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import type { LibraryItemUI } from '../../types/library.types';
+import { itemKey, type CollectionItem } from '../../hooks/useCollections';
 import { BrandMark } from '../common/BrandMark';
 
 export type ShareFormat = 'portrait' | 'square';
@@ -20,7 +20,7 @@ interface ListShareCardProps extends ShareCardOptions {
   ranked: boolean;
   /** Curator line ("by …"); omitted when empty/undefined. */
   curator?: string;
-  items: LibraryItemUI[];
+  items: CollectionItem[];
   format: ShareFormat;
   /** Dominant poster color for the 'tinted' theme. */
   tint?: string;
@@ -52,7 +52,7 @@ export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(func
   ref
 ) {
   const c = CONF[format];
-  const backdrop = items.find((i) => i.content.posterUrl)?.content.posterUrl ?? null;
+  const backdrop = items.find((i) => i.posterUrl)?.posterUrl ?? null;
 
   const usePoster = background === 'poster' && !!backdrop;
   const lightText = usePoster || theme !== 'quiet';
@@ -149,7 +149,7 @@ export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(func
         <div style={{ marginTop: 36, display: 'grid', gridTemplateColumns: `repeat(${c.cols}, 1fr)`, gap: c.gap }}>
           {items.map((item, i) => (
             <div
-              key={item.contentId}
+              key={itemKey(item)}
               style={{
                 position: 'relative',
                 aspectRatio: '2 / 3',
@@ -160,9 +160,9 @@ export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(func
                 border: tileBorder,
               }}
             >
-              {item.content.posterUrl && (
+              {item.posterUrl && (
                 <img
-                  src={item.content.posterUrl}
+                  src={item.posterUrl}
                   crossOrigin="anonymous"
                   alt=""
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}

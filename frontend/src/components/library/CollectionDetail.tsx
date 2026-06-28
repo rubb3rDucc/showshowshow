@@ -19,17 +19,16 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Collection } from '../../hooks/useCollections';
-import type { LibraryItemUI } from '../../types/library.types';
+import { itemKey, type Collection, type CollectionItem } from '../../hooks/useCollections';
 import { ShareListModal } from './ShareListModal';
 
 interface CollectionDetailProps {
   collection: Collection;
-  items: LibraryItemUI[]; // resolved, in collection order
+  items: CollectionItem[]; // in collection order
   onBack: () => void;
-  onOpenItem: (item: LibraryItemUI) => void;
-  onRemoveItem: (contentId: string) => void;
-  onReorder: (contentIds: string[]) => void;
+  onOpenItem: (item: CollectionItem) => void;
+  onRemoveItem: (key: string) => void;
+  onReorder: (keys: string[]) => void;
   onToggleRanked: (ranked: boolean) => void;
   onRename: (name: string) => void;
   onSetDescription: (description: string) => void;
@@ -46,18 +45,17 @@ function DetailTile({
   onOpen,
   onRemove,
 }: {
-  item: LibraryItemUI;
+  item: CollectionItem;
   rank?: number;
-  onOpen: (i: LibraryItemUI) => void;
-  onRemove?: (contentId: string) => void;
+  onOpen: (i: CollectionItem) => void;
+  onRemove?: (key: string) => void;
 }) {
-  const { content } = item;
   return (
     <div className="group relative">
       <button type="button" onClick={() => onOpen(item)} className="block w-full text-left">
         <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-[rgb(var(--color-bg-elevated))]">
-          {content.posterUrl ? (
-            <img src={content.posterUrl} alt={content.title} loading="lazy" className="w-full h-full object-cover" />
+          {item.posterUrl ? (
+            <img src={item.posterUrl} alt={item.title} loading="lazy" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <Tv className="w-7 h-7 text-[rgb(var(--color-text-tertiary))]" />
@@ -65,7 +63,7 @@ function DetailTile({
           )}
           {/* Title revealed on hover/focus */}
           <div className="absolute inset-0 flex items-end p-2 bg-gradient-to-t from-black/85 via-black/15 to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200">
-            <span className="text-xs font-medium text-white leading-tight line-clamp-2">{content.title}</span>
+            <span className="text-xs font-medium text-white leading-tight line-clamp-2">{item.title}</span>
           </div>
         </div>
       </button>
@@ -80,7 +78,7 @@ function DetailTile({
           aria-label="Remove from list"
           onClick={(e) => {
             e.stopPropagation();
-            onRemove(item.contentId);
+            onRemove(itemKey(item));
           }}
           className="absolute top-1.5 right-1.5 w-6 h-6 inline-flex items-center justify-center rounded-md bg-black/55 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/75"
         >
@@ -97,12 +95,12 @@ function SortableItem({
   onOpen,
   onRemove,
 }: {
-  item: LibraryItemUI;
+  item: CollectionItem;
   rank: number;
-  onOpen: (i: LibraryItemUI) => void;
-  onRemove: (contentId: string) => void;
+  onOpen: (i: CollectionItem) => void;
+  onRemove: (key: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.contentId });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: itemKey(item) });
   return (
     <div
       ref={setNodeRef}
@@ -140,7 +138,7 @@ export function CollectionDetail({
   );
 
   // Slideshow of the list's posters as the blurred banner backdrop.
-  const heroPosters = items.map((i) => i.content.posterUrl).filter((u): u is string => !!u).slice(0, 8);
+  const heroPosters = items.map((i) => i.posterUrl).filter((u): u is string => !!u).slice(0, 8);
   const [bgIndex, setBgIndex] = useState(0);
   useEffect(() => {
     if (heroPosters.length <= 1) return;
@@ -152,11 +150,11 @@ export function CollectionDetail({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const ids = items.map((i) => i.contentId);
-    const oldIndex = ids.indexOf(active.id as string);
-    const newIndex = ids.indexOf(over.id as string);
+    const keys = items.map(itemKey);
+    const oldIndex = keys.indexOf(active.id as string);
+    const newIndex = keys.indexOf(over.id as string);
     if (oldIndex === -1 || newIndex === -1) return;
-    onReorder(arrayMove(ids, oldIndex, newIndex));
+    onReorder(arrayMove(keys, oldIndex, newIndex));
   };
 
   const handleRename = () => {
@@ -181,7 +179,7 @@ export function CollectionDetail({
     if (collection.description) lines.push(collection.description);
     lines.push('');
     items.forEach((it, i) => {
-      lines.push(`${collection.ranked ? `${i + 1}. ` : '• '}${it.content.title}`);
+      lines.push(`${collection.ranked ? `${i + 1}. ` : '• '}${it.title}`);
     });
     lines.push('', 'made on ShowShowShow · showshowshow.app');
     try {
@@ -296,10 +294,10 @@ export function CollectionDetail({
         </div>
       ) : collection.ranked ? (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={items.map((i) => i.contentId)} strategy={rectSortingStrategy}>
+          <SortableContext items={items.map(itemKey)} strategy={rectSortingStrategy}>
             <div className={GRID}>
               {items.map((item, idx) => (
-                <SortableItem key={item.contentId} item={item} rank={idx + 1} onOpen={onOpenItem} onRemove={onRemoveItem} />
+                <SortableItem key={itemKey(item)} item={item} rank={idx + 1} onOpen={onOpenItem} onRemove={onRemoveItem} />
               ))}
             </div>
           </SortableContext>
@@ -307,7 +305,7 @@ export function CollectionDetail({
       ) : (
         <div className={GRID}>
           {items.map((item) => (
-            <DetailTile key={item.contentId} item={item} onOpen={onOpenItem} onRemove={onRemoveItem} />
+            <DetailTile key={itemKey(item)} item={item} onOpen={onOpenItem} onRemove={onRemoveItem} />
           ))}
         </div>
       )}

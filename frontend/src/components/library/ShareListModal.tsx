@@ -5,14 +5,13 @@ import { toBlob } from 'html-to-image';
 import { useUser } from '@clerk/clerk-react';
 import { toast } from 'sonner';
 import { ListShareCard, type ShareFormat, type ShareTheme, type ShareBackground } from './ListShareCard';
-import type { Collection } from '../../hooks/useCollections';
-import type { LibraryItemUI } from '../../types/library.types';
+import type { Collection, CollectionItem } from '../../hooks/useCollections';
 
 interface ShareListModalProps {
   opened: boolean;
   onClose: () => void;
   collection: Collection;
-  items: LibraryItemUI[];
+  items: CollectionItem[];
 }
 
 const PREVIEW_W = 300;
@@ -51,7 +50,7 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
   // Extract a dominant poster color for the 'tinted' theme (CORS-enabled).
   useEffect(() => {
     if (theme !== 'tinted' || tint) return;
-    const url = items.find((i) => i.content.posterUrl)?.content.posterUrl;
+    const url = items.find((i) => i.posterUrl)?.posterUrl;
     if (!url) return;
     const img = new Image();
     img.crossOrigin = 'anonymous';

@@ -4,14 +4,12 @@ import { CollectionListCard } from './CollectionListCard';
 
 interface CollectionsViewProps {
   collections: Collection[];
-  /** Resolve a list's content ids to poster URLs (in list order). */
-  resolvePosters: (contentIds: string[]) => (string | null)[];
   onOpen: (id: string) => void;
   onNew: () => void;
 }
 
 /** Lists-tab overview: a single column of Letterboxd-style list rows. */
-export function CollectionsView({ collections, resolvePosters, onOpen, onNew }: CollectionsViewProps) {
+export function CollectionsView({ collections, onOpen, onNew }: CollectionsViewProps) {
   return (
     <div>
       <div className="flex justify-end mb-2">
@@ -44,9 +42,9 @@ export function CollectionsView({ collections, resolvePosters, onOpen, onNew }: 
               <CollectionListCard
                 name={c.name}
                 description={c.description}
-                count={c.itemContentIds.length}
+                count={c.items.length}
                 ranked={c.ranked}
-                posters={resolvePosters(c.itemContentIds)}
+                posters={c.items.map((i) => i.posterUrl)}
                 onClick={() => onOpen(c.id)}
               />
             </div>
