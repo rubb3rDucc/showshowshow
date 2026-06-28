@@ -206,13 +206,26 @@ export function ProtoSchedule() {
               {formatLongDate(date)}
             </h1>
           </div>
-          <TextInput
-            size="sm"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.currentTarget.value)}
-            aria-label="Schedule date"
-          />
+          {/* One date control for the whole page: which day + how many days. Both drive
+              the heading, the fetched range, and the calendar together. */}
+          <div className="flex items-center gap-2">
+            <TextInput
+              size="sm"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.currentTarget.value)}
+              aria-label="Schedule date"
+            />
+            <Select
+              size="sm"
+              data={DATE_RANGES}
+              value={dateRange}
+              onChange={(v) => setDateRange(v || 'tonight')}
+              allowDeselect={false}
+              aria-label="How many days to schedule"
+              className="w-36"
+            />
+          </div>
         </div>
 
         {/* ===== Concierge hero: one-tap auto-schedule + progressive disclosure ===== */}
@@ -340,17 +353,6 @@ export function ProtoSchedule() {
                     />
                   ))}
                 </div>
-              </Field>
-
-              <Field label="Date range">
-                <Select
-                  size="sm"
-                  data={DATE_RANGES}
-                  value={dateRange}
-                  onChange={(v) => setDateRange(v || 'tonight')}
-                  allowDeselect={false}
-                  className="sm:max-w-xs"
-                />
               </Field>
             </div>
           </Collapse>
