@@ -154,4 +154,8 @@ export interface GenerateScheduleRequest {
       episodes?: Array<{ season: number; episode: number }>;
     }
   >;
+  // Frequency controls
+  appearance_cap?: number; // max times any title appears across the run
+  min_gap_minutes?: number; // min minutes between repeats of the same title
+  exhaust_before_repeat?: boolean; // no repeats until every title has appeared once
 }

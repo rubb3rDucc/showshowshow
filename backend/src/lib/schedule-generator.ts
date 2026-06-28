@@ -239,6 +239,10 @@ interface GenerateScheduleOptions {
   rerunFrequency?: string;
   rotationType?: 'round_robin' | 'random' | 'round_robin_double';
   episodeFilters?: Record<string, EpisodeFilterRule>;
+  // Frequency controls (PR F):
+  appearanceCap?: number;       // max times any single title may appear across the run
+  minGapMinutes?: number;       // min minutes between two appearances of the same title
+  exhaustBeforeRepeat?: boolean; // don't repeat any title until every title has appeared once
 }
 
 // Generate schedule from queue or shows
@@ -254,6 +258,9 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     includeReruns = false,
     rerunFrequency = 'rarely',
     rotationType = 'round_robin',
+    appearanceCap,
+    minGapMinutes,
+    exhaustBeforeRepeat = false,
   } = options;
 
   // Get content info to separate shows from movies
@@ -383,6 +390,37 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
   // True if [s, e) overlaps any occupied interval (existing item or one placed this run).
   const overlapsOccupied = (s: Date, e: Date) =>
     occupied.some((o) => s.getTime() < o.end && e.getTime() > o.start);
+
+  // Frequency controls (PR F): per-title trackers for the appearance cap, minimum gap
+  // between repeats, and exhaust-before-repeat.
+  const placedCount = new Map<string, number>();
+  const lastPlacedEnd = new Map<string, number>(); // content_id -> last placement end (ms)
+  const appearedTitles = new Set<string>();
+  const eligibleTitleCount = showIds.filter((id) =>
+    (episodesByShow.get(id)?.length ?? 0) > 0 || (moviesByShow.get(id)?.length ?? 0) > 0
+  ).length;
+  // Whether `id` may be placed starting at `scheduledTime` under the frequency rules.
+  const passesFrequency = (id: string, scheduledTime: Date): boolean => {
+    const count = placedCount.get(id) ?? 0;
+    if (appearanceCap !== undefined && count >= appearanceCap) return false;
+    if (exhaustBeforeRepeat && count >= 1 && appearedTitles.size < eligibleTitleCount) return false;
+    if (minGapMinutes && minGapMinutes > 0) {
+      const last = lastPlacedEnd.get(id);
+      if (last !== undefined && scheduledTime.getTime() < last + minGapMinutes * 60_000) return false;
+    }
+    return true;
+  };
+  const recordPlacement = (id: string, endTime: Date) => {
+    placedCount.set(id, (placedCount.get(id) ?? 0) + 1);
+    lastPlacedEnd.set(id, endTime.getTime());
+    appearedTitles.add(id);
+  };
+  // Any title still has schedulable content (vs. just being frequency-gated right now)?
+  const anyContentLeft = () =>
+    showIds.some((id) =>
+      (episodeIndexes.get(id) ?? 0) < (episodesByShow.get(id)?.length ?? 0) ||
+      (moviesByShow.get(id)?.length ?? 0) > 0
+    );
 
   const timeSlotUsage = new Map<string, number>(); // Track usage per time slot
   let showIndex = 0;
@@ -515,21 +553,24 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
             continue;
           }
 
-          // Check if this content has available content
-          if (episodeIndex < episodes.length || movies.length > 0) {
+          // Available content AND allowed right now by the frequency rules
+          if ((episodeIndex < episodes.length || movies.length > 0) && passesFrequency(candidateId, scheduledTime)) {
             currentContentId = candidateId;
             break;
           }
 
-          // No more content for this show, move to next
+          // No usable content for this show right now, move to next
           episodesScheduledFromCurrentShow.set(candidateId, 0); // Reset counter
           showIndex++;
           attempts++;
         }
 
-        // If we tried all shows and none have content, break out of time slot loop
+        // No placeable candidate this slot. If content still exists but is just
+        // frequency-gated right now (e.g. min-gap), skip to the next slot; only break
+        // when content is truly exhausted.
         if (!currentContentId) {
-          break; // No more content available
+          if (anyContentLeft()) continue;
+          break;
         }
       } else {
         // Random rotation - check both shows and movies
@@ -537,10 +578,11 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
           const episodes = episodesByShow.get(id) ?? [];
           const movies = moviesByShow.get(id) ?? [];
           const index = episodeIndexes.get(id) ?? 0;
-          return index < episodes.length || movies.length > 0;
+          return (index < episodes.length || movies.length > 0) && passesFrequency(id, scheduledTime);
         });
         if (availableContent.length === 0) {
-          break; // No more content
+          if (anyContentLeft()) continue; // gated this slot, try the next
+          break; // truly exhausted
         }
         currentContentId = availableContent[Math.floor(Math.random() * availableContent.length)];
       }
@@ -587,6 +629,7 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
         // Update last scheduled end time to prevent overlaps
         lastScheduledEndTime = endTime;
         occupied.push({ start: scheduledTime.getTime(), end: endTime.getTime() });
+        recordPlacement(movie.content_id, endTime);
 
         // Remove movie from available list (only schedule once)
         moviesByShow.delete(currentContentId);
@@ -635,6 +678,7 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       // Update last scheduled end time to prevent overlaps
       lastScheduledEndTime = endTime;
       occupied.push({ start: scheduledTime.getTime(), end: endTime.getTime() });
+      recordPlacement(episode.content_id, endTime);
 
       // Update indexes
       episodeIndexes.set(currentContentId, episodeIndex + 1);

@@ -83,6 +83,20 @@ const DATE_RANGES = [
   { value: 'next3', label: 'Next 3 days' },
   { value: 'week', label: 'This week' },
 ];
+// How many times a single title may appear across the run.
+const APPEARANCE_CAPS = [
+  { value: 'off', label: 'No limit' },
+  { value: '1', label: 'Once' },
+  { value: '2', label: 'Twice' },
+  { value: '3', label: '3 times' },
+];
+// Minimum spacing between two appearances of the same title.
+const MIN_GAPS = [
+  { value: 'off', label: 'No minimum' },
+  { value: '30', label: '30 min apart' },
+  { value: '60', label: '1 hour apart' },
+  { value: '120', label: '2 hours apart' },
+];
 const ROTATIONS = [
   { value: 'turns', icon: <Repeat size={16} />, title: 'Take turns', desc: 'One episode from each show, then loop back around.' },
   { value: 'two', icon: <Layers size={16} />, title: 'Two at a time', desc: 'Two episodes from a show before moving to the next.' },
@@ -121,6 +135,10 @@ export function ProtoSchedule() {
   const [customEnd, setCustomEnd] = useLocalStorage({ key: 'lineup.customEnd', defaultValue: '23:00' });
   const [rotation, setRotation] = useLocalStorage({ key: 'lineup.rotation', defaultValue: 'turns' });
   const [dateRange, setDateRange] = useLocalStorage({ key: 'lineup.dateRange', defaultValue: 'tonight' });
+  // Frequency controls (how often a title can repeat across the run).
+  const [appearanceCap, setAppearanceCap] = useLocalStorage({ key: 'lineup.appearanceCap', defaultValue: 'off' });
+  const [minGap, setMinGap] = useLocalStorage({ key: 'lineup.minGap', defaultValue: 'off' });
+  const [exhaustFirst, setExhaustFirst] = useLocalStorage({ key: 'lineup.exhaustFirst', defaultValue: false });
   const [date, setDate] = useState(todayStr());
   // Custom-range clear dialog (pick any from/to span to wipe).
   const [clearRangeOpen, setClearRangeOpen] = useState(false);
@@ -226,6 +244,9 @@ export function ProtoSchedule() {
         rotation === 'shuffle' ? 'random' : rotation === 'two' ? 'round_robin_double' : 'round_robin',
       include_reruns: false,
       episode_filters: Object.keys(episodeFilters).length ? episodeFilters : undefined,
+      appearance_cap: appearanceCap === 'off' ? undefined : Number(appearanceCap),
+      min_gap_minutes: minGap === 'off' ? undefined : Number(minGap),
+      exhaust_before_repeat: exhaustFirst,
     });
   };
 
@@ -398,6 +419,41 @@ export function ProtoSchedule() {
                     />
                   ))}
                 </div>
+              </Field>
+
+              {/* How often a title can repeat across the run */}
+              <Field label="How often shows repeat">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-[rgb(var(--color-text-tertiary))] mb-1">Show each title at most</p>
+                    <Select
+                      size="sm"
+                      data={APPEARANCE_CAPS}
+                      value={appearanceCap}
+                      onChange={(v) => setAppearanceCap(v || 'off')}
+                      allowDeselect={false}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs text-[rgb(var(--color-text-tertiary))] mb-1">Space repeats by</p>
+                    <Select
+                      size="sm"
+                      data={MIN_GAPS}
+                      value={minGap}
+                      onChange={(v) => setMinGap(v || 'off')}
+                      allowDeselect={false}
+                    />
+                  </div>
+                </div>
+                <label className="mt-3 flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={exhaustFirst}
+                    onChange={(e) => setExhaustFirst(e.currentTarget.checked)}
+                    className="h-4 w-4 accent-[#646cff]"
+                  />
+                  <span>Play everything once before repeating anything</span>
+                </label>
               </Field>
             </div>
           </Collapse>

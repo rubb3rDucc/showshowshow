@@ -25,6 +25,9 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       rerun_frequency = 'rarely',
       rotation_type = 'round_robin',
       episode_filters,
+      appearance_cap,
+      min_gap_minutes,
+      exhaust_before_repeat = false,
     } = request.body as {
       start_date?: string;
       end_date?: string;
@@ -41,6 +44,9 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
         seasons?: number[];
         episodes?: Array<{ season: number; episode: number }>;
       }>;
+      appearance_cap?: number;        // max times any title appears across the run
+      min_gap_minutes?: number;       // min minutes between repeats of the same title
+      exhaust_before_repeat?: boolean; // no repeats until every title has appeared once
     };
 
     if (!start_date || !end_date) {
@@ -115,6 +121,9 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       rerunFrequency: rerun_frequency,
       rotationType: rotation_type,
       episodeFilters: episode_filters,
+      appearanceCap: appearance_cap,
+      minGapMinutes: min_gap_minutes,
+      exhaustBeforeRepeat: exhaust_before_repeat,
     });
 
     const generationTime = Date.now() - generationStartTime;
