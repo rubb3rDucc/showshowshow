@@ -176,6 +176,11 @@ export function ProtoSchedule() {
     onSuccess: (res) => {
       invalidateDay();
       const scheduled = res.metadata?.scheduled ?? res.schedule?.length ?? 0;
+      if (scheduled === 0) {
+        // Nothing placed — show why (times already full, or no content) instead of "Scheduled 0".
+        toast.message(res.message ?? 'Nothing to schedule.');
+        return;
+      }
       toast.success(`Scheduled ${scheduled} item${scheduled === 1 ? '' : 's'}`);
       if (res.metadata?.skipped) toast.message(`${res.metadata.skipped} skipped (conflicts)`);
     },

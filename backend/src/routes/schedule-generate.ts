@@ -120,7 +120,19 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
     const generationTime = Date.now() - generationStartTime;
 
     if (scheduleItems.length === 0) {
-      // Track failed generation
+      // Nothing placed: distinguish "those times are already full" (gap-fill found no room)
+      // from "there's genuinely no content to schedule", so the user gets a real reason.
+      const occStart = new Date(startDate.getTime() - 24 * 60 * 60 * 1000);
+      const occEnd = new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+      const existing = await db
+        .selectFrom('schedule')
+        .select((eb) => eb.fn.count('id').as('c'))
+        .where('user_id', '=', userId)
+        .where('scheduled_time', '>=', occStart)
+        .where('scheduled_time', '<=', occEnd)
+        .executeTakeFirst();
+      const alreadyScheduled = Number((existing as any)?.c ?? 0) > 0;
+
       const { captureEvent } = await import('../lib/posthog.js');
       captureEvent('schedule_generation_failed', {
         distinctId: userId,
@@ -128,7 +140,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
           start_date,
           end_date,
           queue_size: contentIds.length,
-          error_type: 'no_content_available',
+          error_type: alreadyScheduled ? 'all_slots_occupied' : 'no_content_available',
           generation_time_ms: generationTime,
         },
       });
@@ -136,8 +148,9 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       return reply.code(200).send({
         count: 0,
         schedule: [],
-        message:
-          'No content available to schedule. For shows, make sure episodes have been fetched. For movies, ensure they are not already watched (unless reruns are enabled).',
+        message: alreadyScheduled
+          ? 'Those times are already filled — clear them to reschedule.'
+          : 'Nothing to schedule. Add shows to your lineup, or check that episodes are available (movies you’ve already watched are skipped unless reruns are on).',
       });
     }
 
