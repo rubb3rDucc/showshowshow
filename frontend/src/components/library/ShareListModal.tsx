@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, SegmentedControl, Button, Group, Loader, Switch, TextInput } from '@mantine/core';
+import { Modal, SegmentedControl, Button, Group, Loader, Switch, TextInput, Select } from '@mantine/core';
 import { Download, Copy, Share2, Check } from 'lucide-react';
 import { toBlob } from 'html-to-image';
 import { useUser } from '@clerk/clerk-react';
@@ -31,6 +31,7 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
   const [showBranding, setShowBranding] = useState(true);
   const [showCount, setShowCount] = useState(true);
   const [showName, setShowName] = useState(true);
+  const [limit, setLimit] = useState<number | null>(null);
   const [name, setName] = useState('');
   const [tint, setTint] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
@@ -173,6 +174,20 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
             ]}
           />
 
+          {items.length > 10 && (
+            <Select
+              size="xs"
+              label="Titles shown"
+              value={limit ? String(limit) : 'all'}
+              onChange={(v) => setLimit(v && v !== 'all' ? Number(v) : null)}
+              allowDeselect={false}
+              data={[
+                { value: 'all', label: `All (${items.length})` },
+                ...[10, 20, 30, 50].filter((n) => n < items.length).map((n) => ({ value: String(n), label: `First ${n}` })),
+              ]}
+            />
+          )}
+
           <div className="flex items-center gap-2 pt-1">
             <span className="text-xs text-[rgb(var(--color-text-secondary))]">Accent</span>
             {ACCENTS.map((col) => (
@@ -231,6 +246,7 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
                 showRanks={showRanks}
                 showBranding={showBranding}
                 showCount={showCount}
+                limit={limit ?? undefined}
                 tint={tint}
               />
             </div>

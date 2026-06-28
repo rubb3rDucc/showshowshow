@@ -12,7 +12,7 @@ export interface ShareCardOptions {
   background: ShareBackground;
   showDescription: boolean;
   showRanks: boolean;
-  /** Top wordmark + footer attribution. */
+  /** Top wordmark only — the footer attribution always shows. */
   showBranding: boolean;
   /** The "N titles" line. */
   showCount: boolean;
@@ -26,6 +26,8 @@ interface ListShareCardProps extends ShareCardOptions {
   curator?: string;
   items: CollectionItem[];
   format: ShareFormat;
+  /** Cap the number of posters shown on the card (count line shows "N of total"). */
+  limit?: number;
   /** Dominant poster color for the 'tinted' theme. */
   tint?: string;
 }
@@ -52,10 +54,11 @@ function hexA(hex: string, a: number): string {
  * Posters use crossOrigin so the html-to-image export isn't tainted.
  */
 export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(function ListShareCard(
-  { name, description, ranked, curator, items, format, theme, accent, background, showDescription, showRanks, showBranding, showCount, tint },
+  { name, description, ranked, curator, items, format, theme, accent, background, showDescription, showRanks, showBranding, showCount, limit, tint },
   ref
 ) {
   const c = CONF[format];
+  const shown = limit && limit < items.length ? items.slice(0, limit) : items;
   const backdrop = items.find((i) => i.posterUrl)?.posterUrl ?? null;
 
   const usePoster = background === 'poster' && !!backdrop;
@@ -148,14 +151,15 @@ export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(func
         )}
         {showCount && (
           <div style={{ fontSize: 26, marginTop: 16, color: sub(0.5) }}>
-            {items.length} {items.length === 1 ? 'title' : 'titles'}
+            {shown.length < items.length ? `${shown.length} of ${items.length}` : items.length}{' '}
+            {items.length === 1 ? 'title' : 'titles'}
             {ranked ? ' · ranked' : ''}
           </div>
         )}
 
         {/* Poster grid — grows with the items; posters keep their 2:3 aspect */}
         <div style={{ marginTop: 36, display: 'grid', gridTemplateColumns: `repeat(${c.cols}, 1fr)`, gap: c.gap }}>
-          {items.map((item, i) => (
+          {shown.map((item, i) => (
             <div
               key={itemKey(item)}
               style={{
@@ -202,12 +206,10 @@ export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(func
           ))}
         </div>
 
-        {/* Footer */}
-        {showBranding && (
-          <div style={{ marginTop: 36, fontSize: 26, color: sub(0.5) }}>
-            made on <BrandMark accent={accent} /> · showshowshow.app
-          </div>
-        )}
+        {/* Footer attribution — always shown (where the card was made). */}
+        <div style={{ marginTop: 36, fontSize: 26, color: sub(0.5) }}>
+          made on <BrandMark accent={accent} /> · showshowshow.app
+        </div>
       </div>
     </div>
   );
