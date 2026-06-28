@@ -29,7 +29,6 @@ import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Search } from './pages/Search';
 import { Library } from './pages/Library';
-import { DiscoverNext } from './pages/DiscoverNext';
 import { Browse } from './pages/Browse';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
 import { Networks } from './pages/Networks';
@@ -216,16 +215,6 @@ function App() {
             </Layout>
           </ProtectedRoute>
         </Route>
-
-        {/* Prototype: unified Discover (Spotify-style wall + filter grid) on mock data. Not in nav. */}
-        <Route path="/discover-next">
-          <ProtectedRoute>
-            <Layout>
-              <DiscoverNext />
-            </Layout>
-          </ProtectedRoute>
-        </Route>
-
 
         <Route path="/stats">
           <ProtectedRoute>
