@@ -169,8 +169,13 @@ export function ScheduleXProto({
   return (
     <RemoveContext.Provider value={onRemove ?? (() => {})}>
       <div className="h-[700px] rounded-lg border border-[rgb(var(--color-border-default))] overflow-hidden bg-white">
-        <ScheduleXCalendar calendarApp={calendar} customComponents={{ timeGridEvent: TimeGridEvent }} />
+        <ScheduleXCalendar calendarApp={calendar} customComponents={CUSTOM_COMPONENTS} />
       </div>
     </RemoveContext.Provider>
   );
 }
+
+// Stable identity: ScheduleXCalendar's render effect depends on `customComponents`, so a new
+// object here would re-run it every render — destroy()+render() rebuilds the whole calendar
+// (the flicker/refresh on delete). Module-level constant keeps it referentially stable.
+const CUSTOM_COMPONENTS = { timeGridEvent: TimeGridEvent };
