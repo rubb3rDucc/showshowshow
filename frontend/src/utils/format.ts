@@ -25,6 +25,18 @@ export function formatFullDate(dateStr: string): string {
   });
 }
 
+/**
+ * Time-of-day label based on the current hour.
+ * Morning: 5am–11:59am · Afternoon: 12pm–4:59pm · Tonight: 5pm–4:59am.
+ * Shared by the home page header and the lineup heading so both shift together.
+ */
+export function getTimeOfDayLabel(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'This morning';
+  if (hour >= 12 && hour < 17) return 'This afternoon';
+  return 'Tonight';
+}
+
 export function formatWatchTime(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);

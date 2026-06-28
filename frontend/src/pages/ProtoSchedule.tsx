@@ -15,6 +15,7 @@ import { ScheduleXProto } from '../proto/ScheduleXProto';
 import { RealLineupDrawer } from '../proto/RealLineupDrawer';
 import type { EpisodeFilter } from '../proto/LineupEpisodePicker';
 import { getSchedule, deleteScheduleItem, generateScheduleFromQueue, clearScheduleForDate } from '../api/schedule';
+import { getTimeOfDayLabel } from '../utils/format';
 import type { GenerateScheduleRequest } from '../types/api';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -201,7 +202,7 @@ export function ProtoSchedule() {
               Scheduling for
             </p>
             <h1 className="text-2xl font-bold tracking-tight">
-              {isToday ? 'Tonight · ' : ''}
+              {isToday ? `${getTimeOfDayLabel()} · ` : ''}
               {formatLongDate(date)}
             </h1>
           </div>

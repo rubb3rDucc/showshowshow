@@ -3,6 +3,7 @@ import type { ScheduleItem } from '../../types/api';
 import { NowCard } from './NowCard';
 import { ScheduleRow } from './ScheduleRow';
 import { useWaveEffect } from '../../hooks/useWaveEffect';
+import { getTimeOfDayLabel } from '../../utils/format';
 
 interface TonightSectionProps {
   nowItem: ScheduleItem | null;
@@ -26,23 +27,6 @@ function formatDateDisplay(dateString: string): string {
     month: 'long',
     day: 'numeric',
   });
-}
-
-/**
- * Get time-of-day label based on current hour
- * Morning: 5am - 11:59am
- * Afternoon: 12pm - 4:59pm
- * Tonight: 5pm - 4:59am
- */
-function getTimeOfDayLabel(): string {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) {
-    return 'This morning';
-  } else if (hour >= 12 && hour < 17) {
-    return 'This afternoon';
-  } else {
-    return 'Tonight';
-  }
 }
 
 export function TonightSection({
