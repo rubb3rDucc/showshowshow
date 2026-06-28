@@ -70,6 +70,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       .selectFrom('queue')
       .select('content_id')
       .where('user_id', '=', userId)
+      .where('is_active', '=', true)
       .orderBy('position', 'asc')
       .execute();
 
