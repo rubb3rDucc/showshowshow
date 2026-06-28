@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, SegmentedControl, Button, Group, Loader, Switch, TextInput } from '@mantine/core';
 import { Download, Copy, Share2, Check } from 'lucide-react';
 import { toBlob } from 'html-to-image';
@@ -19,7 +19,8 @@ const ACCENTS = ['#646cff', '#f43f5e', '#f59e0b', '#10b981', '#0ea5e9', '#a855f7
 
 export function ShareListModal({ opened, onClose, collection, items }: ShareListModalProps) {
   const { user } = useUser();
-  const cardRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const roRef = useRef<ResizeObserver | null>(null);
 
   const [format, setFormat] = useState<ShareFormat>('portrait');
   const [theme, setTheme] = useState<ShareTheme>('quiet');
@@ -39,19 +40,23 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
   const scale = PREVIEW_W / 1080;
 
   // The card grows with its items, so measure it to size the preview frame.
-  // A ResizeObserver catches the first open + poster reflow, so the preview
-  // appears immediately (not only after a control is changed).
+  // Measure via a CALLBACK REF so it fires exactly when the off-screen card
+  // mounts — Mantine's Modal mounts content after a transition, so an [opened]
+  // effect can run before the node exists (leaving the preview blank). A
+  // ResizeObserver then tracks later poster reflow.
   const [cardH, setCardH] = useState(0);
-  useEffect(() => {
-    if (!opened) return;
-    const el = cardRef.current;
-    if (!el) return;
-    const measure = () => setCardH(el.offsetHeight);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [opened]);
+  const setCardNode = useCallback((node: HTMLDivElement | null) => {
+    cardRef.current = node;
+    roRef.current?.disconnect();
+    roRef.current = null;
+    if (node) {
+      const measure = () => setCardH(node.offsetHeight);
+      measure();
+      const ro = new ResizeObserver(measure);
+      ro.observe(node);
+      roRef.current = ro;
+    }
+  }, []);
   const slug = collection.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'list';
 
   const canShare = typeof navigator !== 'undefined' && !!navigator.canShare;
@@ -212,7 +217,7 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
           >
             <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
               <ListShareCard
-                ref={cardRef}
+                ref={setCardNode}
                 name={collection.name}
                 description={collection.description}
                 ranked={collection.ranked}
