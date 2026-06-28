@@ -1,40 +1,84 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Container, Button, Text, Loader, Center } from '@mantine/core';
+import { Button, Loader, Center } from '@mantine/core';
 import { Plus } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { captureApiError } from '../lib/posthog';
-import { LibraryFilters } from '../components/library/LibraryFilters';
-import { LibraryCard } from '../components/library/LibraryCard';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PageContainer } from '../components/layout/PageContainer';
 import { LibraryDetailModal } from '../components/library/LibraryDetailModal';
+import { LibraryFilterControls, type LibraryStatusFilter } from '../components/library/LibraryFilterControls';
+import { LibraryWall } from '../components/library/LibraryWall';
+import { LibraryTabs, type LibraryTab } from '../components/library/LibraryTabs';
+import { CollectionsView } from '../components/library/CollectionsView';
+import { CollectionDetail } from '../components/library/CollectionDetail';
+import { NewListModal } from '../components/library/NewListModal';
+import { AddToListModal } from '../components/library/AddToListModal';
+import { PosterSizeControl } from '../components/library/PosterSizeControl';
+import { useCollections, useListItems, type CollectionItem } from '../hooks/useCollections';
+import { usePosterSize } from '../hooks/usePosterSize';
 import { getLibrary, removeFromLibrary, updateLibraryItem, checkLibrary } from '../api/library';
 import { addToQueue } from '../api/content';
 import { libraryItemToUI } from '../utils/library.utils';
 import type {
   LibraryItemUI,
-  LibraryFilterStatus,
   LibraryFilterType,
   LibrarySortOption,
 } from '../types/library.types';
 
+/**
+ * The Library: an album-wall of tracked titles + Lists/Collections. Reuses the
+ * library data layer + detail modal; Lists are backed by `/api/lists`
+ * (useCollections). Served at `/library`.
+ */
 export function Library() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+
+  const [tab, setTab] = useState<LibraryTab>(() =>
+    new URLSearchParams(window.location.search).get('list') ? 'lists' : 'library'
+  );
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<LibraryFilterStatus>('all');
+  const [filterStatus, setFilterStatus] = useState<LibraryStatusFilter>('all');
   const [filterType, setFilterType] = useState<LibraryFilterType>('all');
   const [sortBy, setSortBy] = useState<LibrarySortOption>('recently_added');
+  // Independent, separately-remembered poster size per surface.
+  const wallSize = usePosterSize('wall');
+  const listsSize = usePosterSize('lists');
+  const listDetailSize = usePosterSize('list-detail');
   const [selectedItem, setSelectedItem] = useState<LibraryItemUI | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Deep-link: open a specific content's detail when navigated with ?open=<content_id>
-  // (used by Home widgets like "Up next"). Fetched directly so it resolves regardless of
-  // the current list filter or pagination.
-  const openContentId = useMemo(
-    () => new URLSearchParams(window.location.search).get('open'),
-    []
+  // Collections (Lists tab). The open list lives in the URL (?list=<id>) so that
+  // returning from a content detail page (browser/Back) reopens the same list
+  // instead of resetting to the library.
+  const collectionsApi = useCollections();
+  const [openListId, setOpenListId] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get('list')
   );
+  const [newListOpen, setNewListOpen] = useState(false);
+  const [addToListOpen, setAddToListOpen] = useState(false);
+  const { items: openListItems } = useListItems(openListId);
+
+  // Keep ?list=<id> in sync with the open list (replace, no extra history entry).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (openListId) params.set('list', openListId);
+    else params.delete('list');
+    const qs = params.toString();
+    window.history.replaceState(null, '', `/library${qs ? `?${qs}` : ''}`);
+  }, [openListId]);
+
+  // If the URL points at a list that no longer exists, fall back to the overview.
+  useEffect(() => {
+    if (openListId && !collectionsApi.isLoading && !collectionsApi.collections.some((c) => c.id === openListId)) {
+      setOpenListId(null);
+    }
+  }, [openListId, collectionsApi.isLoading, collectionsApi.collections]);
+
+  // Deep-link: open a specific content's detail when navigated with ?open=<content_id>.
+  const openContentId = useMemo(() => new URLSearchParams(window.location.search).get('open'), []);
   const [openApplied, setOpenApplied] = useState(false);
   const { data: openCheck } = useQuery({
     queryKey: ['library', 'open', openContentId],
@@ -49,7 +93,7 @@ export function Library() {
     setIsModalOpen(true);
   }
 
-  // Fetch library items with infinite scroll
+  // Fetch library items with infinite scroll (no status param — tabs filter client-side).
   const {
     data,
     fetchNextPage,
@@ -57,13 +101,9 @@ export function Library() {
     isFetchingNextPage,
     isLoading: isLoadingLibrary,
   } = useInfiniteQuery({
-    queryKey: ['library', filterStatus !== 'all' ? filterStatus : undefined, filterType !== 'all' ? filterType : undefined],
-    queryFn: ({ pageParam = 1 }) => getLibrary(
-      filterStatus !== 'all' ? filterStatus : undefined,
-      filterType !== 'all' ? filterType : undefined,
-      undefined,
-      pageParam as number,
-    ),
+    queryKey: ['library', filterType !== 'all' ? filterType : undefined],
+    queryFn: ({ pageParam = 1 }) =>
+      getLibrary(undefined, filterType !== 'all' ? filterType : undefined, undefined, pageParam as number),
     getNextPageParam: (lastPage) =>
       lastPage.pagination.has_next ? lastPage.pagination.page + 1 : undefined,
     initialPageParam: 1,
@@ -86,12 +126,20 @@ export function Library() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Convert API items to UI format
-  const libraryItemsUI: LibraryItemUI[] = useMemo(() => {
-    return (data?.pages.flatMap(p => p.items) ?? []).map(libraryItemToUI);
-  }, [data]);
+  const libraryItemsUI: LibraryItemUI[] = useMemo(
+    () => (data?.pages.flatMap((p) => p.items) ?? []).map(libraryItemToUI),
+    [data]
+  );
 
-  // Remove from library mutation
+  // Lookup so a list item that IS in the library opens the detail modal
+  // (vs. routing to the content page). Keyed by content_id.
+  const libraryByContentId = useMemo(() => {
+    const map = new Map<string, LibraryItemUI>();
+    for (const item of libraryItemsUI) map.set(item.contentId, item);
+    return map;
+  }, [libraryItemsUI]);
+
+  // Mutations (copied from the live Library page)
   const removeMutation = useMutation({
     mutationFn: removeFromLibrary,
     onSuccess: () => {
@@ -105,27 +153,21 @@ export function Library() {
     },
   });
 
-  // Update library item mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<LibraryItemUI> }) => {
-      return updateLibraryItem(id, {
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<LibraryItemUI> }) =>
+      updateLibraryItem(id, {
         status: updates.status,
         score: updates.score,
         notes: updates.notes,
         current_season: updates.currentSeason,
         current_episode: updates.currentEpisode,
-        // Note: cardColor is frontend-only for now, not sent to backend
-      });
-    },
+      }),
     onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({ queryKey: ['library'] });
       queryClient.invalidateQueries({ queryKey: ['library', 'stats'] });
-
-      // Sync modal with saved values directly from mutation variables
       if (selectedItem && selectedItem.id === variables.id) {
-        setSelectedItem(prev => prev ? { ...prev, ...variables.updates } : prev);
+        setSelectedItem((prev) => (prev ? { ...prev, ...variables.updates } : prev));
       }
-
       toast.success('Library updated');
     },
     onError: (error: Error) => {
@@ -134,7 +176,6 @@ export function Library() {
     },
   });
 
-  // Add to queue mutation
   const addToQueueMutation = useMutation({
     mutationFn: addToQueue,
     onSuccess: () => {
@@ -147,75 +188,74 @@ export function Library() {
     },
   });
 
-  // Filter and sort library
+  // Searched, status/type-filtered, sorted items for the single library wall.
   const filteredLibrary = useMemo(() => {
-    let filtered = libraryItemsUI.filter((item) => {
-      const matchesSearch = item.content.title
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+    const filtered = libraryItemsUI.filter((item) => {
+      const matchesSearch = item.content.title.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
-      const matchesType =
-        filterType === 'all' || item.content.contentType === filterType;
+      const matchesType = filterType === 'all' || item.content.contentType === filterType;
       return matchesSearch && matchesStatus && matchesType;
     });
-
-    // Sort
-    filtered = [...filtered].sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       switch (sortBy) {
         case 'alphabetical':
           return a.content.title.localeCompare(b.content.title);
         case 'recently_updated':
           return b.updatedAt.getTime() - a.updatedAt.getTime();
-        case 'last_watched': {
-          const aTime = a.lastWatchedAt?.getTime() || 0;
-          const bTime = b.lastWatchedAt?.getTime() || 0;
-          return bTime - aTime;
-        }
+        case 'last_watched':
+          return (b.lastWatchedAt?.getTime() || 0) - (a.lastWatchedAt?.getTime() || 0);
         case 'score':
           return (b.score || 0) - (a.score || 0);
-        case 'progress': {
-          const aProgress = a.progress?.percentage || 0;
-          const bProgress = b.progress?.percentage || 0;
-          return bProgress - aProgress;
-        }
+        case 'progress':
+          return (b.progress?.percentage || 0) - (a.progress?.percentage || 0);
         case 'recently_added':
         default:
           return b.addedAt.getTime() - a.addedAt.getTime();
       }
     });
-
-    return filtered;
   }, [libraryItemsUI, searchQuery, filterStatus, filterType, sortBy]);
 
+  const counts = useMemo(
+    () => ({
+      library: totalItems,
+      lists: collectionsApi.collections.length,
+    }),
+    [totalItems, collectionsApi.collections]
+  );
+
+  // Handlers
   const handleViewDetails = (item: LibraryItemUI) => {
     setSelectedItem(item);
     setIsModalOpen(true);
   };
-
   const handleSave = (updates: Partial<LibraryItemUI>) => {
-    // Can be called from modal or card
     const itemId = updates.id || selectedItem?.id;
     if (!itemId) return;
     updateMutation.mutate({ id: itemId, updates });
   };
-
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedItem(null);
   };
-
-  const handleAddToQueue = (item: LibraryItemUI) => {
-    addToQueueMutation.mutate({ content_id: item.contentId });
-  };
-
+  const handleAddToQueue = (item: LibraryItemUI) => addToQueueMutation.mutate({ content_id: item.contentId });
   const handleRemove = (id: string) => {
-    if (confirm('Are you sure you want to remove this from your library?')) {
-      removeMutation.mutate(id);
-    }
+    if (confirm('Are you sure you want to remove this from your library?')) removeMutation.mutate(id);
   };
 
-  const handleNavigateToSearch = () => {
-    setLocation('/browse');
+  // Collection helpers
+  const openList = openListId ? collectionsApi.collections.find((c) => c.id === openListId) ?? null : null;
+
+  // Open a list entry: in-library → detail modal; TMDB title → content page;
+  // anime/other not in library → prompt to add (no standalone detail page).
+  const handleOpenListItem = (item: CollectionItem) => {
+    const libItem = libraryByContentId.get(item.contentId);
+    if (libItem) {
+      handleViewDetails(libItem);
+    } else if (item.tmdbId != null) {
+      setLocation(`/content/${item.type === 'show' ? 'tv' : 'movie'}/${item.tmdbId}`);
+    } else {
+      toast.info('Add this title to your library to view details');
+    }
   };
 
   if (isLoadingLibrary) {
@@ -226,100 +266,151 @@ export function Library() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[rgb(var(--color-bg-page))] pb-20">
-      <Container size="xl" className="py-6 md:py-10 lg:py-12 px-4 md:px-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-[rgb(var(--color-text-primary))]">My Library</h1>
-          <div className="flex items-center gap-3">
-            <Button
-              size="sm"
-              variant="subtle"
-              className="text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] font-semibold"
-              onClick={() => setLocation('/stats')}
-            >
-              View Stats
-            </Button>
-            <Button
-              size="sm"
-              className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold shadow-sm hover:shadow-lg"
-              radius="md"
-              leftSection={<Plus size={16} />}
-              onClick={handleNavigateToSearch}
-            >
-              Add Media
-            </Button>
-          </div>
-        </div>
+  // When a list is open, hide the Library header + tabs so the list is the focus.
+  // Key off openListId (not the resolved summary) so a list restored from the URL
+  // doesn't flash the header/tabs while the lists query is still loading.
+  const inListDetail = tab === 'lists' && !!openListId;
 
-        {/* Filters */}
-        <LibraryFilters
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          filterStatus={filterStatus}
-          onFilterStatusChange={setFilterStatus}
-          filterType={filterType}
-          onFilterTypeChange={setFilterType}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
+  return (
+    <>
+      <PageContainer>
+        {!inListDetail && (
+        <>
+        <PageHeader
+          title="Library"
+          subtitle={`${totalItems} ${totalItems === 1 ? 'title' : 'titles'}`}
+          actions={
+            tab === 'lists' ? (
+              <Button
+                size="sm"
+                className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold"
+                radius="md"
+                leftSection={<Plus size={16} />}
+                onClick={() => setNewListOpen(true)}
+              >
+                New list
+              </Button>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="subtle"
+                  className="text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] font-semibold"
+                  onClick={() => setLocation('/stats')}
+                >
+                  View Stats
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold"
+                  radius="md"
+                  leftSection={<Plus size={16} />}
+                  onClick={() => setLocation('/browse')}
+                >
+                  Add Media
+                </Button>
+              </>
+            )
+          }
         />
 
-        {/* Results Count */}
-        <div className="mb-6">
-          <Text
-            size="sm"
-            className="text-[rgb(var(--color-text-secondary))] font-semibold"
-          >
-            {totalItems} {totalItems === 1 ? 'title' : 'titles'}
-          </Text>
-        </div>
-
-        {/* Library Grid - Responsive Poster Grid */}
-        {filteredLibrary.length > 0 ? (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-              {filteredLibrary.map((item) => (
-                <LibraryCard
-                  key={`${item.id}-${item.status}-${item.score ?? 'null'}-${item.notes ?? 'null'}`}
-                  item={item}
-                  onViewDetails={handleViewDetails}
-                  onChangeStatus={handleViewDetails}
-                  onAddToQueue={handleAddToQueue}
-                  onRemove={handleRemove}
-                  onSave={handleSave}
-                />
-              ))}
-            </div>
-            <div ref={loadMoreRef} className="mt-6 flex justify-center">
-              {isFetchingNextPage && <Loader size="sm" />}
-            </div>
-          </>
-        ) : (
-          <div className="bg-[rgb(var(--color-bg-surface))] rounded-lg p-12 text-center border border-[rgb(var(--color-border-default))] shadow-sm dark:shadow-gray-950/50">
-              <div className="text-6xl mb-4"></div>
-            <h3 className="text-xl font-semibold text-[rgb(var(--color-text-primary))] mb-2">
-              No items found
-            </h3>
-            <p className="text-sm text-[rgb(var(--color-text-secondary))] mb-6">
-              {searchQuery || filterStatus !== 'all' || filterType !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Start building your library'}
-            </p>
-            <Button
-              size="md"
-              className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold shadow-sm hover:shadow-lg"
-              radius="md"
-              leftSection={<Plus size={16} />}
-              onClick={handleNavigateToSearch}
-            >
-              Add Media
-            </Button>
-          </div>
+        <LibraryTabs
+          value={tab}
+          onChange={(t) => {
+            setTab(t);
+            if (t !== 'lists') setOpenListId(null);
+          }}
+          counts={counts}
+          right={
+            tab === 'library' ? (
+              <LibraryFilterControls
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                filterStatus={filterStatus}
+                onFilterStatusChange={setFilterStatus}
+                filterType={filterType}
+                onFilterTypeChange={setFilterType}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                trailing={<PosterSizeControl value={wallSize.size} onChange={wallSize.setSize} />}
+              />
+            ) : undefined
+          }
+        />
+        </>
         )}
-      </Container>
 
-      {/* Detail Modal */}
+        {tab === 'lists' ? (
+          openListId ? (
+            openList ? (
+              <CollectionDetail
+                collection={openList}
+                items={openListItems}
+                onBack={() => setOpenListId(null)}
+                onOpenItem={handleOpenListItem}
+                onRemoveItem={(key) => collectionsApi.removeItem(openList.id, key)}
+                onReorder={(keys) => collectionsApi.reorderItems(openList.id, keys)}
+                onToggleRanked={(ranked) => collectionsApi.setRanked(openList.id, ranked)}
+                onRename={(name) => collectionsApi.renameList(openList.id, name)}
+                onSetDescription={(desc) => collectionsApi.setDescription(openList.id, desc)}
+                onDelete={() => {
+                  collectionsApi.deleteList(openList.id);
+                  setOpenListId(null);
+                }}
+                onAddTitles={() => setAddToListOpen(true)}
+                size={listDetailSize.size}
+                onSizeChange={listDetailSize.setSize}
+              />
+            ) : (
+              <Center className="py-24">
+                <Loader />
+              </Center>
+            )
+          ) : (
+            <CollectionsView
+              collections={collectionsApi.collections}
+              size={listsSize.size}
+              onSizeChange={listsSize.setSize}
+              onOpen={setOpenListId}
+              onNew={() => setNewListOpen(true)}
+            />
+          )
+        ) : (
+          <>
+            {filteredLibrary.length > 0 ? (
+              <>
+                <LibraryWall items={filteredLibrary} onOpen={handleViewDetails} size={wallSize.size} />
+                <div ref={loadMoreRef} className="mt-6 flex justify-center">
+                  {isFetchingNextPage && <Loader size="sm" />}
+                </div>
+              </>
+            ) : (
+              <div className="bg-[rgb(var(--color-bg-surface))] rounded-lg p-12 text-center border border-[rgb(var(--color-border-default))]">
+                <h3 className="text-base font-semibold text-[rgb(var(--color-text-primary))] mb-2">
+                  {searchQuery || filterStatus !== 'all' || filterType !== 'all'
+                    ? 'No matching titles'
+                    : 'Your library is empty'}
+                </h3>
+                <p className="text-sm text-[rgb(var(--color-text-secondary))] mb-6">
+                  {searchQuery || filterStatus !== 'all' || filterType !== 'all'
+                    ? 'Try adjusting your search or filters'
+                    : 'Add shows and movies to start tracking'}
+                </p>
+                <Button
+                  className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold"
+                  radius="md"
+                  leftSection={<Plus size={16} />}
+                  onClick={() => setLocation('/browse')}
+                >
+                  Add Media
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </PageContainer>
+
+      {/* Detail modal (reused as-is from the live page) */}
       {selectedItem && (
         <LibraryDetailModal
           key={`modal-${selectedItem.id}-${selectedItem.status}-${selectedItem.score ?? 'null'}-${selectedItem.notes ?? 'null'}`}
@@ -331,7 +422,26 @@ export function Library() {
           onRemove={handleRemove}
         />
       )}
-    </div>
+
+      <NewListModal
+        opened={newListOpen}
+        onClose={() => setNewListOpen(false)}
+        onCreate={async (name, ranked, description) => {
+          const list = await collectionsApi.createList(name, ranked, description);
+          setOpenListId(list.id);
+        }}
+      />
+
+      {openList && (
+        <AddToListModal
+          opened={addToListOpen}
+          onClose={() => setAddToListOpen(false)}
+          listName={openList.name}
+          libraryItems={libraryItemsUI}
+          existingContentIds={openListItems.map((i) => i.contentId)}
+          onAdd={(contentIds) => collectionsApi.addItems(openList.id, contentIds)}
+        />
+      )}
+    </>
   );
 }
-

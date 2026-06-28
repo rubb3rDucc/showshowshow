@@ -35,6 +35,7 @@ import { Link, useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { captureApiError } from '../lib/posthog';
 import { getQueue, removeFromQueue, reorderQueue } from '../api/content';
+import { PageHeader } from '../components/layout/PageHeader';
 import { QueueList } from '../components/queue/QueueList';
 import { QueueBuilderCalendar } from '../components/queue/QueueBuilderCalendar';
 import { ScheduleView } from '../components/schedule/ScheduleView';
@@ -221,16 +222,9 @@ export function Queue() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'rgb(var(--color-bg-page))', paddingBottom: isMobile ? '80px' : 0 }}>
-      <Box style={{ paddingTop: isMobile ? '6px' : '12px', paddingBottom: isMobile ? '6px' : '6px', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '100%' }}>
+      <Box style={{ paddingTop: '32px', paddingBottom: '6px', paddingLeft: '24px', paddingRight: '24px', width: '100%', maxWidth: '100%' }}>
         {/* Page Header */}
-        <Box mb="lg">
-          <Text size="xs" c="dimmed" fw={500} className="tracking-tight mb-1">
-            Your Lineup
-          </Text>
-          <Text size="2xl" fw={600} className="text-[rgb(var(--color-text-primary))] tracking-tight">
-            Plan & Schedule
-          </Text>
-        </Box>
+        <PageHeader eyebrow="Your Lineup" title="Plan & Schedule" />
 
         {/* Page-Level Tabs */}
         <Tabs value={activeTab} onChange={setActiveTab}>

@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Container, Loader, Center, Text, Button } from '@mantine/core';
+import { Loader, Center, Text, Button } from '@mantine/core';
 import { useLocation } from 'wouter';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PageContainer } from '../components/layout/PageContainer';
 import { LibraryStats } from '../components/library/LibraryStats';
 import { ProgressBar } from '../components/stats/ProgressBar';
 import { ActivityItem } from '../components/stats/ActivityItem';
@@ -69,19 +71,12 @@ export function Stats() {
   const insights = detailedStats?.insights;
 
   return (
-    <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
-      <Container size="xl" className="py-4 md:py-8 lg:py-12 px-2 md:px-4">
-        {/* Top Bar */}
-        <div className="flex justify-between items-center mb-6 md:mb-8">
-          <Button
-            size="sm"
-            variant="subtle"
-            className="font-semibold text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))]"
-            onClick={() => setLocation('/library')}
-          >
-            ← Back to Library
-          </Button>
-        </div>
+    <PageContainer>
+        <PageHeader
+          title="Stats"
+          subtitle="Your watching activity"
+          backLink={{ label: 'Back to Library', onClick: () => setLocation('/library') }}
+        />
 
         {/* Stats Dashboard */}
         <LibraryStats stats={calculatedStats} alwaysExpanded={true} />
@@ -157,8 +152,7 @@ export function Stats() {
             </Button>
           </div>
         )}
-      </Container>
-    </div>
+    </PageContainer>
   );
 }
 

@@ -1,4 +1,43 @@
-import type { LibraryItem, LibraryItemUI, LibraryStatsAPI, LibraryStats } from '../types/library.types';
+import type { LibraryItem, LibraryItemUI, LibraryStatsAPI, LibraryStats, LibraryStatus } from '../types/library.types';
+
+/**
+ * Short, quiet status label for a library item.
+ */
+export function statusLabel(status: LibraryStatus): string {
+  switch (status) {
+    case 'watching':
+      return 'Watching';
+    case 'completed':
+      return 'Finished';
+    case 'dropped':
+      return 'Dropped';
+    case 'plan_to_watch':
+      return 'Plan to watch';
+  }
+}
+
+/**
+ * One-line caption shown under a poster in the album grid / list views.
+ * Examples: "Watching · 62%", "★ 9 · Finished", "Plan to watch", "Dropped".
+ */
+export function captionFor(item: LibraryItemUI): string {
+  const score = item.score ? `★ ${item.score}` : null;
+  switch (item.status) {
+    case 'watching': {
+      const pct =
+        item.content.contentType === 'show' && item.progress
+          ? `${item.progress.percentage}%`
+          : null;
+      return pct ? `Watching · ${pct}` : 'Watching';
+    }
+    case 'plan_to_watch':
+      return 'Plan to watch';
+    case 'completed':
+      return score ? `${score} · Finished` : 'Finished';
+    case 'dropped':
+      return score ? `${score} · Dropped` : 'Dropped';
+  }
+}
 
 /**
  * Convert API LibraryItem to UI-friendly format

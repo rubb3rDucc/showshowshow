@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Container,
   Card,
   Text,
   Button,
@@ -12,6 +11,8 @@ import {
 } from '@mantine/core';
 import { Mail, Lock, User } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/clerk-react';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PageContainer } from '../components/layout/PageContainer';
 import { BillingSection } from '../components/settings/BillingSection';
 
 export function Settings() {
@@ -40,16 +41,17 @@ export function Settings() {
 
   if (!isLoaded) {
     return (
-      <Container size="md" className="py-8">
+      <PageContainer width="narrow">
         <Center py={60}>
           <Loader size="lg" />
         </Center>
-      </Container>
+      </PageContainer>
     );
   }
 
   return (
-    <Container size="md" className="py-8">
+    <PageContainer width="narrow">
+      <PageHeader title="Settings" subtitle="Manage your account and preferences" />
       <Stack gap="xl">
 
         {/* Account Information */}
@@ -169,6 +171,6 @@ export function Settings() {
           </Stack>
         </Card>
       </Stack>
-    </Container>
+    </PageContainer>
   );
 }

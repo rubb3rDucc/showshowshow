@@ -259,4 +259,20 @@ export interface Database {
     created_at: Date;
     updated_at: Date;
   };
+  lists: {
+    id: string;
+    user_id: string;
+    name: string;
+    description: string | null;
+    ranked: boolean;
+    created_at: Date;
+    updated_at: Date;
+  };
+  list_items: {
+    id: string;
+    list_id: string;
+    content_id: string;
+    position: number;
+    created_at: Date;
+  };
 }
