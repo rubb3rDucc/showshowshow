@@ -11,7 +11,6 @@ interface LibraryWallProps {
 
 function WallTile({ item, onOpen }: { item: LibraryItemUI; onOpen: (i: LibraryItemUI) => void }) {
   const { content, status, progress } = item;
-  const muted = status === 'completed' || status === 'dropped';
   const showProgress =
     content.contentType === 'show' && status === 'watching' && progress && progress.percentage > 0;
 
@@ -26,7 +25,7 @@ function WallTile({ item, onOpen }: { item: LibraryItemUI; onOpen: (i: LibraryIt
           src={content.posterUrl}
           alt={content.title}
           loading="lazy"
-          className={`w-full h-full object-cover ${muted ? 'opacity-70' : ''}`}
+          className="w-full h-full object-cover"
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-[rgb(var(--color-bg-elevated))]">
