@@ -32,7 +32,7 @@ export function PosterSizeControl({ value, onChange }: PosterSizeControlProps) {
                 : 'text-[rgb(var(--color-text-tertiary))] hover:text-[rgb(var(--color-text-primary))]'
             }`}
           >
-            <Icon size={19} />
+            <Icon size={22} />
           </button>
         );
       })}
