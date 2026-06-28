@@ -12,6 +12,10 @@ export interface ShareCardOptions {
   background: ShareBackground;
   showDescription: boolean;
   showRanks: boolean;
+  /** Top wordmark + footer attribution. */
+  showBranding: boolean;
+  /** The "N titles" line. */
+  showCount: boolean;
 }
 
 interface ListShareCardProps extends ShareCardOptions {
@@ -48,7 +52,7 @@ function hexA(hex: string, a: number): string {
  * Posters use crossOrigin so the html-to-image export isn't tainted.
  */
 export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(function ListShareCard(
-  { name, description, ranked, curator, items, format, theme, accent, background, showDescription, showRanks, tint },
+  { name, description, ranked, curator, items, format, theme, accent, background, showDescription, showRanks, showBranding, showCount, tint },
   ref
 ) {
   const c = CONF[format];
@@ -117,10 +121,12 @@ export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(func
 
       <div style={{ position: 'relative', zIndex: 2, padding: c.pad }}>
         {/* Header */}
-        <div style={{ fontSize: 34 }}>
-          <BrandMark accent={accent} />
-        </div>
-        <div style={{ fontSize: c.title, fontWeight: 800, lineHeight: 1.04, letterSpacing: '-0.02em', marginTop: 18 }}>
+        {showBranding && (
+          <div style={{ fontSize: 34 }}>
+            <BrandMark accent={accent} />
+          </div>
+        )}
+        <div style={{ fontSize: c.title, fontWeight: 800, lineHeight: 1.04, letterSpacing: '-0.02em', marginTop: showBranding ? 18 : 0 }}>
           {name}
         </div>
         {curator && <div style={{ fontSize: 32, marginTop: 14, color: sub(0.8) }}>by {curator}</div>}
@@ -140,10 +146,12 @@ export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(func
             {description}
           </div>
         )}
-        <div style={{ fontSize: 26, marginTop: 16, color: sub(0.5) }}>
-          {items.length} {items.length === 1 ? 'title' : 'titles'}
-          {ranked ? ' · ranked' : ''}
-        </div>
+        {showCount && (
+          <div style={{ fontSize: 26, marginTop: 16, color: sub(0.5) }}>
+            {items.length} {items.length === 1 ? 'title' : 'titles'}
+            {ranked ? ' · ranked' : ''}
+          </div>
+        )}
 
         {/* Poster grid — grows with the items; posters keep their 2:3 aspect */}
         <div style={{ marginTop: 36, display: 'grid', gridTemplateColumns: `repeat(${c.cols}, 1fr)`, gap: c.gap }}>
@@ -195,9 +203,11 @@ export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(func
         </div>
 
         {/* Footer */}
-        <div style={{ marginTop: 36, fontSize: 26, color: sub(0.5) }}>
-          made on <BrandMark accent={accent} /> · showshowshow.app
-        </div>
+        {showBranding && (
+          <div style={{ marginTop: 36, fontSize: 26, color: sub(0.5) }}>
+            made on <BrandMark accent={accent} /> · showshowshow.app
+          </div>
+        )}
       </div>
     </div>
   );

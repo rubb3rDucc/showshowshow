@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, SegmentedControl, Button, Group, Loader, Switch, TextInput } from '@mantine/core';
 import { Download, Copy, Share2, Check } from 'lucide-react';
 import { toBlob } from 'html-to-image';
@@ -27,6 +27,8 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
   const [accent, setAccent] = useState(ACCENTS[0]);
   const [showDescription, setShowDescription] = useState(true);
   const [showRanks, setShowRanks] = useState(true);
+  const [showBranding, setShowBranding] = useState(true);
+  const [showCount, setShowCount] = useState(true);
   const [showName, setShowName] = useState(true);
   const [name, setName] = useState('');
   const [tint, setTint] = useState<string | undefined>();
@@ -37,11 +39,19 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
   const scale = PREVIEW_W / 1080;
 
   // The card grows with its items, so measure it to size the preview frame.
+  // A ResizeObserver catches the first open + poster reflow, so the preview
+  // appears immediately (not only after a control is changed).
   const [cardH, setCardH] = useState(0);
-  useLayoutEffect(() => {
-    const h = cardRef.current?.offsetHeight ?? 0;
-    setCardH((prev) => (prev !== h ? h : prev));
-  }, [format, showDescription, curator, items, collection.name, collection.description]);
+  useEffect(() => {
+    if (!opened) return;
+    const el = cardRef.current;
+    if (!el) return;
+    const measure = () => setCardH(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [opened]);
   const slug = collection.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'list';
 
   const canShare = typeof navigator !== 'undefined' && !!navigator.canShare;
@@ -179,6 +189,8 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
             {collection.ranked && (
               <Switch size="xs" label="Show numbers" checked={showRanks} onChange={(e) => setShowRanks(e.currentTarget.checked)} />
             )}
+            <Switch size="xs" label="Show title count" checked={showCount} onChange={(e) => setShowCount(e.currentTarget.checked)} />
+            <Switch size="xs" label="Show branding" checked={showBranding} onChange={(e) => setShowBranding(e.currentTarget.checked)} />
             <Switch size="xs" label="Show my name" checked={showName} onChange={(e) => setShowName(e.currentTarget.checked)} />
             {showName && (
               <TextInput
@@ -212,6 +224,8 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
                 background={background}
                 showDescription={showDescription}
                 showRanks={showRanks}
+                showBranding={showBranding}
+                showCount={showCount}
                 tint={tint}
               />
             </div>
