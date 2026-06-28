@@ -7,7 +7,7 @@ interface LibraryWallProps {
   onOpen: (item: LibraryItemUI) => void;
 }
 
-function WallTile({ item, index, onOpen }: { item: LibraryItemUI; index: number; onOpen: (i: LibraryItemUI) => void }) {
+function WallTile({ item, onOpen }: { item: LibraryItemUI; onOpen: (i: LibraryItemUI) => void }) {
   const { content, status, progress } = item;
   const muted = status === 'completed' || status === 'dropped';
   const showProgress =
@@ -17,19 +17,14 @@ function WallTile({ item, index, onOpen }: { item: LibraryItemUI; index: number;
     <button
       type="button"
       onClick={() => onOpen(item)}
-      className="ssss-wall-drift group relative block aspect-[2/3] rounded-md overflow-hidden bg-white/5"
-      // Per-tile negative delay + varied duration so the wall drifts out of phase
-      // (no synchronized pulse). new Date()/Math.random() avoided — derive from index.
-      style={{ animationDelay: `-${(index % 13) * 0.9}s`, animationDuration: `${10 + (index % 5)}s` }}
+      className="group relative block aspect-[2/3] rounded-md overflow-hidden bg-white/5"
     >
       {content.posterUrl ? (
         <img
           src={content.posterUrl}
           alt={content.title}
           loading="lazy"
-          className={`w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 ${
-            muted ? 'opacity-70' : ''
-          }`}
+          className={`w-full h-full object-cover ${muted ? 'opacity-70' : ''}`}
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-[rgb(var(--color-bg-elevated))]">
@@ -54,14 +49,14 @@ function WallTile({ item, index, onOpen }: { item: LibraryItemUI; index: number;
 
 /**
  * Immersive "album wall" for the main grid view — dense, tight-gap, captionless
- * artwork that gently drifts (ambient motion), with title/status revealed on
- * hover. Renders on the page background (no dark box). Evokes the Apple Music wall.
+ * artwork with title/status revealed on hover. Renders on the page background
+ * (no dark box). Evokes the Apple Music wall.
  */
 export function LibraryWall({ items, onOpen }: LibraryWallProps) {
   return (
     <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-2.5">
-      {items.map((item, i) => (
-        <WallTile key={item.id} item={item} index={i} onOpen={onOpen} />
+      {items.map((item) => (
+        <WallTile key={item.id} item={item} onOpen={onOpen} />
       ))}
     </div>
   );

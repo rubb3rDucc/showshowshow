@@ -25,18 +25,17 @@ export function CollectionsView({ collections, onOpen, onNew }: CollectionsViewP
           </button>
         </div>
       ) : (
-        <div className="divide-y divide-[rgb(var(--color-border-subtle))]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
           {collections.map((c) => (
-            <div key={c.id} className="py-6 first:pt-2">
-              <CollectionListCard
-                name={c.name}
-                description={c.description}
-                count={c.items.length}
-                ranked={c.ranked}
-                posters={c.items.map((i) => i.posterUrl)}
-                onClick={() => onOpen(c.id)}
-              />
-            </div>
+            <CollectionListCard
+              key={c.id}
+              name={c.name}
+              description={c.description}
+              count={c.items.length}
+              ranked={c.ranked}
+              posters={c.items.map((i) => i.posterUrl)}
+              onClick={() => onOpen(c.id)}
+            />
           ))}
         </div>
       )}
