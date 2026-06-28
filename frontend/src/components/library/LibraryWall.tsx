@@ -1,10 +1,12 @@
 import { Tv } from 'lucide-react';
 import type { LibraryItemUI } from '../../types/library.types';
 import { captionFor } from '../../utils/library.utils';
+import { POSTER_GRID, type PosterSize } from '../../hooks/usePosterSize';
 
 interface LibraryWallProps {
   items: LibraryItemUI[];
   onOpen: (item: LibraryItemUI) => void;
+  size?: PosterSize;
 }
 
 function WallTile({ item, onOpen }: { item: LibraryItemUI; onOpen: (i: LibraryItemUI) => void }) {
@@ -52,9 +54,9 @@ function WallTile({ item, onOpen }: { item: LibraryItemUI; onOpen: (i: LibraryIt
  * artwork with title/status revealed on hover. Renders on the page background
  * (no dark box). Evokes the Apple Music wall.
  */
-export function LibraryWall({ items, onOpen }: LibraryWallProps) {
+export function LibraryWall({ items, onOpen, size = 'md' }: LibraryWallProps) {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-2.5">
+    <div className={POSTER_GRID[size]}>
       {items.map((item) => (
         <WallTile key={item.id} item={item} onOpen={onOpen} />
       ))}

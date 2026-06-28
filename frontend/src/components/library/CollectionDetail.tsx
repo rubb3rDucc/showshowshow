@@ -20,6 +20,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { itemKey, type Collection, type CollectionItem } from '../../hooks/useCollections';
+import { POSTER_GRID, type PosterSize } from '../../hooks/usePosterSize';
+import { PosterSizeControl } from './PosterSizeControl';
 import { ShareListModal } from './ShareListModal';
 
 interface CollectionDetailProps {
@@ -34,9 +36,9 @@ interface CollectionDetailProps {
   onSetDescription: (description: string) => void;
   onDelete: () => void;
   onAddTitles: () => void;
+  size: PosterSize;
+  onSizeChange: (size: PosterSize) => void;
 }
-
-const GRID = 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4';
 
 /** Captionless poster tile: art only, rank badge (ranked), title on hover, remove on hover. */
 function DetailTile({
@@ -130,8 +132,11 @@ export function CollectionDetail({
   onSetDescription,
   onDelete,
   onAddTitles,
+  size,
+  onSizeChange,
 }: CollectionDetailProps) {
   const [shareOpen, setShareOpen] = useState(false);
+  const gridClass = POSTER_GRID[size];
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -292,22 +297,29 @@ export function CollectionDetail({
             Add titles
           </Button>
         </div>
-      ) : collection.ranked ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={items.map(itemKey)} strategy={rectSortingStrategy}>
-            <div className={GRID}>
-              {items.map((item, idx) => (
-                <SortableItem key={itemKey(item)} item={item} rank={idx + 1} onOpen={onOpenItem} onRemove={onRemoveItem} />
+      ) : (
+        <>
+          <div className="flex justify-end mb-3">
+            <PosterSizeControl value={size} onChange={onSizeChange} />
+          </div>
+          {collection.ranked ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={items.map(itemKey)} strategy={rectSortingStrategy}>
+                <div className={gridClass}>
+                  {items.map((item, idx) => (
+                    <SortableItem key={itemKey(item)} item={item} rank={idx + 1} onOpen={onOpenItem} onRemove={onRemoveItem} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <div className={gridClass}>
+              {items.map((item) => (
+                <DetailTile key={itemKey(item)} item={item} onOpen={onOpenItem} onRemove={onRemoveItem} />
               ))}
             </div>
-          </SortableContext>
-        </DndContext>
-      ) : (
-        <div className={GRID}>
-          {items.map((item) => (
-            <DetailTile key={itemKey(item)} item={item} onOpen={onOpenItem} onRemove={onRemoveItem} />
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       <ShareListModal opened={shareOpen} onClose={() => setShareOpen(false)} collection={collection} items={items} />

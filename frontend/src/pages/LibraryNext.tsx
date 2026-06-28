@@ -15,7 +15,9 @@ import { CollectionsView } from '../components/library/CollectionsView';
 import { CollectionDetail } from '../components/library/CollectionDetail';
 import { NewListModal } from '../components/library/NewListModal';
 import { AddToListModal } from '../components/library/AddToListModal';
+import { PosterSizeControl } from '../components/library/PosterSizeControl';
 import { useCollections, itemKey, type CollectionItem } from '../hooks/useCollections';
+import { usePosterSize } from '../hooks/usePosterSize';
 import { getLibrary, removeFromLibrary, updateLibraryItem, checkLibrary } from '../api/library';
 import { addToQueue } from '../api/content';
 import { libraryItemToUI } from '../utils/library.utils';
@@ -39,6 +41,7 @@ export function LibraryNext() {
   const [filterStatus, setFilterStatus] = useState<LibraryStatusFilter>('all');
   const [filterType, setFilterType] = useState<LibraryFilterType>('all');
   const [sortBy, setSortBy] = useState<LibrarySortOption>('recently_added');
+  const { size: posterSize, setSize: setPosterSize } = usePosterSize();
   const [selectedItem, setSelectedItem] = useState<LibraryItemUI | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -312,16 +315,20 @@ export function LibraryNext() {
           counts={counts}
           right={
             tab === 'library' ? (
-              <LibraryFilterControls
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                filterStatus={filterStatus}
-                onFilterStatusChange={setFilterStatus}
-                filterType={filterType}
-                onFilterTypeChange={setFilterType}
-                sortBy={sortBy}
-                onSortChange={setSortBy}
-              />
+              <>
+                <LibraryFilterControls
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  filterStatus={filterStatus}
+                  onFilterStatusChange={setFilterStatus}
+                  filterType={filterType}
+                  onFilterTypeChange={setFilterType}
+                  sortBy={sortBy}
+                  onSortChange={setSortBy}
+                />
+                <span className="w-px h-4 bg-[rgb(var(--color-border-default))]" aria-hidden />
+                <PosterSizeControl value={posterSize} onChange={setPosterSize} />
+              </>
             ) : undefined
           }
         />
@@ -345,6 +352,8 @@ export function LibraryNext() {
                 setOpenListId(null);
               }}
               onAddTitles={() => setAddToListOpen(true)}
+              size={posterSize}
+              onSizeChange={setPosterSize}
             />
           ) : (
             <CollectionsView
@@ -357,7 +366,7 @@ export function LibraryNext() {
           <>
             {filteredLibrary.length > 0 ? (
               <>
-                <LibraryWall items={filteredLibrary} onOpen={handleViewDetails} />
+                <LibraryWall items={filteredLibrary} onOpen={handleViewDetails} size={posterSize} />
                 <div ref={loadMoreRef} className="mt-6 flex justify-center">
                   {isFetchingNextPage && <Loader size="sm" />}
                 </div>
