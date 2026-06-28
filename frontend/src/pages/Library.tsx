@@ -36,7 +36,9 @@ export function Library() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  const [tab, setTab] = useState<LibraryTab>('library');
+  const [tab, setTab] = useState<LibraryTab>(() =>
+    new URLSearchParams(window.location.search).get('list') ? 'lists' : 'library'
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<LibraryStatusFilter>('all');
   const [filterType, setFilterType] = useState<LibraryFilterType>('all');
@@ -48,12 +50,32 @@ export function Library() {
   const [selectedItem, setSelectedItem] = useState<LibraryItemUI | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Collections (Lists tab)
+  // Collections (Lists tab). The open list lives in the URL (?list=<id>) so that
+  // returning from a content detail page (browser/Back) reopens the same list
+  // instead of resetting to the library.
   const collectionsApi = useCollections();
-  const [openListId, setOpenListId] = useState<string | null>(null);
+  const [openListId, setOpenListId] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get('list')
+  );
   const [newListOpen, setNewListOpen] = useState(false);
   const [addToListOpen, setAddToListOpen] = useState(false);
   const { items: openListItems } = useListItems(openListId);
+
+  // Keep ?list=<id> in sync with the open list (replace, no extra history entry).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (openListId) params.set('list', openListId);
+    else params.delete('list');
+    const qs = params.toString();
+    window.history.replaceState(null, '', `/library${qs ? `?${qs}` : ''}`);
+  }, [openListId]);
+
+  // If the URL points at a list that no longer exists, fall back to the overview.
+  useEffect(() => {
+    if (openListId && !collectionsApi.isLoading && !collectionsApi.collections.some((c) => c.id === openListId)) {
+      setOpenListId(null);
+    }
+  }, [openListId, collectionsApi.isLoading, collectionsApi.collections]);
 
   // Deep-link: open a specific content's detail when navigated with ?open=<content_id>.
   const openContentId = useMemo(() => new URLSearchParams(window.location.search).get('open'), []);
@@ -245,7 +267,9 @@ export function Library() {
   }
 
   // When a list is open, hide the Library header + tabs so the list is the focus.
-  const inListDetail = tab === 'lists' && !!openList;
+  // Key off openListId (not the resolved summary) so a list restored from the URL
+  // doesn't flash the header/tabs while the lists query is still loading.
+  const inListDetail = tab === 'lists' && !!openListId;
 
   return (
     <>
@@ -317,25 +341,31 @@ export function Library() {
         )}
 
         {tab === 'lists' ? (
-          openList ? (
-            <CollectionDetail
-              collection={openList}
-              items={openListItems}
-              onBack={() => setOpenListId(null)}
-              onOpenItem={handleOpenListItem}
-              onRemoveItem={(key) => collectionsApi.removeItem(openList.id, key)}
-              onReorder={(keys) => collectionsApi.reorderItems(openList.id, keys)}
-              onToggleRanked={(ranked) => collectionsApi.setRanked(openList.id, ranked)}
-              onRename={(name) => collectionsApi.renameList(openList.id, name)}
-              onSetDescription={(desc) => collectionsApi.setDescription(openList.id, desc)}
-              onDelete={() => {
-                collectionsApi.deleteList(openList.id);
-                setOpenListId(null);
-              }}
-              onAddTitles={() => setAddToListOpen(true)}
-              size={listDetailSize.size}
-              onSizeChange={listDetailSize.setSize}
-            />
+          openListId ? (
+            openList ? (
+              <CollectionDetail
+                collection={openList}
+                items={openListItems}
+                onBack={() => setOpenListId(null)}
+                onOpenItem={handleOpenListItem}
+                onRemoveItem={(key) => collectionsApi.removeItem(openList.id, key)}
+                onReorder={(keys) => collectionsApi.reorderItems(openList.id, keys)}
+                onToggleRanked={(ranked) => collectionsApi.setRanked(openList.id, ranked)}
+                onRename={(name) => collectionsApi.renameList(openList.id, name)}
+                onSetDescription={(desc) => collectionsApi.setDescription(openList.id, desc)}
+                onDelete={() => {
+                  collectionsApi.deleteList(openList.id);
+                  setOpenListId(null);
+                }}
+                onAddTitles={() => setAddToListOpen(true)}
+                size={listDetailSize.size}
+                onSizeChange={listDetailSize.setSize}
+              />
+            ) : (
+              <Center className="py-24">
+                <Loader />
+              </Center>
+            )
           ) : (
             <CollectionsView
               collections={collectionsApi.collections}

@@ -71,7 +71,7 @@ function toItem(i: ListItemAPI): CollectionItem {
 
 export function useCollections() {
   const qc = useQueryClient();
-  const { data } = useQuery({ queryKey: ['lists'], queryFn: getLists });
+  const { data, isLoading } = useQuery({ queryKey: ['lists'], queryFn: getLists });
   const collections: Collection[] = (data ?? []).map(toCollection);
 
   const invalidateAll = () => qc.invalidateQueries({ queryKey: ['lists'] });
@@ -150,6 +150,7 @@ export function useCollections() {
 
   return {
     collections,
+    isLoading,
     createList: async (name: string, ranked: boolean, description?: string): Promise<Collection> =>
       toCollection(await createMut.mutateAsync({ name, ranked, description })),
     renameList: (id: string, name: string) => updateMut.mutate({ id, input: { name } }),
