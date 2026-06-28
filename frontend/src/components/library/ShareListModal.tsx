@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, SegmentedControl, Button, Group, Loader, Switch, TextInput, Select } from '@mantine/core';
 import { Download, Copy, Share2, Check } from 'lucide-react';
 import { toBlob } from 'html-to-image';
@@ -16,6 +16,28 @@ interface ShareListModalProps {
 
 const PREVIEW_W = 300;
 const ACCENTS = ['#646cff', '#f43f5e', '#f59e0b', '#10b981', '#0ea5e9', '#a855f7'];
+
+// iPadOS reports as "Macintosh" but is touch-capable; cover both.
+const IS_IOS =
+  typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+
+/**
+ * Fetch a (CORS-enabled) image and return it as a data URL. Inlining posters
+ * before html-to-image runs avoids the tainted-canvas bug on iOS Safari, where
+ * remote TMDB images otherwise vanish from the exported PNG.
+ */
+async function toDataUrl(url: string): Promise<string> {
+  const res = await fetch(url, { mode: 'cors' });
+  const blob = await res.blob();
+  return await new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result as string);
+    fr.onerror = () => reject(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
 
 export function ShareListModal({ opened, onClose, collection, items }: ShareListModalProps) {
   const { user } = useUser();
@@ -61,7 +83,36 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
   const slug = collection.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'list';
 
   const canShare = typeof navigator !== 'undefined' && !!navigator.canShare;
-  const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write;
+  // iOS Safari throws on clipboard image writes (the "request not allowed"
+  // error) — prefer the native share sheet there instead of a Copy button.
+  const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write && !IS_IOS;
+
+  // Pre-resolve every poster to a data URL so the off-screen card renders
+  // inlined images — required for a clean html-to-image export on iOS.
+  const posterUrls = useMemo(
+    () => Array.from(new Set(items.map((i) => i.posterUrl).filter((u): u is string => !!u))),
+    [items],
+  );
+  const [posters, setPosters] = useState<Record<string, string>>({});
+  const postersReady = posterUrls.every((u) => posters[u]);
+  useEffect(() => {
+    if (!opened) return;
+    let cancelled = false;
+    Promise.all(
+      posterUrls.map(async (u) => {
+        try {
+          return [u, await toDataUrl(u)] as const;
+        } catch {
+          return [u, u] as const; // fall back to the remote URL on fetch failure
+        }
+      }),
+    ).then((pairs) => {
+      if (!cancelled) setPosters(Object.fromEntries(pairs));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [opened, posterUrls]);
 
   // Extract a dominant poster color for the 'tinted' theme (CORS-enabled).
   useEffect(() => {
@@ -248,26 +299,27 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
                 showCount={showCount}
                 limit={limit ?? undefined}
                 tint={tint}
+                posters={posters}
               />
             </div>
           </div>
 
           <Group gap="sm" justify="center" className="w-full">
             <Button
-              leftSection={busy ? <Loader size={14} /> : <Download size={15} />}
+              leftSection={busy || !postersReady ? <Loader size={14} /> : <Download size={15} />}
               onClick={handleDownload}
-              disabled={busy}
+              disabled={busy || !postersReady}
               className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80"
             >
               Download
             </Button>
             {canCopy && (
-              <Button variant="light" color="gray" leftSection={<Copy size={15} />} onClick={handleCopy} disabled={busy}>
+              <Button variant="light" color="gray" leftSection={<Copy size={15} />} onClick={handleCopy} disabled={busy || !postersReady}>
                 Copy
               </Button>
             )}
             {canShare && (
-              <Button variant="light" color="gray" leftSection={<Share2 size={15} />} onClick={handleShare} disabled={busy}>
+              <Button variant="light" color="gray" leftSection={<Share2 size={15} />} onClick={handleShare} disabled={busy || !postersReady}>
                 Share
               </Button>
             )}
