@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocalStorage } from '@mantine/hooks';
 import { Container, Button, Collapse, Select, TextInput } from '@mantine/core';
 import {
   CalendarPlus,
@@ -98,16 +99,22 @@ const TIME_OPTS = Array.from({ length: 48 }, (_, i) => ({
  */
 export function ProtoSchedule() {
   const [customizeOpen, setCustomizeOpen] = useState(false);
-  const [timeMode, setTimeMode] = useState<'preset' | 'custom'>('preset');
-  const [startPreset, setStartPreset] = useState('prime');
-  const [durationMin, setDurationMin] = useState('180');
-  const [customStart, setCustomStart] = useState('18:00');
-  const [customEnd, setCustomEnd] = useState('23:00');
-  const [rotation, setRotation] = useState('turns');
-  const [dateRange, setDateRange] = useState('tonight');
+  // Auto-scheduler settings persist across navigation (localStorage) so a user's choices
+  // — time window, rotation, range, and per-show season/episode picks — survive leaving the
+  // page. (Interim store; migrates to backend user_preferences when that lands.)
+  const [timeMode, setTimeMode] = useLocalStorage<'preset' | 'custom'>({ key: 'lineup.timeMode', defaultValue: 'preset' });
+  const [startPreset, setStartPreset] = useLocalStorage({ key: 'lineup.startPreset', defaultValue: 'prime' });
+  const [durationMin, setDurationMin] = useLocalStorage({ key: 'lineup.durationMin', defaultValue: '180' });
+  const [customStart, setCustomStart] = useLocalStorage({ key: 'lineup.customStart', defaultValue: '18:00' });
+  const [customEnd, setCustomEnd] = useLocalStorage({ key: 'lineup.customEnd', defaultValue: '23:00' });
+  const [rotation, setRotation] = useLocalStorage({ key: 'lineup.rotation', defaultValue: 'turns' });
+  const [dateRange, setDateRange] = useLocalStorage({ key: 'lineup.dateRange', defaultValue: 'tonight' });
   const [date, setDate] = useState(todayStr());
-  // Per-show season/episode selection (session-scoped) -> generator episode_filters.
-  const [episodeFilters, setEpisodeFilters] = useState<Record<string, EpisodeFilter>>({});
+  // Per-show season/episode selection persists too (same store) -> generator episode_filters.
+  const [episodeFilters, setEpisodeFilters] = useLocalStorage<Record<string, EpisodeFilter>>({
+    key: 'lineup.episodeFilters',
+    defaultValue: {},
+  });
 
   const onFilterChange = (contentId: string, filter: EpisodeFilter | undefined) => {
     setEpisodeFilters((prev) => {
