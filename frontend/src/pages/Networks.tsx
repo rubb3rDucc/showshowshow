@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Container, Button, TextInput, Loader, Center, Modal, Text, Tabs } from '@mantine/core';
+import { Button, TextInput, Loader, Center, Modal, Text, Tabs } from '@mantine/core';
 import { useLocation } from 'wouter';
-import { ArrowLeft, Search, Plus, Trash2, Tv, AlertCircle, X } from 'lucide-react';
+import { Search, Plus, Trash2, Tv, AlertCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DndContext,
@@ -22,6 +22,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PageContainer } from '../components/layout/PageContainer';
 import { getNetworks, reorderNetworks, searchNetworks, addNetwork, deleteNetwork, type NetworkSearchResult } from '../api/networks';
 import { NetworkCard } from '../components/browse/NetworkCard';
 
@@ -257,33 +259,14 @@ export function Networks() {
   }
 
   return (
-    <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
-      <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
+    <>
+      <PageContainer>
         {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="subtle"
-            leftSection={<ArrowLeft size={16} />}
-            onClick={() => setLocation('/browse')}
-            className="mb-6"
-          >
-            Back to Browse
-          </Button>
-
-          <div className="mb-4">
-            <div className="flex items-center gap-4 mb-2">
-              <Tv size={32} strokeWidth={2.5} className="text-gray-700" />
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">
-                  Manage Networks
-                </h1>
-                <p className="text-sm text-[rgb(var(--color-text-secondary))]">
-                  Reorder the first 12 networks to control what appears on the Browse page
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          title="Manage Networks"
+          subtitle="Reorder the first 12 networks to control what appears on the Browse page"
+          backLink={{ label: 'Back to Browse', onClick: () => setLocation('/browse') }}
+        />
 
         {/* Tabs */}
         <Tabs value={activeTab} onChange={(v) => setActiveTab(v as 'browse' | 'add')}>
@@ -572,7 +555,7 @@ export function Networks() {
             </div>
           </Tabs.Panel>
         </Tabs>
-      </Container>
+      </PageContainer>
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -612,7 +595,7 @@ export function Networks() {
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
 }
 

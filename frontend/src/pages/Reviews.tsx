@@ -8,6 +8,8 @@ import { getReviews, createReview } from '../api/reviews';
 import type { Review } from '../api/reviews';
 import { useDeleteReview } from '../hooks/useDeleteReview';
 import { reviewEditorExtensions } from '../lib/reviewEditorExtensions';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PageContainer } from '../components/layout/PageContainer';
 
 interface MonthGroup {
   key: string;        // 'yyyy-MM'
@@ -170,19 +172,21 @@ export function Reviews() {
   }
 
   return (
-    <div className="px-8 py-10">
+    <PageContainer>
       {/* Page header */}
-      <div className="flex items-center justify-between mb-10">
-        <h1 className="text-lg font-semibold text-[rgb(var(--color-text-primary))]">Reviews</h1>
-        <button
-          onClick={() => createMutation.mutate()}
-          disabled={createMutation.isPending}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[rgb(var(--color-accent))] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
-        >
-          <PlusIcon size={15} />
-          New Entry
-        </button>
-      </div>
+      <PageHeader
+        title="Reviews"
+        actions={
+          <button
+            onClick={() => createMutation.mutate()}
+            disabled={createMutation.isPending}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[rgb(var(--color-accent))] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
+          >
+            <PlusIcon size={15} />
+            New Entry
+          </button>
+        }
+      />
 
       {isLoading ? null : reviews.length === 0 ? (
         <p className="text-[rgb(var(--color-text-secondary))] text-sm">
@@ -211,6 +215,6 @@ export function Reviews() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

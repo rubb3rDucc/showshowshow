@@ -1,10 +1,12 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Container, Button, Text, Loader, Center } from '@mantine/core';
+import { Button, Loader, Center } from '@mantine/core';
 import { Plus } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { captureApiError } from '../lib/posthog';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PageContainer } from '../components/layout/PageContainer';
 import { LibraryFilters } from '../components/library/LibraryFilters';
 import { LibraryCard } from '../components/library/LibraryCard';
 import { LibraryDetailModal } from '../components/library/LibraryDetailModal';
@@ -227,31 +229,34 @@ export function Library() {
   }
 
   return (
-    <div className="min-h-screen bg-[rgb(var(--color-bg-page))] pb-20">
-      <Container size="xl" className="py-6 md:py-10 lg:py-12 px-4 md:px-6">
+    <>
+      <PageContainer>
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-[rgb(var(--color-text-primary))]">My Library</h1>
-          <div className="flex items-center gap-3">
-            <Button
-              size="sm"
-              variant="subtle"
-              className="text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] font-semibold"
-              onClick={() => setLocation('/stats')}
-            >
-              View Stats
-            </Button>
-            <Button
-              size="sm"
-              className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold shadow-sm hover:shadow-lg"
-              radius="md"
-              leftSection={<Plus size={16} />}
-              onClick={handleNavigateToSearch}
-            >
-              Add Media
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title="Library"
+          subtitle={`${totalItems} ${totalItems === 1 ? 'title' : 'titles'} tracked`}
+          actions={
+            <>
+              <Button
+                size="sm"
+                variant="subtle"
+                className="text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] font-semibold"
+                onClick={() => setLocation('/stats')}
+              >
+                View Stats
+              </Button>
+              <Button
+                size="sm"
+                className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold shadow-sm hover:shadow-lg"
+                radius="md"
+                leftSection={<Plus size={16} />}
+                onClick={handleNavigateToSearch}
+              >
+                Add Media
+              </Button>
+            </>
+          }
+        />
 
         {/* Filters */}
         <LibraryFilters
@@ -264,16 +269,6 @@ export function Library() {
           sortBy={sortBy}
           onSortChange={setSortBy}
         />
-
-        {/* Results Count */}
-        <div className="mb-6">
-          <Text
-            size="sm"
-            className="text-[rgb(var(--color-text-secondary))] font-semibold"
-          >
-            {totalItems} {totalItems === 1 ? 'title' : 'titles'}
-          </Text>
-        </div>
 
         {/* Library Grid - Responsive Poster Grid */}
         {filteredLibrary.length > 0 ? (
@@ -317,7 +312,7 @@ export function Library() {
             </Button>
           </div>
         )}
-      </Container>
+      </PageContainer>
 
       {/* Detail Modal */}
       {selectedItem && (
@@ -331,7 +326,7 @@ export function Library() {
           onRemove={handleRemove}
         />
       )}
-    </div>
+    </>
   );
 }
 

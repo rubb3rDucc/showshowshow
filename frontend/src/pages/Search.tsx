@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
-  Container,
   TextInput,
   Button,
   Text,
@@ -10,11 +9,13 @@ import {
   Stack,
   Pagination,
 } from '@mantine/core';
-import { Search as SearchIcon, ArrowLeft } from 'lucide-react';
+import { Search as SearchIcon } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { searchContent, getContentByTmdbId, getContentByMalId, addToQueue, getQueue } from '../api/content';
 import { getLibrary, addToLibrary } from '../api/library';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PageContainer } from '../components/layout/PageContainer';
 import { SearchResultCard } from '../components/search/SearchResultCard';
 import { ContentDetailModal } from '../components/browse/ContentDetailModal';
 import type { SearchResult, SearchResponse, QueueItem } from '../types/api';
@@ -324,37 +325,14 @@ export function Search() {
   const resultsCount = effectivePaginationMetadata?.total_results || data?.total_results || 0;
 
   return (
-    <div className="min-h-screen bg-[rgb(var(--color-bg-page))] pb-20">
-      <Container size="xl" className="py-4 md:py-8 lg:py-12 px-2 md:px-4">
-        {/* Back Button */}
-        <Button
-          variant="subtle"
-          color="gray"
-          size="sm"
-          leftSection={<ArrowLeft size={16} />}
-          onClick={() => setLocation('/queue')}
-          className="mb-4 md:mb-6 font-light hover:bg-[rgb(var(--color-bg-elevated))]"
-        >
-          Back to Queue
-        </Button>
-
+    <PageContainer>
         {/* Header */}
         <div className="mb-6 md:mb-8">
-          <Text
-            size="xs"
-            c="dimmed"
-            fw={500}
-            className="tracking-tight mb-1"
-          >
-            Search Media
-          </Text>
-          <Text
-            size="3xl"
-            fw={300}
-            className="text-[rgb(var(--color-text-primary))] tracking-tight mb-4"
-          >
-            Find Shows & Movies
-          </Text>
+          <PageHeader
+            title="Search"
+            subtitle="Find shows and movies"
+            backLink={{ label: 'Back to Lineup', onClick: () => setLocation('/queue') }}
+          />
 
           {/* Filters - Simple inline controls */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -546,8 +524,7 @@ export function Search() {
           isAddingToLibrary={addingToLibraryId === `${selectedContent?.data_source || 'tmdb'}-${selectedContent?.mal_id || selectedContent?.tmdb_id}-${selectedContent?.content_type}`}
           isAddingToQueue={addingToQueueId === `${selectedContent?.data_source || 'tmdb'}-${selectedContent?.mal_id || selectedContent?.tmdb_id}-${selectedContent?.content_type}`}
         />
-      </Container>
-    </div>
+    </PageContainer>
   );
 }
 

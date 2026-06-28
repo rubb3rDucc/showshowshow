@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Container, Button, Loader, Center, Text } from '@mantine/core';
+import { Button, Loader, Center, Text } from '@mantine/core';
 import { useLocation } from 'wouter';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { captureApiError } from '../lib/posthog';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PageContainer } from '../components/layout/PageContainer';
 import { NetworkGrid } from '../components/browse/NetworkGrid';
 import { ContentCarousel } from '../components/browse/ContentCarousel';
 import { SectionHeader } from '../components/browse/SectionHeader';
@@ -323,8 +325,8 @@ export function Browse() {
     const sections = organizeSections(networkContent.content || []);
 
     return (
-      <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
-        <Container size="xl" className="py-4 md:py-8 px-2 md:px-4"> 
+      <>
+        <PageContainer>
           {/* Back button and network header */}
           <div className="mb-8">
             <Button
@@ -345,7 +347,7 @@ export function Browse() {
                 />
               )}
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">
+                <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[rgb(var(--color-text-primary))]">
                   {networkContent.network.name}
                 </h1>
                 <p className="text-sm text-[rgb(var(--color-text-secondary))]">
@@ -561,7 +563,7 @@ export function Browse() {
               )}
             </div>
           )}
-        </Container>
+        </PageContainer>
 
         {/* Content detail modal */}
         <ContentDetailModal
@@ -573,23 +575,18 @@ export function Browse() {
           isAddingToLibrary={addToLibraryMutation.isPending}
           isAddingToQueue={addToQueueMutation.isPending}
         />
-      </div>
+      </>
     );
   }
 
   // Show main browse page with networks
   return (
-    <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
-      <Container size="xl" className="py-4 md:py-8 px-2 md:px-4">
+    <PageContainer>
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-2">
-            Discover Content
-          </h1>
-          <p className="text-[rgb(var(--color-text-secondary))] text-sm">
-            Browse shows by network or search for specific content
-          </p>
-        </div>
+        <PageHeader
+          title="Discover Content"
+          subtitle="Browse shows by network or search for specific content"
+        />
 
         {/* Network Grid */}
         <NetworkGrid
@@ -626,8 +623,7 @@ export function Browse() {
 
 
         {/* </div> */}
-      </Container>
-    </div>
+    </PageContainer>
   );
 }
 
