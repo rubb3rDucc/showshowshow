@@ -362,15 +362,19 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
   // already has something in it. New items get added to `occupied` as they're placed.
   const rangeStartUTC = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate(), 0, 0, 0, 0));
   const rangeEndUTC = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate(), 23, 59, 59, 999));
-  // Widen the lower bound a day so a block that started late the prior day and runs into
-  // this window still counts as occupied.
+  // Widen the window by a day on BOTH sides. scheduled_time is a UTC instant, but the
+  // window is in the user's local day: an evening item (e.g. 8 PM EST on the end date) is
+  // stored on the NEXT UTC day, past rangeEndUTC. Without widening the upper bound those
+  // items aren't loaded as occupied and generation stacks on top of them. ±24h safely
+  // covers any timezone offset; non-overlapping extras are harmless.
   const occupiedQueryStart = new Date(rangeStartUTC.getTime() - 24 * 60 * 60 * 1000);
+  const occupiedQueryEnd = new Date(rangeEndUTC.getTime() + 24 * 60 * 60 * 1000);
   const existingItems = await db
     .selectFrom('schedule')
     .select(['scheduled_time', 'duration'])
     .where('user_id', '=', userId)
     .where('scheduled_time', '>=', occupiedQueryStart)
-    .where('scheduled_time', '<=', rangeEndUTC)
+    .where('scheduled_time', '<=', occupiedQueryEnd)
     .execute();
   const occupied: Array<{ start: number; end: number }> = existingItems.map((e) => {
     const start = new Date(e.scheduled_time).getTime();
