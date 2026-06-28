@@ -41,7 +41,10 @@ export function LibraryNext() {
   const [filterStatus, setFilterStatus] = useState<LibraryStatusFilter>('all');
   const [filterType, setFilterType] = useState<LibraryFilterType>('all');
   const [sortBy, setSortBy] = useState<LibrarySortOption>('recently_added');
-  const { size: posterSize, setSize: setPosterSize } = usePosterSize();
+  // Independent, separately-remembered poster size per surface.
+  const wallSize = usePosterSize('wall');
+  const listsSize = usePosterSize('lists');
+  const listDetailSize = usePosterSize('list-detail');
   const [selectedItem, setSelectedItem] = useState<LibraryItemUI | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -327,7 +330,7 @@ export function LibraryNext() {
                   onSortChange={setSortBy}
                 />
                 <span className="w-px h-4 bg-[rgb(var(--color-border-default))]" aria-hidden />
-                <PosterSizeControl value={posterSize} onChange={setPosterSize} />
+                <PosterSizeControl value={wallSize.size} onChange={wallSize.setSize} />
               </>
             ) : undefined
           }
@@ -352,14 +355,14 @@ export function LibraryNext() {
                 setOpenListId(null);
               }}
               onAddTitles={() => setAddToListOpen(true)}
-              size={posterSize}
-              onSizeChange={setPosterSize}
+              size={listDetailSize.size}
+              onSizeChange={listDetailSize.setSize}
             />
           ) : (
             <CollectionsView
               collections={collectionsApi.collections}
-              size={posterSize}
-              onSizeChange={setPosterSize}
+              size={listsSize.size}
+              onSizeChange={listsSize.setSize}
               onOpen={setOpenListId}
               onNew={() => setNewListOpen(true)}
             />
@@ -368,7 +371,7 @@ export function LibraryNext() {
           <>
             {filteredLibrary.length > 0 ? (
               <>
-                <LibraryWall items={filteredLibrary} onOpen={handleViewDetails} size={posterSize} />
+                <LibraryWall items={filteredLibrary} onOpen={handleViewDetails} size={wallSize.size} />
                 <div ref={loadMoreRef} className="mt-6 flex justify-center">
                   {isFetchingNextPage && <Loader size="sm" />}
                 </div>

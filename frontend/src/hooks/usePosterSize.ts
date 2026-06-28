@@ -13,23 +13,28 @@ export const POSTER_GRID: Record<PosterSize, string> = {
   lg: 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-5',
 };
 
-const STORAGE_KEY = 'ssss:library:poster-size';
-
-/** Persisted poster-size preference shared across the Library wall + list grids. */
-export function usePosterSize() {
+/**
+ * Persisted poster-size preference, scoped per surface so each page remembers
+ * its own density independently (e.g. 'wall', 'lists', 'list-detail').
+ */
+export function usePosterSize(scope: string) {
+  const storageKey = `ssss:poster-size:${scope}`;
   const [size, setSizeState] = useState<PosterSize>(() => {
-    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(storageKey) : null;
     return saved === 'sm' || saved === 'md' || saved === 'lg' ? saved : 'md';
   });
 
-  const setSize = useCallback((next: PosterSize) => {
-    setSizeState(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // ignore storage failures
-    }
-  }, []);
+  const setSize = useCallback(
+    (next: PosterSize) => {
+      setSizeState(next);
+      try {
+        localStorage.setItem(storageKey, next);
+      } catch {
+        // ignore storage failures
+      }
+    },
+    [storageKey]
+  );
 
   return { size, setSize };
 }
