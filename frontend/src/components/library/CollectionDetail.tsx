@@ -1,5 +1,7 @@
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
-import { Switch, Button } from '@mantine/core';
+import { useState } from 'react';
+import { ArrowLeft, Plus, Trash2, MoreHorizontal, Pencil, AlignLeft, ListOrdered, Check, Share2, ClipboardList } from 'lucide-react';
+import { Menu, ActionIcon, Button } from '@mantine/core';
+import { toast } from 'sonner';
 import {
   DndContext,
   closestCenter,
@@ -20,6 +22,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Collection } from '../../hooks/useCollections';
 import type { LibraryItemUI } from '../../types/library.types';
 import { LibraryPosterCard } from './LibraryPosterCard';
+import { ShareListModal } from './ShareListModal';
 
 interface CollectionDetailProps {
   collection: Collection;
@@ -79,6 +82,7 @@ export function CollectionDetail({
   onDelete,
   onAddTitles,
 }: CollectionDetailProps) {
+  const [shareOpen, setShareOpen] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -110,6 +114,23 @@ export function CollectionDetail({
     }
   };
 
+  // Copy the list as a plain-text, paste-anywhere version (titles only).
+  const handleCopyText = async () => {
+    const lines = [collection.name];
+    if (collection.description) lines.push(collection.description);
+    lines.push('');
+    items.forEach((it, i) => {
+      lines.push(`${collection.ranked ? `${i + 1}. ` : '• '}${it.content.title}`);
+    });
+    lines.push('', 'made on ShowShowShow · showshowshow.app');
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      toast.success('List copied as text');
+    } catch {
+      toast.error('Could not copy text');
+    }
+  };
+
   return (
     <div>
       {/* Sub-header */}
@@ -124,49 +145,20 @@ export function CollectionDetail({
 
       <div className="flex items-start justify-between gap-4 mb-6">
         <div className="min-w-0">
-          <button
-            type="button"
-            onClick={handleRename}
-            title="Rename"
-            className="text-xl md:text-2xl font-semibold tracking-tight text-[rgb(var(--color-text-primary))] hover:opacity-80 transition-opacity text-left"
-          >
+          <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-[rgb(var(--color-text-primary))]">
             {collection.name}
-          </button>
+          </h2>
           {collection.description && (
             <p className="text-sm text-[rgb(var(--color-text-secondary))] mt-1 max-w-2xl">
               {collection.description}
             </p>
           )}
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-sm text-[rgb(var(--color-text-secondary))]">
-              {items.length} {items.length === 1 ? 'title' : 'titles'}
-            </p>
-            <span className="text-[rgb(var(--color-text-tertiary))]">·</span>
-            <button
-              type="button"
-              onClick={handleEditDescription}
-              className="text-sm text-[rgb(var(--color-text-tertiary))] hover:text-[rgb(var(--color-text-secondary))] transition-colors"
-            >
-              {collection.description ? 'Edit description' : 'Add description'}
-            </button>
-          </div>
+          <p className="text-sm text-[rgb(var(--color-text-secondary))] mt-1">
+            {items.length} {items.length === 1 ? 'title' : 'titles'}
+            {collection.ranked ? ' · ranked' : ''}
+          </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <Switch
-            label="Ranked"
-            checked={collection.ranked}
-            onChange={(e) => onToggleRanked(e.currentTarget.checked)}
-            size="sm"
-          />
-          <Button
-            size="sm"
-            variant="light"
-            color="gray"
-            leftSection={<Trash2 size={15} />}
-            onClick={handleDelete}
-          >
-            Delete
-          </Button>
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             size="sm"
             className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80"
@@ -175,6 +167,38 @@ export function CollectionDetail({
           >
             Add titles
           </Button>
+          <Menu shadow="sm" width={200} position="bottom-end">
+            <Menu.Target>
+              <ActionIcon variant="subtle" color="gray" size="lg" aria-label="List options">
+                <MoreHorizontal size={18} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item leftSection={<Pencil size={15} />} onClick={handleRename}>
+                Rename
+              </Menu.Item>
+              <Menu.Item leftSection={<AlignLeft size={15} />} onClick={handleEditDescription}>
+                {collection.description ? 'Edit description' : 'Add description'}
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<ListOrdered size={15} />}
+                rightSection={collection.ranked ? <Check size={14} /> : null}
+                onClick={() => onToggleRanked(!collection.ranked)}
+              >
+                Ranked
+              </Menu.Item>
+              <Menu.Item leftSection={<Share2 size={15} />} onClick={() => setShareOpen(true)} disabled={items.length === 0}>
+                Share as image…
+              </Menu.Item>
+              <Menu.Item leftSection={<ClipboardList size={15} />} onClick={handleCopyText} disabled={items.length === 0}>
+                Copy as text
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item color="red" leftSection={<Trash2 size={15} />} onClick={handleDelete}>
+                Delete list
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </div>
       </div>
 
@@ -213,6 +237,13 @@ export function CollectionDetail({
           ))}
         </div>
       )}
+
+      <ShareListModal
+        opened={shareOpen}
+        onClose={() => setShareOpen(false)}
+        collection={collection}
+        items={items}
+      />
     </div>
   );
 }
