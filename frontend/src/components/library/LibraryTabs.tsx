@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type LibraryTab = 'watchlist' | 'journal' | 'lists';
+export type LibraryTab = 'library' | 'lists';
 
 interface LibraryTabsProps {
   value: LibraryTab;
@@ -11,12 +11,11 @@ interface LibraryTabsProps {
 }
 
 const TABS: { id: LibraryTab; label: string }[] = [
-  { id: 'watchlist', label: 'Watchlist' },
-  { id: 'journal', label: 'Journal' },
+  { id: 'library', label: 'Library' },
   { id: 'lists', label: 'Lists' },
 ];
 
-/** Quiet underline-style segmented control: Watchlist / Journal / Lists. */
+/** Quiet underline-style segmented control: Library / Lists. */
 export function LibraryTabs({ value, onChange, counts, right }: LibraryTabsProps) {
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap border-b border-[rgb(var(--color-border-subtle))] mb-6">

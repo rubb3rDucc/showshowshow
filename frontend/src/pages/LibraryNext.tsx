@@ -8,7 +8,7 @@ import { captureApiError } from '../lib/posthog';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PageContainer } from '../components/layout/PageContainer';
 import { LibraryDetailModal } from '../components/library/LibraryDetailModal';
-import { LibraryFilterControls } from '../components/library/LibraryFilterControls';
+import { LibraryFilterControls, type LibraryStatusFilter } from '../components/library/LibraryFilterControls';
 import { LibraryWall } from '../components/library/LibraryWall';
 import { LibraryTabs, type LibraryTab } from '../components/library/LibraryTabs';
 import { CollectionsView } from '../components/library/CollectionsView';
@@ -23,13 +23,7 @@ import type {
   LibraryItemUI,
   LibraryFilterType,
   LibrarySortOption,
-  LibraryStatus,
 } from '../types/library.types';
-
-const TAB_STATUSES: Record<'watchlist' | 'journal', LibraryStatus[]> = {
-  watchlist: ['watching', 'plan_to_watch'],
-  journal: ['completed', 'dropped'],
-};
 
 /**
  * PROTOTYPE of the redesigned Library (Apple album-grid + Collections), served at
@@ -40,8 +34,9 @@ export function LibraryNext() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  const [tab, setTab] = useState<LibraryTab>('watchlist');
+  const [tab, setTab] = useState<LibraryTab>('library');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<LibraryStatusFilter>('all');
   const [filterType, setFilterType] = useState<LibraryFilterType>('all');
   const [sortBy, setSortBy] = useState<LibrarySortOption>('recently_added');
   const [selectedItem, setSelectedItem] = useState<LibraryItemUI | null>(null);
@@ -187,12 +182,11 @@ export function LibraryNext() {
     },
   });
 
-  // Tab-scoped, searched, sorted items for the grid/list views.
+  // Searched, status/type-filtered, sorted items for the single library wall.
   const filteredLibrary = useMemo(() => {
-    const statuses = tab === 'lists' ? [] : TAB_STATUSES[tab];
     const filtered = libraryItemsUI.filter((item) => {
       const matchesSearch = item.content.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statuses.includes(item.status);
+      const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
       const matchesType = filterType === 'all' || item.content.contentType === filterType;
       return matchesSearch && matchesStatus && matchesType;
     });
@@ -213,15 +207,14 @@ export function LibraryNext() {
           return b.addedAt.getTime() - a.addedAt.getTime();
       }
     });
-  }, [libraryItemsUI, searchQuery, filterType, sortBy, tab]);
+  }, [libraryItemsUI, searchQuery, filterStatus, filterType, sortBy]);
 
   const counts = useMemo(
     () => ({
-      watchlist: libraryItemsUI.filter((i) => i.status === 'watching' || i.status === 'plan_to_watch').length,
-      journal: libraryItemsUI.filter((i) => i.status === 'completed' || i.status === 'dropped').length,
+      library: totalItems,
       lists: collectionsApi.collections.length,
     }),
-    [libraryItemsUI, collectionsApi.collections]
+    [totalItems, collectionsApi.collections]
   );
 
   // Handlers
@@ -318,10 +311,12 @@ export function LibraryNext() {
           }}
           counts={counts}
           right={
-            tab !== 'lists' ? (
+            tab === 'library' ? (
               <LibraryFilterControls
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                filterStatus={filterStatus}
+                onFilterStatusChange={setFilterStatus}
                 filterType={filterType}
                 onFilterTypeChange={setFilterType}
                 sortBy={sortBy}
@@ -370,14 +365,14 @@ export function LibraryNext() {
             ) : (
               <div className="bg-[rgb(var(--color-bg-surface))] rounded-lg p-12 text-center border border-[rgb(var(--color-border-default))]">
                 <h3 className="text-base font-semibold text-[rgb(var(--color-text-primary))] mb-2">
-                  {tab === 'watchlist' ? 'Nothing on your watchlist' : 'Nothing finished yet'}
+                  {searchQuery || filterStatus !== 'all' || filterType !== 'all'
+                    ? 'No matching titles'
+                    : 'Your library is empty'}
                 </h3>
                 <p className="text-sm text-[rgb(var(--color-text-secondary))] mb-6">
-                  {searchQuery || filterType !== 'all'
+                  {searchQuery || filterStatus !== 'all' || filterType !== 'all'
                     ? 'Try adjusting your search or filters'
-                    : tab === 'watchlist'
-                      ? 'Add shows and movies to start tracking'
-                      : 'Finished and dropped titles will show up here'}
+                    : 'Add shows and movies to start tracking'}
                 </p>
                 <Button
                   className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold"

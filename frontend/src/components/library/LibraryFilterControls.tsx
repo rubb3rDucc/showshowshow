@@ -1,16 +1,28 @@
 import { useState, useRef, useEffect } from 'react';
 import { Menu } from '@mantine/core';
 import { Search, X, ChevronDown } from 'lucide-react';
-import type { LibraryFilterType, LibrarySortOption } from '../../types/library.types';
+import type { LibraryFilterType, LibrarySortOption, LibraryStatus } from '../../types/library.types';
+
+export type LibraryStatusFilter = LibraryStatus | 'all';
 
 interface LibraryFilterControlsProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
+  filterStatus: LibraryStatusFilter;
+  onFilterStatusChange: (value: LibraryStatusFilter) => void;
   filterType: LibraryFilterType;
   onFilterTypeChange: (value: LibraryFilterType) => void;
   sortBy: LibrarySortOption;
   onSortChange: (value: LibrarySortOption) => void;
 }
+
+const STATUS_LABELS: Record<LibraryStatusFilter, string> = {
+  all: 'All',
+  watching: 'Watching',
+  plan_to_watch: 'Plan to watch',
+  completed: 'Completed',
+  dropped: 'Dropped',
+};
 
 const TYPE_LABELS: Record<LibraryFilterType, string> = {
   all: 'All types',
@@ -37,6 +49,8 @@ const triggerClass =
 export function LibraryFilterControls({
   searchQuery,
   onSearchChange,
+  filterStatus,
+  onFilterStatusChange,
   filterType,
   onFilterTypeChange,
   sortBy,
@@ -90,6 +104,21 @@ export function LibraryFilterControls({
           <Search size={16} />
         </button>
       )}
+
+      <Menu shadow="sm" width={170} position="bottom-end">
+        <Menu.Target>
+          <button type="button" className={triggerClass}>
+            {STATUS_LABELS[filterStatus]} <ChevronDown size={13} />
+          </button>
+        </Menu.Target>
+        <Menu.Dropdown>
+          {(Object.keys(STATUS_LABELS) as LibraryStatusFilter[]).map((s) => (
+            <Menu.Item key={s} onClick={() => onFilterStatusChange(s)} fw={filterStatus === s ? 600 : 400}>
+              {STATUS_LABELS[s]}
+            </Menu.Item>
+          ))}
+        </Menu.Dropdown>
+      </Menu>
 
       <Menu shadow="sm" width={160} position="bottom-end">
         <Menu.Target>
