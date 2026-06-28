@@ -1,15 +1,19 @@
 import { Plus } from 'lucide-react';
 import type { Collection } from '../../hooks/useCollections';
+import type { PosterSize } from '../../hooks/usePosterSize';
 import { CollectionListCard } from './CollectionListCard';
+import { PosterSizeControl } from './PosterSizeControl';
 
 interface CollectionsViewProps {
   collections: Collection[];
+  size: PosterSize;
+  onSizeChange: (size: PosterSize) => void;
   onOpen: (id: string) => void;
   onNew: () => void;
 }
 
-/** Lists-tab overview: a single column of Letterboxd-style list rows. */
-export function CollectionsView({ collections, onOpen, onNew }: CollectionsViewProps) {
+/** Lists-tab overview: a responsive grid of Letterboxd-style list cards. */
+export function CollectionsView({ collections, size, onSizeChange, onOpen, onNew }: CollectionsViewProps) {
   return (
     <div>
       {collections.length === 0 ? (
@@ -25,19 +29,25 @@ export function CollectionsView({ collections, onOpen, onNew }: CollectionsViewP
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
-          {collections.map((c) => (
-            <CollectionListCard
-              key={c.id}
-              name={c.name}
-              description={c.description}
-              count={c.items.length}
-              ranked={c.ranked}
-              posters={c.items.map((i) => i.posterUrl)}
-              onClick={() => onOpen(c.id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="flex justify-end mb-4">
+            <PosterSizeControl value={size} onChange={onSizeChange} />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
+            {collections.map((c) => (
+              <CollectionListCard
+                key={c.id}
+                name={c.name}
+                description={c.description}
+                count={c.items.length}
+                ranked={c.ranked}
+                posters={c.items.map((i) => i.posterUrl)}
+                size={size}
+                onClick={() => onOpen(c.id)}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

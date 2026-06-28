@@ -358,6 +358,8 @@ export function LibraryNext() {
           ) : (
             <CollectionsView
               collections={collectionsApi.collections}
+              size={posterSize}
+              onSizeChange={setPosterSize}
               onOpen={setOpenListId}
               onNew={() => setNewListOpen(true)}
             />
