@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Container, Button, Collapse, Select, TextInput } from '@mantine/core';
+import { useLocalStorage } from '@mantine/hooks';
+import { Container, Button, Collapse, Select, TextInput, Menu, Modal } from '@mantine/core';
 import {
   CalendarPlus,
   SlidersHorizontal,
@@ -15,7 +16,8 @@ import { ScheduleXProto } from '../proto/ScheduleXProto';
 import { RealLineupDrawer } from '../proto/RealLineupDrawer';
 import type { EpisodeFilter } from '../proto/LineupEpisodePicker';
 import { getSchedule, deleteScheduleItem, generateScheduleFromQueue, clearScheduleForDate } from '../api/schedule';
-import type { GenerateScheduleRequest } from '../types/api';
+import { getTimeOfDayLabel } from '../utils/format';
+import type { GenerateScheduleRequest, ScheduleItem } from '../types/api';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const todayStr = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, local
@@ -46,6 +48,18 @@ const startOfWeek = (ymd: string) => {
   const [y, m, d] = ymd.split('-').map(Number);
   const dow = new Date(y, m - 1, d).getDay(); // 0=Sun..6=Sat
   return addDays(ymd, -((dow + 6) % 7)); // days back to Monday
+};
+// Inclusive list of YYYY-MM-DD days from `from` to `to` (lexicographic compare is safe for ISO dates).
+const daysBetween = (from: string, to: string): string[] => {
+  if (!from || !to || from > to) return [];
+  const out: string[] = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) out.push(d);
+  return out;
+};
+// "2026-06-28" -> "Sat Jun 28" for compact menu rows.
+const formatShortDate = (ymd: string) => {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 };
 
 const ACCENT = '#646cff';
@@ -97,16 +111,26 @@ const TIME_OPTS = Array.from({ length: 48 }, (_, i) => ({
  */
 export function ProtoSchedule() {
   const [customizeOpen, setCustomizeOpen] = useState(false);
-  const [timeMode, setTimeMode] = useState<'preset' | 'custom'>('preset');
-  const [startPreset, setStartPreset] = useState('prime');
-  const [durationMin, setDurationMin] = useState('180');
-  const [customStart, setCustomStart] = useState('18:00');
-  const [customEnd, setCustomEnd] = useState('23:00');
-  const [rotation, setRotation] = useState('turns');
-  const [dateRange, setDateRange] = useState('tonight');
+  // Auto-scheduler settings persist across navigation (localStorage) so a user's choices
+  // — time window, rotation, range, and per-show season/episode picks — survive leaving the
+  // page. (Interim store; migrates to backend user_preferences when that lands.)
+  const [timeMode, setTimeMode] = useLocalStorage<'preset' | 'custom'>({ key: 'lineup.timeMode', defaultValue: 'preset' });
+  const [startPreset, setStartPreset] = useLocalStorage({ key: 'lineup.startPreset', defaultValue: 'prime' });
+  const [durationMin, setDurationMin] = useLocalStorage({ key: 'lineup.durationMin', defaultValue: '180' });
+  const [customStart, setCustomStart] = useLocalStorage({ key: 'lineup.customStart', defaultValue: '18:00' });
+  const [customEnd, setCustomEnd] = useLocalStorage({ key: 'lineup.customEnd', defaultValue: '23:00' });
+  const [rotation, setRotation] = useLocalStorage({ key: 'lineup.rotation', defaultValue: 'turns' });
+  const [dateRange, setDateRange] = useLocalStorage({ key: 'lineup.dateRange', defaultValue: 'tonight' });
   const [date, setDate] = useState(todayStr());
-  // Per-show season/episode selection (session-scoped) -> generator episode_filters.
-  const [episodeFilters, setEpisodeFilters] = useState<Record<string, EpisodeFilter>>({});
+  // Custom-range clear dialog (pick any from/to span to wipe).
+  const [clearRangeOpen, setClearRangeOpen] = useState(false);
+  const [clearFrom, setClearFrom] = useState(todayStr());
+  const [clearTo, setClearTo] = useState(todayStr());
+  // Per-show season/episode selection persists too (same store) -> generator episode_filters.
+  const [episodeFilters, setEpisodeFilters] = useLocalStorage<Record<string, EpisodeFilter>>({
+    key: 'lineup.episodeFilters',
+    defaultValue: {},
+  });
 
   const onFilterChange = (contentId: string, filter: EpisodeFilter | undefined) => {
     setEpisodeFilters((prev) => {
@@ -139,11 +163,23 @@ export function ProtoSchedule() {
   // Generate/clear can touch several days, so refresh the whole schedule cache.
   const invalidateDay = () => queryClient.invalidateQueries({ queryKey: ['schedule'] });
 
-  // Remove a placed item: persist, then refetch so the timeline reflects it.
+  // Remove a placed item OPTIMISTICALLY: drop it from the cache immediately (no refetch),
+  // so the timeline just removes that one block instead of reloading the whole schedule
+  // (the refetch was the "refresh"/flicker on delete). Roll back if the server call fails.
   const deleteMutation = useMutation({
     mutationFn: deleteScheduleItem,
-    onSuccess: invalidateDay,
-    onError: () => toast.error('Could not remove that item'),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['schedule'] });
+      const prev = queryClient.getQueriesData<ScheduleItem[]>({ queryKey: ['schedule'] });
+      queryClient.setQueriesData<ScheduleItem[]>({ queryKey: ['schedule'] }, (old) =>
+        old ? old.filter((it) => it.id !== id) : old
+      );
+      return { prev };
+    },
+    onError: (_e, _id, ctx) => {
+      ctx?.prev?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      toast.error('Could not remove that item');
+    },
   });
 
   // Fill the timeline from the user's backend queue for the active date(s).
@@ -152,18 +188,23 @@ export function ProtoSchedule() {
     onSuccess: (res) => {
       invalidateDay();
       const scheduled = res.metadata?.scheduled ?? res.schedule?.length ?? 0;
+      if (scheduled === 0) {
+        // Nothing placed — show why (times already full, or no content) instead of "Scheduled 0".
+        toast.message(res.message ?? 'Nothing to schedule.');
+        return;
+      }
       toast.success(`Scheduled ${scheduled} item${scheduled === 1 ? '' : 's'}`);
       if (res.metadata?.skipped) toast.message(`${res.metadata.skipped} skipped (conflicts)`);
     },
     onError: () => toast.error('Could not generate a schedule'),
   });
 
-  // Wipe every day the timeline covers so generate can run fresh (generate appends).
+  // Clear a specific set of days (one day, the whole range, or a custom span).
   const clearMutation = useMutation({
-    mutationFn: () => Promise.all(dates.map((d) => clearScheduleForDate(d))),
-    onSuccess: () => {
+    mutationFn: (daysToClear: string[]) => Promise.all(daysToClear.map((d) => clearScheduleForDate(d))),
+    onSuccess: (_res, daysToClear) => {
       invalidateDay();
-      toast.success(rangeDays > 1 ? 'Cleared range' : 'Cleared');
+      toast.success(daysToClear.length > 1 ? `Cleared ${daysToClear.length} days` : 'Cleared');
     },
     onError: () => toast.error('Could not clear'),
   });
@@ -201,17 +242,35 @@ export function ProtoSchedule() {
               Scheduling for
             </p>
             <h1 className="text-2xl font-bold tracking-tight">
-              {isToday ? 'Tonight · ' : ''}
+              {isToday ? `${getTimeOfDayLabel()} · ` : ''}
               {formatLongDate(date)}
             </h1>
           </div>
-          <TextInput
-            size="sm"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.currentTarget.value)}
-            aria-label="Schedule date"
-          />
+          {/* One date control for the whole page: which day + how many days. Both drive
+              the heading, the fetched range, and the calendar together. */}
+          <div className="flex items-end gap-2">
+            <TextInput
+              size="sm"
+              type="date"
+              label="Date"
+              value={date}
+              // Ignore empty values: spinning a native date input past a month's last
+              // day (e.g. Jun 30 -> 31) briefly emits "", which would crash the calendar
+              // ("can't parse empty string as date-time"). Keep the previous date instead.
+              onChange={(e) => { const v = e.currentTarget.value; if (v) setDate(v); }}
+              aria-label="Schedule date"
+            />
+            <Select
+              size="sm"
+              label="Show"
+              data={DATE_RANGES}
+              value={dateRange}
+              onChange={(v) => setDateRange(v || 'tonight')}
+              allowDeselect={false}
+              aria-label="How many days to schedule"
+              className="w-36"
+            />
+          </div>
         </div>
 
         {/* ===== Concierge hero: one-tap auto-schedule + progressive disclosure ===== */}
@@ -340,17 +399,6 @@ export function ProtoSchedule() {
                   ))}
                 </div>
               </Field>
-
-              <Field label="Date range">
-                <Select
-                  size="sm"
-                  data={DATE_RANGES}
-                  value={dateRange}
-                  onChange={(v) => setDateRange(v || 'tonight')}
-                  allowDeselect={false}
-                  className="sm:max-w-xs"
-                />
-              </Field>
             </div>
           </Collapse>
         </section>
@@ -362,13 +410,45 @@ export function ProtoSchedule() {
               Schedule
             </h3>
             {itemCount > 0 && (
-              <button
-                onClick={() => clearMutation.mutate()}
-                disabled={clearMutation.isPending}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-[rgb(var(--color-text-tertiary))] hover:text-red-500 transition-colors disabled:opacity-50"
-              >
-                <Trash2 size={13} /> {rangeDays > 1 ? 'Clear range' : 'Clear day'}
-              </button>
+              <Menu position="bottom-end" shadow="md" width={220}>
+                <Menu.Target>
+                  <button
+                    disabled={clearMutation.isPending}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[rgb(var(--color-text-tertiary))] hover:text-red-500 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 size={13} /> Clear
+                    <ChevronDown size={13} />
+                  </button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  {/* Per-day rows for the days the timeline currently covers */}
+                  {rangeDays > 1 && (
+                    <>
+                      <Menu.Label>Clear a day</Menu.Label>
+                      {dates.map((d) => (
+                        <Menu.Item key={d} leftSection={<Trash2 size={13} />} onClick={() => clearMutation.mutate([d])}>
+                          {formatShortDate(d)}
+                        </Menu.Item>
+                      ))}
+                      <Menu.Divider />
+                      <Menu.Item color="red" leftSection={<Trash2 size={13} />} onClick={() => clearMutation.mutate(dates)}>
+                        Clear whole range
+                      </Menu.Item>
+                    </>
+                  )}
+                  {rangeDays === 1 && (
+                    <Menu.Item color="red" leftSection={<Trash2 size={13} />} onClick={() => clearMutation.mutate([date])}>
+                      Clear this day
+                    </Menu.Item>
+                  )}
+                  <Menu.Item
+                    leftSection={<CalendarPlus size={13} />}
+                    onClick={() => { setClearFrom(rangeStart); setClearTo(addDays(rangeStart, rangeDays - 1)); setClearRangeOpen(true); }}
+                  >
+                    Custom range…
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
             )}
           </div>
 
@@ -380,11 +460,14 @@ export function ProtoSchedule() {
                 : `${itemCount} scheduled item${itemCount === 1 ? '' : 's'} ${view === 'week' ? `across ${rangeDays} days from ${rangeStart}` : `on ${date}`}.`}
           </p>
 
+          {/* key excludes itemCount on purpose: adding/removing an item updates events
+              in place (see ScheduleXProto) instead of remounting the whole calendar. */}
           <ScheduleXProto
-            key={`${view}-${date}-${itemCount}`}
+            key={`${view}-${date}`}
             items={items}
             selectedDate={date}
             view={view}
+            windowStart={`${pad(Math.floor(startMin / 60) % 24)}:${pad(startMin % 60)}`}
             onRemove={(id) => deleteMutation.mutate(id)}
           />
         </section>
@@ -392,6 +475,30 @@ export function ProtoSchedule() {
         {/* ===== The lineup / content drawer ===== */}
         <RealLineupDrawer episodeFilters={episodeFilters} onFilterChange={onFilterChange} />
       </Container>
+
+      {/* Custom-range clear dialog */}
+      <Modal opened={clearRangeOpen} onClose={() => setClearRangeOpen(false)} title="Clear a date range" centered size="sm">
+        <div className="flex items-end gap-2">
+          <TextInput size="sm" type="date" label="From" value={clearFrom} onChange={(e) => { const v = e.currentTarget.value; if (v) setClearFrom(v); }} className="flex-1" />
+          <TextInput size="sm" type="date" label="To" value={clearTo} onChange={(e) => { const v = e.currentTarget.value; if (v) setClearTo(v); }} className="flex-1" />
+        </div>
+        <p className="text-xs text-[rgb(var(--color-text-tertiary))] mt-2">
+          {daysBetween(clearFrom, clearTo).length > 0
+            ? `Clears ${daysBetween(clearFrom, clearTo).length} day${daysBetween(clearFrom, clearTo).length === 1 ? '' : 's'}.`
+            : 'Pick a valid range (From on or before To).'}
+        </p>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button size="sm" variant="default" onClick={() => setClearRangeOpen(false)}>Cancel</Button>
+          <Button
+            size="sm"
+            color="red"
+            disabled={daysBetween(clearFrom, clearTo).length === 0 || clearMutation.isPending}
+            onClick={() => { clearMutation.mutate(daysBetween(clearFrom, clearTo)); setClearRangeOpen(false); }}
+          >
+            Clear range
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

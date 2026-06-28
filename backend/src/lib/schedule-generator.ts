@@ -357,6 +357,33 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     timezone_offset: string;
   }> = [];
 
+  // Fill only empty gaps: load the user's already-scheduled items overlapping this window
+  // and treat their time spans as occupied, so generation never double-books a slot that
+  // already has something in it. New items get added to `occupied` as they're placed.
+  const rangeStartUTC = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate(), 0, 0, 0, 0));
+  const rangeEndUTC = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate(), 23, 59, 59, 999));
+  // Widen the window by a day on BOTH sides. scheduled_time is a UTC instant, but the
+  // window is in the user's local day: an evening item (e.g. 8 PM EST on the end date) is
+  // stored on the NEXT UTC day, past rangeEndUTC. Without widening the upper bound those
+  // items aren't loaded as occupied and generation stacks on top of them. ±24h safely
+  // covers any timezone offset; non-overlapping extras are harmless.
+  const occupiedQueryStart = new Date(rangeStartUTC.getTime() - 24 * 60 * 60 * 1000);
+  const occupiedQueryEnd = new Date(rangeEndUTC.getTime() + 24 * 60 * 60 * 1000);
+  const existingItems = await db
+    .selectFrom('schedule')
+    .select(['scheduled_time', 'duration'])
+    .where('user_id', '=', userId)
+    .where('scheduled_time', '>=', occupiedQueryStart)
+    .where('scheduled_time', '<=', occupiedQueryEnd)
+    .execute();
+  const occupied: Array<{ start: number; end: number }> = existingItems.map((e) => {
+    const start = new Date(e.scheduled_time).getTime();
+    return { start, end: start + (e.duration ?? 0) * 60 * 1000 };
+  });
+  // True if [s, e) overlaps any occupied interval (existing item or one placed this run).
+  const overlapsOccupied = (s: Date, e: Date) =>
+    occupied.some((o) => s.getTime() < o.end && e.getTime() > o.start);
+
   const timeSlotUsage = new Map<string, number>(); // Track usage per time slot
   let showIndex = 0;
   const episodeIndexes = new Map<string, number>(); // Track episode index per show
@@ -542,6 +569,11 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
           continue; // Movie doesn't fit
         }
 
+        // Gap-fill: never overlap an existing or already-placed item.
+        if (overlapsOccupied(scheduledTime, endTime)) {
+          continue;
+        }
+
         // Add movie to schedule
         schedule.push({
           content_id: movie.content_id,
@@ -554,6 +586,7 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
         // Update last scheduled end time to prevent overlaps
         lastScheduledEndTime = endTime;
+        occupied.push({ start: scheduledTime.getTime(), end: endTime.getTime() });
 
         // Remove movie from available list (only schedule once)
         moviesByShow.delete(currentContentId);
@@ -584,6 +617,11 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
         continue; // Episode doesn't fit
       }
 
+      // Gap-fill: never overlap an existing or already-placed item.
+      if (overlapsOccupied(scheduledTime, endTime)) {
+        continue;
+      }
+
       // Add to schedule
       schedule.push({
         content_id: episode.content_id,
@@ -596,6 +634,7 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
       // Update last scheduled end time to prevent overlaps
       lastScheduledEndTime = endTime;
+      occupied.push({ start: scheduledTime.getTime(), end: endTime.getTime() });
 
       // Update indexes
       episodeIndexes.set(currentContentId, episodeIndex + 1);
