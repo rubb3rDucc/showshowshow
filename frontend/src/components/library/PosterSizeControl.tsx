@@ -26,7 +26,7 @@ export function PosterSizeControl({ value, onChange }: PosterSizeControlProps) {
             aria-label={label}
             aria-pressed={active}
             onClick={() => onChange(id)}
-            className={`p-1 rounded transition-colors ${
+            className={`inline-flex items-center justify-center rounded transition-colors min-h-[44px] min-w-[44px] p-2 sm:min-h-0 sm:min-w-0 sm:p-1 ${
               active
                 ? 'text-[rgb(var(--color-accent))]'
                 : 'text-[rgb(var(--color-text-tertiary))] hover:text-[rgb(var(--color-text-primary))]'

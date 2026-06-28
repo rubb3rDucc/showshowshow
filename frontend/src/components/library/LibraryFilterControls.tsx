@@ -42,7 +42,7 @@ const SORT_OPTIONS: { value: LibrarySortOption; label: string }[] = [
 ];
 
 const triggerClass =
-  'inline-flex items-center gap-1 whitespace-nowrap text-[rgb(var(--color-text-tertiary))] hover:text-[rgb(var(--color-text-primary))] transition-colors';
+  'inline-flex items-center gap-1 whitespace-nowrap min-h-[44px] py-2 sm:min-h-0 sm:py-0 text-[rgb(var(--color-text-tertiary))] hover:text-[rgb(var(--color-text-primary))] transition-colors';
 
 /**
  * Quiet, borderless filter controls for the tabs row: an expandable search icon
@@ -71,7 +71,7 @@ export function LibraryFilterControls({
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
       {open ? (
-        <div className="flex items-center gap-1.5 text-[rgb(var(--color-text-secondary))]">
+        <div className="flex items-center gap-1.5 min-h-[44px] sm:min-h-0 text-[rgb(var(--color-text-secondary))]">
           <Search size={15} />
           <input
             ref={inputRef}
@@ -102,7 +102,7 @@ export function LibraryFilterControls({
           type="button"
           aria-label="Search"
           onClick={() => setOpen(true)}
-          className="text-[rgb(var(--color-text-tertiary))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
+          className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 text-[rgb(var(--color-text-tertiary))] hover:text-[rgb(var(--color-text-primary))] transition-colors"
         >
           <Search size={16} />
         </button>
