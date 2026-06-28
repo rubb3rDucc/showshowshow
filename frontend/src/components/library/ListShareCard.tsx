@@ -30,6 +30,13 @@ interface ListShareCardProps extends ShareCardOptions {
   limit?: number;
   /** Dominant poster color for the 'tinted' theme. */
   tint?: string;
+  /**
+   * Maps a remote poster URL to a pre-fetched data URL. Inlining the images
+   * keeps html-to-image from tainting the canvas on iOS Safari (where the
+   * exported PNG would otherwise drop every poster). Falls back to the remote
+   * URL when a poster hasn't been resolved.
+   */
+  posters?: Record<string, string>;
 }
 
 // Fixed width for a consistent export resolution; height GROWS with the items
@@ -54,11 +61,12 @@ function hexA(hex: string, a: number): string {
  * Posters use crossOrigin so the html-to-image export isn't tainted.
  */
 export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(function ListShareCard(
-  { name, description, ranked, curator, items, format, theme, accent, background, showDescription, showRanks, showBranding, showCount, limit, tint },
+  { name, description, ranked, curator, items, format, theme, accent, background, showDescription, showRanks, showBranding, showCount, limit, tint, posters },
   ref
 ) {
   const c = CONF[format];
   const shown = limit && limit < items.length ? items.slice(0, limit) : items;
+  const src = (url: string) => posters?.[url] ?? url;
   const backdrop = items.find((i) => i.posterUrl)?.posterUrl ?? null;
 
   const usePoster = background === 'poster' && !!backdrop;
@@ -105,7 +113,7 @@ export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(func
             style={{
               position: 'absolute',
               inset: -80,
-              backgroundImage: `url(${backdrop})`,
+              backgroundImage: `url(${src(backdrop)})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               filter: 'blur(60px) brightness(0.55)',
@@ -174,7 +182,7 @@ export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(func
             >
               {item.posterUrl && (
                 <img
-                  src={item.posterUrl}
+                  src={src(item.posterUrl)}
                   crossOrigin="anonymous"
                   alt=""
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}

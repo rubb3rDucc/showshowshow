@@ -120,7 +120,10 @@ export function Library() {
           fetchNextPage();
         }
       },
-      { threshold: 0.1 }
+      // Prefetch the next page ~600px before the sentinel reaches the viewport
+      // bottom, so the grid keeps filling on fast mobile scrolls instead of
+      // stalling once the user hits the very end.
+      { rootMargin: '0px 0px 600px 0px', threshold: 0 }
     );
     if (loadMoreRef.current) observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
