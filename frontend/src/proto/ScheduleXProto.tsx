@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import { Temporal } from 'temporal-polyfill';
 import { useNextCalendarApp, ScheduleXCalendar } from '@schedule-x/react';
 import { createViewDay, createViewWeek } from '@schedule-x/calendar';
@@ -72,7 +72,8 @@ function TimeGridEvent({ calendarEvent }: { calendarEvent: SxEvent }) {
         onClick={(e) => { stop(e); onRemove(calendarEvent.id); }}
         title="Remove"
         aria-label="Remove"
-        className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+        // touch-manipulation: stop iOS double-tap-to-zoom firing when tapping remove on mobile.
+        className="absolute right-0.5 top-0.5 flex h-6 w-6 touch-manipulation items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
       >
         <X size={14} />
       </button>
@@ -99,21 +100,22 @@ export function ScheduleXProto({
   /** 24h "HH:MM" the schedule window opens at — where the timeline scrolls when there are no events yet. */
   windowStart?: string;
 }) {
+  // Seeds the calendar on first render; afterwards live updates flow through the effect
+  // below (set()) rather than a remount, so editing an item doesn't rebuild the grid.
   const events = scheduleItemsToEvents(items);
   const initialDate = selectedDate ?? firstEventDate(events) ?? today();
 
-  // Open the timeline on the first scheduled item (floored to its hour for a little
-  // headroom) instead of the top of the day; fall back to the window start when empty.
-  const firstTime = firstEventTime(events);
-  const initialScroll = firstTime ? `${firstTime.slice(0, 2)}:00` : (windowStart ?? '06:00');
-
-  // Each instance gets its own plugins — reusing one Schedule-X plugin instance across
-  // calendar configs can stop events from loading. Re-seed scroll when the target changes.
+  // Stable plugin instances — these are wired into the calendar at creation, so they must
+  // not be recreated (a fresh instance wouldn't be attached). Reusing one plugin across
+  // calendar configs can also stop events from loading, hence per-mount via useMemo.
   const ownService = useMemo(() => createEventsServicePlugin(), []);
-  const scrollController = useMemo(
-    () => createScrollControllerPlugin({ initialScroll }),
-    [initialScroll]
-  );
+  const scrollController = useMemo(() => {
+    // Open near the first item (floored to its hour for headroom), else the window start.
+    // Mount-only seed; post-mount scrolling happens in the effect below.
+    const t = firstEventTime(events);
+    return createScrollControllerPlugin({ initialScroll: t ? `${t.slice(0, 2)}:00` : (windowStart ?? '06:00') });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const calendar = useNextCalendarApp({
     views: [createViewDay(), createViewWeek()],
@@ -123,6 +125,23 @@ export function ScheduleXProto({
     plugins: [ownService, scrollController],
     events,
   });
+
+  // Keep events in sync WITHOUT remounting: set() swaps the event set in place, so add/
+  // remove no longer rebuilds the grid or resets scroll. Scroll to the first item only on
+  // the initial populate (empty -> loaded) so later edits keep the user's scroll position.
+  // Re-runs only when the schedule's content changes, not on every render.
+  const didInitialScroll = useRef(false);
+  const itemsSig = items.map((i) => `${i.id}|${i.scheduled_time}|${i.duration}|${i.watched ? 1 : 0}`).join(',');
+  useEffect(() => {
+    const evts = scheduleItemsToEvents(items);
+    ownService.set(evts);
+    if (!didInitialScroll.current && evts.length > 0) {
+      const t = firstEventTime(evts);
+      if (t) requestAnimationFrame(() => scrollController.scrollTo(`${t.slice(0, 2)}:00`));
+      didInitialScroll.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemsSig]);
 
   return (
     <RemoveContext.Provider value={onRemove ?? (() => {})}>

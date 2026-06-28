@@ -381,8 +381,10 @@ export function ProtoSchedule() {
                 : `${itemCount} scheduled item${itemCount === 1 ? '' : 's'} ${view === 'week' ? `across ${rangeDays} days from ${rangeStart}` : `on ${date}`}.`}
           </p>
 
+          {/* key excludes itemCount on purpose: adding/removing an item updates events
+              in place (see ScheduleXProto) instead of remounting the whole calendar. */}
           <ScheduleXProto
-            key={`${view}-${date}-${itemCount}`}
+            key={`${view}-${date}`}
             items={items}
             selectedDate={date}
             view={view}
