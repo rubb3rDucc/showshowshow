@@ -1,150 +1,173 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  getLists,
+  getList,
+  createList as apiCreateList,
+  updateList as apiUpdateList,
+  deleteList as apiDeleteList,
+  addListItems,
+  removeListItem,
+  reorderListItems,
+  type ListSummaryAPI,
+  type ListItemAPI,
+  type ListDetailAPI,
+} from '../api/lists';
 
 /**
- * PROTOTYPE-ONLY local store for Library "Lists" (collections).
- * Persisted to localStorage; there is no backend yet. This whole hook is a
- * throwaway layer to be replaced by `/api/lists` (T3-2). Do not build real
- * features on this shape without the backend.
+ * Backend-backed Lists/Collections store (TanStack Query over `/api/lists`).
+ * Items reference `content.id` (cross-source), so TMDB and Jikan/anime titles
+ * are handled identically. Replaces the old localStorage prototype store; the
+ * method names are kept so existing consumers barely change.
  */
 
-/**
- * A list entry is a self-contained content SNAPSHOT, not a reference to a
- * library row — so titles that aren't in the user's library (added via TMDB
- * search) still render, and every entry stays addressable by `{ tmdbId, type }`.
- * That addressability is what later lets a list feed the scheduler / be cached.
- */
+/** A list item, resolved from the content table. Identity = `contentId`. */
 export interface CollectionItem {
-  tmdbId: number;
-  type: 'tv' | 'movie';
+  contentId: string;
   title: string;
   posterUrl: string | null;
+  type: 'show' | 'movie';
+  tmdbId: number | null;
+  malId: number | null;
+  dataSource: 'tmdb' | 'jikan' | 'anilist' | 'kitsu';
 }
 
+/** Stable identity for a list entry (dnd id / dedupe / removal). */
+export function itemKey(item: Pick<CollectionItem, 'contentId'>): string {
+  return item.contentId;
+}
+
+/** A list summary for the overview (count + sample posters; no full items). */
 export interface Collection {
   id: string;
   name: string;
   description?: string;
   ranked: boolean;
-  items: CollectionItem[];
-  createdAt: number;
+  itemCount: number;
+  posters: string[];
 }
 
-/** Stable identity for a list entry (used for dedupe, removal, dnd ids). */
-export function itemKey(item: Pick<CollectionItem, 'tmdbId' | 'type'>): string {
-  return `${item.type}:${item.tmdbId}`;
+function toCollection(l: ListSummaryAPI): Collection {
+  return {
+    id: l.id,
+    name: l.name,
+    description: l.description ?? undefined,
+    ranked: l.ranked,
+    itemCount: l.item_count,
+    posters: l.posters,
+  };
 }
 
-// Bumped to v2 for the snapshot item model (v1 stored library content-id refs).
-const STORAGE_KEY = 'ssss:collections:prototype:v2';
-
-function load(): Collection[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as Collection[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-// new Date()/Math.random() are fine here (browser runtime, not a workflow script).
-function newId(): string {
-  return `col_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+function toItem(i: ListItemAPI): CollectionItem {
+  return {
+    contentId: i.content_id,
+    title: i.title,
+    posterUrl: i.poster_url,
+    type: i.content_type,
+    tmdbId: i.tmdb_id,
+    malId: i.mal_id,
+    dataSource: i.data_source,
+  };
 }
 
 export function useCollections() {
-  const [collections, setCollections] = useState<Collection[]>(() => load());
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ['lists'], queryFn: getLists });
+  const collections: Collection[] = (data ?? []).map(toCollection);
 
-  // Persist on every change.
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(collections));
-    } catch {
-      // ignore quota / serialization errors in the prototype
-    }
-  }, [collections]);
+  const invalidateAll = () => qc.invalidateQueries({ queryKey: ['lists'] });
 
-  const update = useCallback(
-    (id: string, fn: (c: Collection) => Collection) =>
-      setCollections((prev) => prev.map((c) => (c.id === id ? fn(c) : c))),
-    []
-  );
+  const createMut = useMutation({
+    mutationFn: (v: { name: string; ranked: boolean; description?: string }) =>
+      apiCreateList({ name: v.name, ranked: v.ranked, description: v.description }),
+    onSuccess: invalidateAll,
+  });
 
-  const createList = useCallback((name: string, ranked: boolean, description?: string): Collection => {
-    const list: Collection = {
-      id: newId(),
-      name: name.trim() || 'Untitled list',
-      description: description?.trim() || undefined,
-      ranked,
-      items: [],
-      createdAt: Date.now(),
-    };
-    setCollections((prev) => [...prev, list]);
-    return list;
-  }, []);
+  const updateMut = useMutation({
+    mutationFn: (v: { id: string; input: { name?: string; description?: string | null; ranked?: boolean } }) =>
+      apiUpdateList(v.id, v.input),
+    onSuccess: (_d, v) => {
+      invalidateAll();
+      qc.invalidateQueries({ queryKey: ['lists', v.id] });
+    },
+  });
 
-  const renameList = useCallback((id: string, name: string) => update(id, (c) => ({ ...c, name: name.trim() || c.name })), [update]);
-  const setDescription = useCallback((id: string, description: string) => update(id, (c) => ({ ...c, description: description.trim() || undefined })), [update]);
-  const deleteList = useCallback((id: string) => setCollections((prev) => prev.filter((c) => c.id !== id)), []);
-  const setRanked = useCallback((id: string, ranked: boolean) => update(id, (c) => ({ ...c, ranked })), [update]);
+  const deleteMut = useMutation({ mutationFn: (id: string) => apiDeleteList(id), onSuccess: invalidateAll });
 
-  const addItems = useCallback(
-    (id: string, items: CollectionItem[]) =>
-      update(id, (c) => {
-        const have = new Set(c.items.map(itemKey));
-        const fresh = items.filter((it) => !have.has(itemKey(it)));
-        return { ...c, items: [...c.items, ...fresh] };
-      }),
-    [update]
-  );
+  const addMut = useMutation({
+    mutationFn: (v: { id: string; contentIds: string[] }) => addListItems(v.id, v.contentIds),
+    onSuccess: (_d, v) => {
+      invalidateAll();
+      qc.invalidateQueries({ queryKey: ['lists', v.id] });
+    },
+  });
 
-  const removeItem = useCallback(
-    (id: string, key: string) => update(id, (c) => ({ ...c, items: c.items.filter((it) => itemKey(it) !== key) })),
-    [update]
-  );
+  // Optimistic removal so the tile vanishes immediately.
+  const removeMut = useMutation({
+    mutationFn: (v: { id: string; contentId: string }) => removeListItem(v.id, v.contentId),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: ['lists', v.id] });
+      const prev = qc.getQueryData<ListDetailAPI>(['lists', v.id]);
+      if (prev) {
+        qc.setQueryData<ListDetailAPI>(['lists', v.id], {
+          ...prev,
+          items: prev.items.filter((i) => i.content_id !== v.contentId),
+        });
+      }
+      return { prev };
+    },
+    onError: (_e, v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['lists', v.id], ctx.prev);
+    },
+    onSettled: (_d, _e, v) => {
+      qc.invalidateQueries({ queryKey: ['lists', v.id] });
+      invalidateAll();
+    },
+  });
 
-  const reorderItems = useCallback(
-    (id: string, keys: string[]) =>
-      update(id, (c) => {
-        const byKey = new Map(c.items.map((it) => [itemKey(it), it]));
-        const next = keys.map((k) => byKey.get(k)).filter((it): it is CollectionItem => Boolean(it));
-        // Keep any items not present in `keys` (defensive) appended in original order.
-        const seen = new Set(keys);
-        for (const it of c.items) if (!seen.has(itemKey(it))) next.push(it);
-        return { ...c, items: next };
-      }),
-    [update]
-  );
+  // Optimistic reorder so drag-drop doesn't snap back during the round-trip.
+  const reorderMut = useMutation({
+    mutationFn: (v: { id: string; contentIds: string[] }) => reorderListItems(v.id, v.contentIds),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: ['lists', v.id] });
+      const prev = qc.getQueryData<ListDetailAPI>(['lists', v.id]);
+      if (prev) {
+        const byId = new Map(prev.items.map((i) => [i.content_id, i]));
+        const items = v.contentIds
+          .map((cid, idx) => {
+            const it = byId.get(cid);
+            return it ? { ...it, position: idx } : undefined;
+          })
+          .filter((i): i is ListItemAPI => Boolean(i));
+        qc.setQueryData<ListDetailAPI>(['lists', v.id], { ...prev, items });
+      }
+      return { prev };
+    },
+    onError: (_e, v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['lists', v.id], ctx.prev);
+    },
+    onSettled: (_d, _e, v) => qc.invalidateQueries({ queryKey: ['lists', v.id] }),
+  });
 
-  /**
-   * Seed a couple of example lists from real library content the first time the
-   * page loads with data, so the prototype looks populated. No-op if any lists exist.
-   */
-  const seedIfEmpty = useCallback((sample: CollectionItem[]) => {
-    if (sample.length === 0) return;
-    setCollections((prev) => {
-      if (prev.length > 0) return prev;
-      return [
-        {
-          id: newId(),
-          name: 'Comfort shows',
-          description: 'The ones I put on when I just want to relax.',
-          ranked: false,
-          items: sample.slice(0, 6),
-          createdAt: Date.now(),
-        },
-        {
-          id: newId(),
-          name: 'Top 10 this year',
-          description: 'My favourites so far, ranked.',
-          ranked: true,
-          items: sample.slice(0, Math.min(10, sample.length)),
-          createdAt: Date.now() + 1,
-        },
-      ];
-    });
-  }, []);
+  return {
+    collections,
+    createList: async (name: string, ranked: boolean, description?: string): Promise<Collection> =>
+      toCollection(await createMut.mutateAsync({ name, ranked, description })),
+    renameList: (id: string, name: string) => updateMut.mutate({ id, input: { name } }),
+    setDescription: (id: string, description: string) => updateMut.mutate({ id, input: { description } }),
+    setRanked: (id: string, ranked: boolean) => updateMut.mutate({ id, input: { ranked } }),
+    deleteList: (id: string) => deleteMut.mutate(id),
+    addItems: (id: string, contentIds: string[]) => addMut.mutate({ id, contentIds }),
+    removeItem: (id: string, contentId: string) => removeMut.mutate({ id, contentId }),
+    reorderItems: (id: string, contentIds: string[]) => reorderMut.mutate({ id, contentIds }),
+  };
+}
 
-  return { collections, createList, renameList, setDescription, deleteList, setRanked, addItems, removeItem, reorderItems, seedIfEmpty };
+/** Fetch a single list's ordered items (enabled only when a list is open). */
+export function useListItems(listId: string | null) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['lists', listId],
+    queryFn: () => getList(listId as string),
+    enabled: !!listId,
+  });
+  return { items: (data?.items ?? []).map(toItem), isLoading };
 }

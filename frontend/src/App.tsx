@@ -29,7 +29,7 @@ import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Search } from './pages/Search';
 import { Library } from './pages/Library';
-import { LibraryNext } from './pages/LibraryNext';
+import { DiscoverNext } from './pages/DiscoverNext';
 import { Browse } from './pages/Browse';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
 import { Networks } from './pages/Networks';
@@ -217,14 +217,15 @@ function App() {
           </ProtectedRoute>
         </Route>
 
-        {/* Prototype: redesigned Library (album-grid + collections). Not in nav. */}
-        <Route path="/library-next">
+        {/* Prototype: unified Discover (Spotify-style wall + filter grid) on mock data. Not in nav. */}
+        <Route path="/discover-next">
           <ProtectedRoute>
             <Layout>
-              <LibraryNext />
+              <DiscoverNext />
             </Layout>
           </ProtectedRoute>
         </Route>
+
 
         <Route path="/stats">
           <ProtectedRoute>

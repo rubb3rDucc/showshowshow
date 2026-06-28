@@ -39,9 +39,9 @@ export function CollectionsView({ collections, size, onSizeChange, onOpen, onNew
                 key={c.id}
                 name={c.name}
                 description={c.description}
-                count={c.items.length}
+                count={c.itemCount}
                 ranked={c.ranked}
-                posters={c.items.map((i) => i.posterUrl)}
+                posters={c.posters}
                 size={size}
                 onClick={() => onOpen(c.id)}
               />
