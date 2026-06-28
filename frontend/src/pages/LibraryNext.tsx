@@ -276,25 +276,37 @@ export function LibraryNext() {
           title="Library"
           subtitle={`${totalItems} ${totalItems === 1 ? 'title' : 'titles'}`}
           actions={
-            <>
-              <Button
-                size="sm"
-                variant="subtle"
-                className="text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] font-semibold"
-                onClick={() => setLocation('/stats')}
-              >
-                View Stats
-              </Button>
+            tab === 'lists' ? (
               <Button
                 size="sm"
                 className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold"
                 radius="md"
                 leftSection={<Plus size={16} />}
-                onClick={() => setLocation('/browse')}
+                onClick={() => setNewListOpen(true)}
               >
-                Add Media
+                New list
               </Button>
-            </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="subtle"
+                  className="text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] font-semibold"
+                  onClick={() => setLocation('/stats')}
+                >
+                  View Stats
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80 font-semibold"
+                  radius="md"
+                  leftSection={<Plus size={16} />}
+                  onClick={() => setLocation('/browse')}
+                >
+                  Add Media
+                </Button>
+              </>
+            )
           }
         />
 
