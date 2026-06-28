@@ -15,6 +15,19 @@
   }
 }
 
+/* Library "album wall": subtle ambient drift so the poster wall feels alive.
+   Amplitude is intentionally tiny; per-tile delay/duration is set inline. */
+@keyframes ssss-wall-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(0, -5px, 0) scale(1.018); }
+}
+.ssss-wall-drift {
+  animation: ssss-wall-drift 11s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ssss-wall-drift { animation: none; }
+}
+
 :root {
   /* Typography */
   font-family: 'Nunito Sans', system-ui, sans-serif;

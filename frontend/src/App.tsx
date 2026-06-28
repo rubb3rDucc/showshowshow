@@ -29,6 +29,7 @@ import { Register } from './pages/Register';
 import { Home } from './pages/Home';
 import { Search } from './pages/Search';
 import { Library } from './pages/Library';
+import { LibraryNext } from './pages/LibraryNext';
 import { Browse } from './pages/Browse';
 import { NetworkSectionGrid } from './pages/NetworkSectionGrid';
 import { Networks } from './pages/Networks';
@@ -212,6 +213,15 @@ function App() {
           <ProtectedRoute>
             <Layout>
               <Library />
+            </Layout>
+          </ProtectedRoute>
+        </Route>
+
+        {/* Prototype: redesigned Library (album-grid + collections). Not in nav. */}
+        <Route path="/library-next">
+          <ProtectedRoute>
+            <Layout>
+              <LibraryNext />
             </Layout>
           </ProtectedRoute>
         </Route>
