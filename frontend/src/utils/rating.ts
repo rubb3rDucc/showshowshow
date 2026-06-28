@@ -14,7 +14,9 @@ export function normalizeRating(rating: string | null | undefined): string | nul
   
   // First, try to match at the start of the string (most common case)
   // Match patterns like: "PG-13", "R", "TV-14", "NC-17", etc.
-  const startMatch = trimmed.match(/^(TV-)?(Y7?|G|PG|PG-13|14|MA|R|NC-17)(?:\s|–|-|$)/i);
+  // Order matters: longer codes (PG-13, NC-17, Y7) must precede their prefixes
+  // (PG, NC, Y) or the regex would truncate "PG-13" -> "PG".
+  const startMatch = trimmed.match(/^(TV-)?(NC-17|PG-13|PG|MA|14|R|G|Y7|Y)(?:\s|–|-|$)/i);
   if (startMatch) {
     const tvPrefix = startMatch[1] || '';
     const code = startMatch[2] || '';
@@ -26,7 +28,7 @@ export function normalizeRating(rating: string | null | undefined): string | nul
   }
   
   // If no match at start, try to find the rating code anywhere in the string
-  const anywhereMatch = trimmed.match(/(TV-)?(Y7?|G|PG|PG-13|14|MA|R|NC-17)/i);
+  const anywhereMatch = trimmed.match(/(TV-)?(NC-17|PG-13|PG|MA|14|R|G|Y7|Y)/i);
   if (anywhereMatch) {
     const tvPrefix = anywhereMatch[1] || '';
     const code = anywhereMatch[2] || '';
