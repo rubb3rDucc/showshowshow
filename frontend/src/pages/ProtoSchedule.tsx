@@ -8,6 +8,7 @@ import {
   Repeat,
   Layers,
   Shuffle,
+  Flame,
   Trash2,
 } from 'lucide-react';
 import { useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -101,6 +102,12 @@ const ROTATIONS = [
   { value: 'turns', icon: <Repeat size={16} />, title: 'Take turns', desc: 'One episode from each show, then loop back around.' },
   { value: 'two', icon: <Layers size={16} />, title: 'Two at a time', desc: 'Two episodes from a show before moving to the next.' },
   { value: 'shuffle', icon: <Shuffle size={16} />, title: 'Shuffle', desc: 'Random picks from across your whole lineup.' },
+  { value: 'marathon', icon: <Flame size={16} />, title: 'Marathon', desc: 'One show back-to-back until it runs out, then the next.' },
+];
+// How items are placed in time.
+const SLOT_SIZINGS = [
+  { value: 'fixed', label: 'Even slots' },
+  { value: 'fit', label: 'Back-to-back' },
 ];
 
 const toMin = (hhmm: string) => {
@@ -139,6 +146,8 @@ export function ProtoSchedule() {
   // (Per-show order / resume / include-watched live on each lineup card instead.)
   const [appearanceCap, setAppearanceCap] = useLocalStorage({ key: 'lineup.appearanceCap', defaultValue: 'off' });
   const [minGap, setMinGap] = useLocalStorage({ key: 'lineup.minGap', defaultValue: 'off' });
+  // How items are packed in time: even slots (fixed grid) or back-to-back (fit to runtime).
+  const [slotSizing, setSlotSizing] = useLocalStorage<'fixed' | 'fit'>({ key: 'lineup.slotSizing', defaultValue: 'fixed' });
   const [date, setDate] = useState(todayStr());
   // Custom-range clear dialog (pick any from/to span to wipe).
   const [clearRangeOpen, setClearRangeOpen] = useState(false);
@@ -241,7 +250,11 @@ export function ProtoSchedule() {
       end_time: `${pad(Math.floor(endMin / 60) % 24)}:${pad(endMin % 60)}`,
       timezone_offset: tzOffset(),
       rotation_type:
-        rotation === 'shuffle' ? 'random' : rotation === 'two' ? 'round_robin_double' : 'round_robin',
+        rotation === 'shuffle' ? 'random'
+          : rotation === 'two' ? 'round_robin_double'
+          : rotation === 'marathon' ? 'marathon'
+          : 'round_robin',
+      slot_sizing: slotSizing,
       episode_filters: Object.keys(episodeFilters).length ? episodeFilters : undefined,
       appearance_cap: appearanceCap === 'off' ? undefined : Number(appearanceCap),
       min_gap_minutes: minGap === 'off' ? undefined : Number(minGap),
@@ -405,7 +418,7 @@ export function ProtoSchedule() {
 
               {/* Rotation — plain names + a one-line explanation each */}
               <Field label="How your night flows">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {ROTATIONS.map((r) => (
                     <RotationCard
                       key={r.value}
@@ -415,6 +428,15 @@ export function ProtoSchedule() {
                       title={r.title}
                       desc={r.desc}
                     />
+                  ))}
+                </div>
+                {/* Spacing: even fixed slots vs packed back-to-back (fit to runtime) */}
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-xs text-[rgb(var(--color-text-tertiary))]">Spacing</span>
+                  {SLOT_SIZINGS.map((s) => (
+                    <Chip key={s.value} active={slotSizing === s.value} onClick={() => setSlotSizing(s.value as 'fixed' | 'fit')}>
+                      {s.label}
+                    </Chip>
                   ))}
                 </div>
               </Field>

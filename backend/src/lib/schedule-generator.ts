@@ -209,7 +209,7 @@ interface GenerateScheduleOptions {
   maxShowsPerTimeSlot?: number;
   includeReruns?: boolean;
   rerunFrequency?: string;
-  rotationType?: 'round_robin' | 'random' | 'round_robin_double';
+  rotationType?: 'round_robin' | 'random' | 'round_robin_double' | 'marathon';
   episodeFilters?: Record<string, EpisodeFilterRule>;
   // Frequency controls (global):
   appearanceCap?: number;       // max times any single title may appear across the run
@@ -558,8 +558,9 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
       // Get next content in rotation (show or movie)
       let currentContentId: string | undefined;
-      if (rotationType === 'round_robin' || rotationType === 'round_robin_double') {
-        const episodesPerShow = rotationType === 'round_robin_double' ? 2 : 1;
+      if (rotationType === 'round_robin' || rotationType === 'round_robin_double' || rotationType === 'marathon') {
+        // Marathon stays on one show until its episodes run out (then moves to the next).
+        const episodesPerShow = rotationType === 'round_robin_double' ? 2 : rotationType === 'marathon' ? Number.POSITIVE_INFINITY : 1;
 
         // Try to find next available content in round-robin order
         let attempts = 0;
@@ -711,8 +712,9 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       episodeIndexes.set(currentContentId, episodeIndex + 1);
       timeSlotUsage.set(slotKey, currentUsage + 1);
 
-      // Increment counter for round-robin tracking
-      if (rotationType === 'round_robin' || rotationType === 'round_robin_double') {
+      // Increment counter for round-robin tracking (marathon never hits its cap, so it
+      // keeps using the same show until that show's episodes are exhausted).
+      if (rotationType === 'round_robin' || rotationType === 'round_robin_double' || rotationType === 'marathon') {
         const currentCount = episodesScheduledFromCurrentShow.get(currentContentId) ?? 0;
         episodesScheduledFromCurrentShow.set(currentContentId, currentCount + 1);
       }

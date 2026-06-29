@@ -27,6 +27,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       episode_filters,
       appearance_cap,
       min_gap_minutes,
+      slot_sizing = 'fixed',
     } = request.body as {
       start_date?: string;
       end_date?: string;
@@ -37,7 +38,8 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       max_shows_per_time_slot?: number;
       include_reruns?: boolean;
       rerun_frequency?: string;
-      rotation_type?: 'round_robin' | 'random' | 'round_robin_double';
+      rotation_type?: 'round_robin' | 'random' | 'round_robin_double' | 'marathon';
+      slot_sizing?: 'fixed' | 'fit'; // 'fit' packs items back-to-back at 1-min resolution
       episode_filters?: Record<string, {
         mode: 'all' | 'include' | 'exclude';
         seasons?: number[];
@@ -98,6 +100,12 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       fastify.log.info(`Auto-calculated time slot duration: ${calculatedTimeSlotDuration} minutes`);
     } else if (!calculatedTimeSlotDuration) {
       calculatedTimeSlotDuration = 30; // Default fallback
+    }
+
+    // Fit-to-runtime: pack items back-to-back by using 1-minute slots (the overlap guard
+    // then places each item right where the previous ends, instead of on a fixed grid).
+    if (slot_sizing === 'fit') {
+      calculatedTimeSlotDuration = 1;
     }
 
     // Generate time slots

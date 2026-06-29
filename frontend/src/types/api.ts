@@ -148,7 +148,8 @@ export interface GenerateScheduleRequest {
   end_time?: string;
   time_slot_duration?: number; // in minutes (default: 30)
   timezone_offset?: string; // Timezone offset like "-05:00" (EST) or "+00:00" (UTC)
-  rotation_type?: 'round_robin' | 'random' | 'round_robin_double';
+  rotation_type?: 'round_robin' | 'random' | 'round_robin_double' | 'marathon';
+  slot_sizing?: 'fixed' | 'fit';
   include_reruns?: boolean;
   episode_filters?: Record<
     string,
