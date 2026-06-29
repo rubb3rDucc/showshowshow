@@ -139,11 +139,16 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
   }, [theme, tint, items]);
 
   const render = async (): Promise<Blob | null> => {
-    if (!cardRef.current) return null;
+    const node = cardRef.current;
+    if (!node) return null;
     // modern-screenshot waits for images to decode before rasterizing, which
     // fixes the blank-posters-on-iOS bug the old html-to-image had (its SVG
     // foreignObject pass captured before Safari finished decoding the images).
-    return domToBlob(cardRef.current, { scale: 1 });
+    // Pass the node's natural size: it sits inside a `scale()` preview wrapper,
+    // and without an explicit size the capture is taken from the scaled bounding
+    // box and comes out cropped to the top-left corner. offsetWidth/Height are
+    // layout dimensions, unaffected by the ancestor transform.
+    return domToBlob(node, { width: node.offsetWidth, height: node.offsetHeight, scale: 1 });
   };
 
   const withBusy = async (fn: () => Promise<void>) => {
@@ -281,7 +286,7 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
         {/* Preview + actions */}
         <div className="flex-1 flex flex-col items-center gap-4 order-1 md:order-2">
           <div
-            style={{ width: PREVIEW_W, height: cardH * scale, overflow: 'hidden', borderRadius: 12 }}
+            style={{ width: PREVIEW_W, height: cardH * scale || 360, overflow: 'hidden', borderRadius: 12, position: 'relative' }}
             className="shadow-md ring-1 ring-black/5"
           >
             <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
@@ -305,6 +310,12 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
                 posters={posters}
               />
             </div>
+            {!postersReady && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/80 backdrop-blur-sm">
+                <Loader size={20} />
+                <span className="text-xs text-[rgb(var(--color-text-secondary))]">Preparing image…</span>
+              </div>
+            )}
           </div>
 
           <Group gap="sm" justify="center" className="w-full">
