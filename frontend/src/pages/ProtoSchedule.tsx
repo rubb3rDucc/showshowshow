@@ -8,7 +8,6 @@ import {
   Repeat,
   Layers,
   Shuffle,
-  Flame,
   Trash2,
 } from 'lucide-react';
 import { useQueries, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -103,7 +102,7 @@ const ROTATIONS = [
   { value: 'turns', icon: <Repeat size={16} />, title: 'Take turns', desc: 'One episode from each show, then loop back around.' },
   { value: 'two', icon: <Layers size={16} />, title: 'Two at a time', desc: 'Two episodes from a show before moving to the next.' },
   { value: 'shuffle', icon: <Shuffle size={16} />, title: 'Shuffle', desc: 'Random picks from across your whole lineup.' },
-  { value: 'marathon', icon: <Flame size={16} />, title: 'Marathon', desc: 'One show back-to-back until it runs out, then the next.' },
+  // Marathon is implemented (backend + picker) but hidden for now — re-add this entry to expose it.
 ];
 // How items are placed in time.
 const SLOT_SIZINGS = [
@@ -428,7 +427,7 @@ export function ProtoSchedule() {
 
               {/* Rotation — plain names + a one-line explanation each */}
               <Field label="How your night flows">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {ROTATIONS.map((r) => (
                     <RotationCard
                       key={r.value}
