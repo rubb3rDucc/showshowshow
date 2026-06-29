@@ -2,9 +2,16 @@
 import Layout from '../layouts/Layout.astro';
 import '../styles/home.css';
 
+// NOTE: Baseline / starting-template legal text drafted from the app's actual
+// stack (Clerk, Stripe, PostHog, DigitalOcean, TMDB/Jikan). Self-hosted so it
+// can't lapse like the old iubenda link. Review before relying on it legally;
+// replace/refine with Termly- or lawyer-reviewed text when ready. Two spots
+// need your input: the governing-law jurisdiction and your refund stance.
+
 const title = 'Terms of Service - ShowShowShow';
 const description = 'Terms of Service for ShowShowShow';
 const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.app';
+const effectiveDate = 'June 29, 2026';
 ---
 
 <Layout title={title} description={description}>
@@ -25,16 +32,198 @@ const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.app';
 
     <div class="content">
       <main class="section">
-        <div class="card" style="max-width: 900px; margin: 0 auto; text-align: center;">
-          <h1 style="margin: 0 0 16px; font-family: Sora, sans-serif;">Terms and Conditions</h1>
-          <p style="color: var(--soft-ink); margin-bottom: 24px;">View our full terms and conditions on iubenda.</p>
-          <a href="https://www.iubenda.com/terms-and-conditions/97642526" class="btn primary" target="_blank" rel="noopener" title="Terms and Conditions">View Terms and Conditions</a>
-          <div style="margin-top: 24px;">
+        <div class="card legal">
+          <h1>Terms of Service</h1>
+          <p class="legal-meta">Effective date: {effectiveDate}</p>
+
+          <p>
+            Welcome to ShowShowShow. These Terms of Service (“Terms”) are a legal agreement
+            between you and ShowShowShow (“ShowShowShow,” “we,” “us,” or “our”) and govern your
+            use of our website, app at <a href={appUrl}>{appUrl}</a>, and related services
+            (together, the “Service”). By creating an account or using the Service, you agree to
+            these Terms. If you do not agree, please don’t use the Service.
+          </p>
+
+          <h2>1. What ShowShowShow is</h2>
+          <p>
+            ShowShowShow is a personal tool for tracking, organizing, and scheduling the shows,
+            movies, and anime you want to watch. We display title information (such as artwork,
+            descriptions, and episode data) sourced from third-party providers. We do not host,
+            stream, or distribute any films, series, or other video content, and we are not
+            affiliated with any streaming service, studio, or content provider.
+          </p>
+
+          <h2>2. Your account</h2>
+          <p>
+            You need an account to use most features. Accounts are created and secured through our
+            authentication provider. You’re responsible for the information you provide, for
+            keeping your login credentials secure, and for activity that happens under your
+            account. You must be at least 13 years old (or the minimum age of digital consent in
+            your country, if higher) to use the Service.
+          </p>
+
+          <h2>3. Subscriptions, billing &amp; auto-renewal</h2>
+          <p>
+            The Service offers free features and optional paid subscription plans. The features and
+            fees of each plan are described at the point of purchase. By starting a paid
+            subscription, you authorize us and our payment processor to charge the applicable fees
+            to your payment method.
+          </p>
+          <ul>
+            <li>
+              <strong>Auto-renewal:</strong> Paid subscriptions automatically renew at the end of
+              each billing period (for example, monthly or annually) at the then-current price,
+              <strong>until you cancel</strong>. We’ll charge your payment method on each renewal
+              unless you cancel before it occurs.
+            </li>
+            <li>
+              <strong>Payments:</strong> Payments are processed by our third-party payment
+              processor, Stripe. We don’t store your full payment card details.
+            </li>
+            <li>
+              <strong>Price changes:</strong> We may change subscription prices. If we do, the new
+              price applies to future billing periods, and we’ll give you reasonable notice where
+              required by law.
+            </li>
+          </ul>
+
+          <h2>4. Cancellation &amp; refunds</h2>
+          <p>
+            You can cancel a paid subscription at any time from your account settings. When you
+            cancel, you’ll keep paid access until the end of your current billing period, and you
+            won’t be charged again after that.
+          </p>
+          <p>
+            Except where required by applicable law, payments are non-refundable and we do not
+            provide refunds or credits for partial billing periods or unused time.
+            {/* TODO(founder): set your refund stance here. The line above is a common
+                "no partial refunds" default; soften it if you prefer (e.g., a 7-day
+                money-back window). Some jurisdictions grant statutory cancellation rights
+                that override this. */}
+          </p>
+
+          <h2>5. Acceptable use</h2>
+          <p>You agree not to:</p>
+          <ul>
+            <li>use the Service for any unlawful purpose or in violation of these Terms;</li>
+            <li>attempt to disrupt, overload, or gain unauthorized access to the Service or its systems;</li>
+            <li>scrape, copy, or harvest data from the Service except as expressly permitted;</li>
+            <li>resell, sublicense, or commercially exploit the Service without our permission; or</li>
+            <li>upload content that is illegal, infringing, or violates the rights of others.</li>
+          </ul>
+
+          <h2>6. Your content</h2>
+          <p>
+            Content you create in the Service — such as your library, lists, lineups, schedules,
+            notes, and reviews — remains yours. You grant us the limited license needed to store
+            and display it back to you in order to operate the Service. You’re responsible for the
+            content you create.
+          </p>
+
+          <h2>7. Intellectual property</h2>
+          <p>
+            The Service itself — including its software, design, branding, and original content —
+            is owned by ShowShowShow and protected by intellectual-property laws. Title metadata
+            and artwork are the property of their respective owners and providers. Names of shows,
+            movies, networks, and streaming services are trademarks of their respective owners; our
+            use of them is for identification only and does not imply affiliation or endorsement.
+          </p>
+
+          <h2>8. Third-party services and content</h2>
+          <p>
+            The Service relies on third-party providers (for example, for authentication, payments,
+            analytics, hosting, and title metadata) and may link to or surface third-party content
+            and websites. We are not responsible for third-party services or content, and your use
+            of them may be governed by their own terms.
+          </p>
+
+          <h2>9. Disclaimers</h2>
+          <p>
+            The Service is provided “as is” and “as available,” without warranties of any kind,
+            whether express or implied, to the fullest extent permitted by law. We don’t warrant
+            that the Service will be uninterrupted, error-free, or that title information will
+            always be accurate or complete.
+          </p>
+
+          <h2>10. Limitation of liability</h2>
+          <p>
+            To the fullest extent permitted by law, ShowShowShow will not be liable for any
+            indirect, incidental, special, consequential, or punitive damages, or for any loss of
+            data, arising out of or relating to your use of the Service. Our total liability for any
+            claim relating to the Service will not exceed the greater of the amount you paid us in
+            the twelve months before the claim or USD $50.
+          </p>
+
+          <h2>11. Termination</h2>
+          <p>
+            You may stop using the Service and delete your account at any time. We may suspend or
+            terminate your access if you violate these Terms or if necessary to protect the Service
+            or other users. Sections that by their nature should survive termination (such as
+            intellectual property, disclaimers, and limitation of liability) will survive.
+          </p>
+
+          <h2>12. Changes to these Terms</h2>
+          <p>
+            We may update these Terms from time to time. When we do, we’ll update the effective date
+            above and, where appropriate, notify you. Your continued use of the Service after changes
+            take effect means you accept the updated Terms.
+          </p>
+
+          <h2>13. Governing law</h2>
+          <p>
+            These Terms are governed by the laws of [your jurisdiction — e.g., your state/country],
+            without regard to its conflict-of-laws rules.
+            {/* TODO(founder): fill in your governing-law jurisdiction (where you/your business
+                are based). */}
+          </p>
+
+          <h2>14. Contact</h2>
+          <p>
+            Questions about these Terms? Email us at
+            <a href="mailto:hello@showshowshow.app">hello@showshowshow.app</a>.
+          </p>
+
+          <div class="legal-back">
             <a class="btn ghost" href="/">Back to home</a>
           </div>
         </div>
       </main>
     </div>
   </div>
-</Layout>
 
+  <style>
+    .legal {
+      max-width: 820px;
+      margin: 0 auto;
+      text-align: left;
+      line-height: 1.65;
+    }
+    .legal h1 {
+      margin: 0 0 8px;
+      font-family: Sora, sans-serif;
+    }
+    .legal h2 {
+      margin: 28px 0 8px;
+      font-family: Sora, sans-serif;
+      font-size: 1.15rem;
+    }
+    .legal p,
+    .legal li {
+      color: var(--soft-ink);
+    }
+    .legal ul {
+      padding-left: 20px;
+    }
+    .legal li {
+      margin-bottom: 6px;
+    }
+    .legal-meta {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-bottom: 24px;
+    }
+    .legal-back {
+      margin-top: 32px;
+    }
+  </style>
+</Layout>

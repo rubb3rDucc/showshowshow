@@ -2,9 +2,9 @@
 import Layout from "../layouts/Layout.astro";
 import "../styles/home.css";
 
-const title = "ShowShowShow - Schedule your TV watching";
+const title = "ShowShowShow - Plan your shows, movies & anime";
 const description =
-  "Decide what you're watching ahead of time. Build viewing schedules for TV shows, anime, and movies.";
+  "Keep your shows, movies, and anime in one place, then turn your watchlist into a schedule you'll actually follow.";
 const appUrl = import.meta.env.PUBLIC_APP_URL || "https://app.showshowshow.app";
 ---
 
@@ -23,10 +23,8 @@ const appUrl = import.meta.env.PUBLIC_APP_URL || "https://app.showshowshow.app";
           <div class="hero-text reveal" style="animation-delay: 0.05s;">
             <h1>Decide what you're watching before you sit down.</h1>
             <p class="lead">
-              Schedule shows and movies into time slots. Skip the browsing.
-            </p>
-            <p class="subtext">
-              Early version. Sign-in required to save schedules.
+              Keep your shows, movies, and anime in one place, then turn them
+              into a schedule you'll actually follow. No more scrolling to decide.
             </p>
             <div class="hero-actions">
               <a class="btn primary" href={appUrl}>Go to app</a>
@@ -50,52 +48,40 @@ const appUrl = import.meta.env.PUBLIC_APP_URL || "https://app.showshowshow.app";
                   <source src="/videos/new_30_sec_demo.mp4" type="video/mp4" />
                 </video>
               </div>
-              <!-- Phone mockup hidden until mobile demo video is available
-              <div class="device device-iphone-14-pro device-spacer">
-                <div class="device-frame">
-                  <img
-                    class="device-screen"
-                    src="/images/new_6.png"
-                    alt="ShowShowShow mobile view"
-                    loading="lazy"
-                  />
-                </div>
-                <div class="device-stripe"></div>
-                <div class="device-header"></div>
-                <div class="device-sensors"></div>
-                <div class="device-btns"></div>
-                <div class="device-power"></div>
-              </div>
-              -->
             </div>
           </div>
         </section>
 
-        <section
-          id="how"
-          class="section reveal"
-          style="animation-delay: 0.05s;"
-        >
+        <section id="features" class="section reveal" style="animation-delay: 0.05s;">
+          <h2 class="section-head">More than a watchlist</h2>
           <div class="metro-tiles">
+            <div class="metro-tile purple">
+              <h3>Track every episode</h3>
+              <p>
+                Mark episodes watched, rate what you finish, and pick up right
+                where you left off.
+              </p>
+            </div>
             <div class="metro-tile blue">
-              <span class="tile-num">1</span>
-              <h3>Add shows to library</h3>
-              <p>Search TV, anime, movies</p>
+              <h3>Lists you can share</h3>
+              <p>
+                Build ranked lists and export them as clean cards to post
+                anywhere.
+              </p>
             </div>
             <div class="metro-tile green">
-              <span class="tile-num">2</span>
-              <h3>Build a queue</h3>
-              <p>Add shows in order</p>
+              <h3>Your stats &amp; recap</h3>
+              <p>
+                See completion, watch time, and a weekly recap of what you
+                finished.
+              </p>
             </div>
             <div class="metro-tile yellow">
-              <span class="tile-num">3</span>
-              <h3>Generate a schedule</h3>
-              <p>Pick time. Auto-fill.</p>
-            </div>
-            <div class="metro-tile purple">
-              <span class="tile-num">4</span>
-              <h3>Watch & mark done</h3>
-              <p>Check off. Stay synced.</p>
+              <h3>No feeds, no noise</h3>
+              <p>
+                Just your watchlist. No algorithm deciding for you, no social
+                pressure.
+              </p>
             </div>
           </div>
         </section>
@@ -124,4 +110,27 @@ const appUrl = import.meta.env.PUBLIC_APP_URL || "https://app.showshowshow.app";
       </footer>
     </div>
   </div>
+
+  <style>
+    /* Tighten vertical rhythm so the hero + one section fit in the viewport. */
+    .page .hero {
+      padding-top: 16px;
+      margin-bottom: 32px;
+    }
+    .content #features.section {
+      margin-top: 0;
+      margin-bottom: 24px;
+    }
+    .content footer {
+      margin-top: 32px;
+    }
+    .section-head {
+      font-family: "Sora", sans-serif;
+      font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 16px 0;
+      text-align: center;
+    }
+  </style>
 </Layout>
