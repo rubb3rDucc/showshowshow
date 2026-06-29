@@ -166,15 +166,15 @@ export function applyEpisodeFilters<T extends { content_id: string; season: numb
   });
 }
 
+// Returns every episode for the shows with its watched_at (null if unwatched), applying
+// per-show season/episode filters. Watched-vs-unwatched is decided per show afterwards
+// (the include_watched flag), so this no longer filters by watch state itself.
 async function getAvailableEpisodes(
   userId: string,
   showIds: string[],
-  includeReruns: boolean,
-  rerunFrequency: string,
   episodeFilters?: Record<string, EpisodeFilterRule>
 ) {
-  // Get all episodes for the shows
-  let query = db
+  const query = db
     .selectFrom('episodes')
     .innerJoin('content', 'episodes.content_id', 'content.id')
     .leftJoin('watch_history', (join) =>
@@ -194,37 +194,9 @@ async function getAvailableEpisodes(
       'episodes.air_date',
       'content.default_duration',
       'watch_history.watched_at',
-      'watch_history.rewatch_count',
     ]) as any;
 
-  if (!includeReruns) {
-    // Only unwatched episodes (where watch_history doesn't exist)
-    query = query.where('watch_history.id', 'is', null);
-  }
-
-  const episodes = applyEpisodeFilters(await query.execute(), episodeFilters);
-
-  type EpisodeWithWatch = typeof episodes[0] & { watched_at: Date | null; rewatch_count: number | null };
-
-  // Filter reruns based on frequency
-  if (includeReruns && rerunFrequency !== 'never') {
-    const rerunRatio = {
-      rarely: 0.1,
-      sometimes: 0.3,
-      often: 0.5,
-    }[rerunFrequency] || 0.1;
-
-    const unwatched = (episodes as EpisodeWithWatch[]).filter((e: EpisodeWithWatch) => !e.watched_at);
-    const watched = (episodes as EpisodeWithWatch[]).filter((e: EpisodeWithWatch) => e.watched_at);
-    const numReruns = Math.floor(unwatched.length * rerunRatio);
-    const selectedReruns = watched
-      .sort((a: EpisodeWithWatch, b: EpisodeWithWatch) => (a.watched_at?.getTime() ?? 0) - (b.watched_at?.getTime() ?? 0))
-      .slice(0, numReruns);
-    return [...unwatched, ...selectedReruns] as any;
-  }
-
-  const unwatched = (episodes as EpisodeWithWatch[]).filter((e: EpisodeWithWatch) => !e.watched_at);
-  return unwatched;
+  return applyEpisodeFilters(await query.execute(), episodeFilters);
 }
 
 interface GenerateScheduleOptions {
@@ -237,8 +209,48 @@ interface GenerateScheduleOptions {
   maxShowsPerTimeSlot?: number;
   includeReruns?: boolean;
   rerunFrequency?: string;
-  rotationType?: 'round_robin' | 'random' | 'round_robin_double';
+  rotationType?: 'round_robin' | 'random' | 'round_robin_double' | 'marathon';
+  marathonContentId?: string; // for marathon: the show to binge first (falls through to the rest)
   episodeFilters?: Record<string, EpisodeFilterRule>;
+  // Frequency controls (global):
+  appearanceCap?: number;       // max times any single title may appear across the run
+  minGapMinutes?: number;       // min minutes between two appearances of the same title
+  // Per-show scheduler flags keyed by content_id (from the queue). Each overrides the
+  // global defaults for that show: whether to include watched episodes, play order, and
+  // whether to resume after the latest watched episode.
+  perShowConfig?: Record<string, PerShowConfig>;
+}
+
+export type PerShowConfig = {
+  include_watched: boolean;
+  episode_order: 'sequential' | 'shuffle';
+  resume_from_last_watched: boolean;
+};
+
+// Latest watched (season, episode) per show — used by "resume from last watched".
+async function getLastWatchedPositions(
+  userId: string,
+  showIds: string[]
+): Promise<Map<string, { season: number; episode: number }>> {
+  const map = new Map<string, { season: number; episode: number }>();
+  if (showIds.length === 0) return map;
+  const rows = await db
+    .selectFrom('watch_history')
+    .select(['content_id', 'season', 'episode'])
+    .where('user_id', '=', userId)
+    .where('content_id', 'in', showIds)
+    .where('season', 'is not', null)
+    .where('episode', 'is not', null)
+    .execute();
+  for (const r of rows) {
+    const s = Number(r.season);
+    const e = Number(r.episode);
+    const cur = map.get(r.content_id);
+    if (!cur || s > cur.season || (s === cur.season && e > cur.episode)) {
+      map.set(r.content_id, { season: s, episode: e });
+    }
+  }
+  return map;
 }
 
 // Generate schedule from queue or shows
@@ -254,6 +266,9 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     includeReruns = false,
     rerunFrequency = 'rarely',
     rotationType = 'round_robin',
+    appearanceCap,
+    minGapMinutes,
+    perShowConfig,
   } = options;
 
   // Get content info to separate shows from movies
@@ -282,20 +297,45 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     const totalEpisodes = Number((episodeCount as any)?.count ?? 0);
 
     if (totalEpisodes > 0) {
-      // Get available episodes
-      const availableEpisodes = await getAvailableEpisodes(
-        userId,
-        showIdsOnly,
-        includeReruns,
-        rerunFrequency,
-        options.episodeFilters
-      );
+      // All episodes (with watched_at); watched-vs-unwatched is decided per show below.
+      const availableEpisodes = await getAvailableEpisodes(userId, showIdsOnly, options.episodeFilters);
 
-      // Group episodes by show for rotation and shuffle them for randomization
+      // Resume needs last-watched positions only when at least one show opts in.
+      const anyResume = showIdsOnly.some((id) => perShowConfig?.[id]?.resume_from_last_watched);
+      const lastWatched = anyResume
+        ? await getLastWatchedPositions(userId, showIdsOnly)
+        : new Map<string, { season: number; episode: number }>();
+
+      // Group episodes by show, then apply that show's per-show flags.
       showIdsOnly.forEach((showId) => {
-        const showEpisodes = availableEpisodes.filter((e: any) => e.content_id === showId);
-        // Shuffle episodes to randomize selection order
-        episodesByShow.set(showId, shuffleArray(showEpisodes));
+        const cfg = perShowConfig?.[showId];
+        const includeWatched = cfg?.include_watched ?? includeReruns;
+        const order = cfg?.episode_order ?? 'shuffle';
+        const resume = cfg?.resume_from_last_watched ?? false;
+
+        let showEpisodes = availableEpisodes.filter((e: any) => e.content_id === showId);
+
+        // Unwatched only unless this show opts into watched episodes.
+        if (!includeWatched) {
+          showEpisodes = showEpisodes.filter((e: any) => !e.watched_at);
+        }
+
+        // Resume: only episodes after the latest watched (season, episode).
+        if (resume) {
+          const lw = lastWatched.get(showId);
+          if (lw) {
+            showEpisodes = showEpisodes.filter((e: any) =>
+              e.season > lw.season || (e.season === lw.season && e.episode_number > lw.episode)
+            );
+          }
+        }
+
+        // Order: sequential by (season, episode) or shuffled (default).
+        showEpisodes = order === 'sequential'
+          ? [...showEpisodes].sort((a: any, b: any) => a.season - b.season || a.episode_number - b.episode_number)
+          : shuffleArray(showEpisodes);
+
+        episodesByShow.set(showId, showEpisodes);
       });
     }
   }
@@ -324,8 +364,9 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       // Check if movie is watched
       const isWatched = watchedMovieIds.has(movieId);
 
-      // Only include unwatched movies (or all if reruns are enabled)
-      if (includeReruns || !isWatched) {
+      // Unwatched only unless this movie opts into watched (per-show flag, else global).
+      const movieIncludeWatched = perShowConfig?.[movieId]?.include_watched ?? includeReruns;
+      if (movieIncludeWatched || !isWatched) {
         if (!movie.default_duration || movie.default_duration <= 0) {
           return;
         }
@@ -383,6 +424,31 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
   // True if [s, e) overlaps any occupied interval (existing item or one placed this run).
   const overlapsOccupied = (s: Date, e: Date) =>
     occupied.some((o) => s.getTime() < o.end && e.getTime() > o.start);
+
+  // Frequency controls (PR F): per-title trackers for the appearance cap, minimum gap
+  // between repeats, and exhaust-before-repeat.
+  const placedCount = new Map<string, number>();
+  const lastPlacedEnd = new Map<string, number>(); // content_id -> last placement end (ms)
+  // Whether `id` may be placed starting at `scheduledTime` under the frequency rules.
+  const passesFrequency = (id: string, scheduledTime: Date): boolean => {
+    const count = placedCount.get(id) ?? 0;
+    if (appearanceCap !== undefined && count >= appearanceCap) return false;
+    if (minGapMinutes && minGapMinutes > 0) {
+      const last = lastPlacedEnd.get(id);
+      if (last !== undefined && scheduledTime.getTime() < last + minGapMinutes * 60_000) return false;
+    }
+    return true;
+  };
+  const recordPlacement = (id: string, endTime: Date) => {
+    placedCount.set(id, (placedCount.get(id) ?? 0) + 1);
+    lastPlacedEnd.set(id, endTime.getTime());
+  };
+  // Any title still has schedulable content (vs. just being frequency-gated right now)?
+  const anyContentLeft = () =>
+    showIds.some((id) =>
+      (episodeIndexes.get(id) ?? 0) < (episodesByShow.get(id)?.length ?? 0) ||
+      (moviesByShow.get(id)?.length ?? 0) > 0
+    );
 
   const timeSlotUsage = new Map<string, number>(); // Track usage per time slot
   let showIndex = 0;
@@ -493,8 +559,9 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
 
       // Get next content in rotation (show or movie)
       let currentContentId: string | undefined;
-      if (rotationType === 'round_robin' || rotationType === 'round_robin_double') {
-        const episodesPerShow = rotationType === 'round_robin_double' ? 2 : 1;
+      if (rotationType === 'round_robin' || rotationType === 'round_robin_double' || rotationType === 'marathon') {
+        // Marathon stays on one show until its episodes run out (then moves to the next).
+        const episodesPerShow = rotationType === 'round_robin_double' ? 2 : rotationType === 'marathon' ? Number.POSITIVE_INFINITY : 1;
 
         // Try to find next available content in round-robin order
         let attempts = 0;
@@ -515,21 +582,24 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
             continue;
           }
 
-          // Check if this content has available content
-          if (episodeIndex < episodes.length || movies.length > 0) {
+          // Available content AND allowed right now by the frequency rules
+          if ((episodeIndex < episodes.length || movies.length > 0) && passesFrequency(candidateId, scheduledTime)) {
             currentContentId = candidateId;
             break;
           }
 
-          // No more content for this show, move to next
+          // No usable content for this show right now, move to next
           episodesScheduledFromCurrentShow.set(candidateId, 0); // Reset counter
           showIndex++;
           attempts++;
         }
 
-        // If we tried all shows and none have content, break out of time slot loop
+        // No placeable candidate this slot. If content still exists but is just
+        // frequency-gated right now (e.g. min-gap), skip to the next slot; only break
+        // when content is truly exhausted.
         if (!currentContentId) {
-          break; // No more content available
+          if (anyContentLeft()) continue;
+          break;
         }
       } else {
         // Random rotation - check both shows and movies
@@ -537,10 +607,11 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
           const episodes = episodesByShow.get(id) ?? [];
           const movies = moviesByShow.get(id) ?? [];
           const index = episodeIndexes.get(id) ?? 0;
-          return index < episodes.length || movies.length > 0;
+          return (index < episodes.length || movies.length > 0) && passesFrequency(id, scheduledTime);
         });
         if (availableContent.length === 0) {
-          break; // No more content
+          if (anyContentLeft()) continue; // gated this slot, try the next
+          break; // truly exhausted
         }
         currentContentId = availableContent[Math.floor(Math.random() * availableContent.length)];
       }
@@ -587,6 +658,7 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
         // Update last scheduled end time to prevent overlaps
         lastScheduledEndTime = endTime;
         occupied.push({ start: scheduledTime.getTime(), end: endTime.getTime() });
+        recordPlacement(movie.content_id, endTime);
 
         // Remove movie from available list (only schedule once)
         moviesByShow.delete(currentContentId);
@@ -635,13 +707,15 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       // Update last scheduled end time to prevent overlaps
       lastScheduledEndTime = endTime;
       occupied.push({ start: scheduledTime.getTime(), end: endTime.getTime() });
+      recordPlacement(episode.content_id, endTime);
 
       // Update indexes
       episodeIndexes.set(currentContentId, episodeIndex + 1);
       timeSlotUsage.set(slotKey, currentUsage + 1);
 
-      // Increment counter for round-robin tracking
-      if (rotationType === 'round_robin' || rotationType === 'round_robin_double') {
+      // Increment counter for round-robin tracking (marathon never hits its cap, so it
+      // keeps using the same show until that show's episodes are exhausted).
+      if (rotationType === 'round_robin' || rotationType === 'round_robin_double' || rotationType === 'marathon') {
         const currentCount = episodesScheduledFromCurrentShow.get(currentContentId) ?? 0;
         episodesScheduledFromCurrentShow.set(currentContentId, currentCount + 1);
       }
@@ -950,18 +1024,35 @@ export async function generateScheduleFromQueue(
   timeSlots: string[],
   options: Omit<GenerateScheduleOptions, 'userId' | 'showIds' | 'startDate' | 'endDate' | 'timeSlots'> = {}
 ) {
-  // Get shows from queue (skip items the user has paused from scheduling)
+  // Get shows from queue (skip items the user has paused from scheduling), along with
+  // each item's per-show scheduler flags.
   const queueItems = await db
     .selectFrom('queue')
-    .select('content_id')
+    .select(['content_id', 'include_watched', 'episode_order', 'resume_from_last_watched'])
     .where('user_id', '=', userId)
     .where('is_active', '=', true)
     .orderBy('position', 'asc')
     .execute();
 
-  const showIds = [...new Set(queueItems.map((q: any) => q.content_id))] as string[];
+  let showIds = [...new Set(queueItems.map((q: any) => q.content_id))] as string[];
   if (showIds.length === 0) {
     return [];
+  }
+
+  // Marathon: float the chosen show to the front so it's binged first (round-robin then
+  // continues with the rest once it's exhausted).
+  if (options.marathonContentId && showIds.includes(options.marathonContentId)) {
+    showIds = [options.marathonContentId, ...showIds.filter((id) => id !== options.marathonContentId)];
+  }
+
+  // Build per-show config keyed by content_id (last item wins on duplicates).
+  const perShowConfig: Record<string, PerShowConfig> = {};
+  for (const q of queueItems as any[]) {
+    perShowConfig[q.content_id] = {
+      include_watched: q.include_watched,
+      episode_order: q.episode_order,
+      resume_from_last_watched: q.resume_from_last_watched,
+    };
   }
 
   // Auto-fetch episodes before generating schedule (fast cache check first)
@@ -973,6 +1064,7 @@ export async function generateScheduleFromQueue(
     startDate,
     endDate,
     timeSlots,
+    perShowConfig,
     timezoneOffset: options.timezoneOffset || '+00:00', // Default to UTC if not provided
     ...options,
   });

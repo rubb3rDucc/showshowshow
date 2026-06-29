@@ -10,12 +10,13 @@ import {
   Shuffle,
   Trash2,
 } from 'lucide-react';
-import { useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ScheduleXProto } from '../proto/ScheduleXProto';
 import { RealLineupDrawer } from '../proto/RealLineupDrawer';
 import type { EpisodeFilter } from '../proto/LineupEpisodePicker';
 import { getSchedule, deleteScheduleItem, generateScheduleFromQueue, clearScheduleForDate } from '../api/schedule';
+import { getQueue } from '../api/content';
 import { getTimeOfDayLabel } from '../utils/format';
 import type { GenerateScheduleRequest, ScheduleItem } from '../types/api';
 
@@ -83,10 +84,30 @@ const DATE_RANGES = [
   { value: 'next3', label: 'Next 3 days' },
   { value: 'week', label: 'This week' },
 ];
+// How many times a single title may appear across the run.
+const APPEARANCE_CAPS = [
+  { value: 'off', label: 'No limit' },
+  { value: '1', label: 'Once' },
+  { value: '2', label: 'Twice' },
+  { value: '3', label: '3 times' },
+];
+// Minimum spacing between two appearances of the same title.
+const MIN_GAPS = [
+  { value: 'off', label: 'No minimum' },
+  { value: '30', label: '30 min apart' },
+  { value: '60', label: '1 hour apart' },
+  { value: '120', label: '2 hours apart' },
+];
 const ROTATIONS = [
   { value: 'turns', icon: <Repeat size={16} />, title: 'Take turns', desc: 'One episode from each show, then loop back around.' },
   { value: 'two', icon: <Layers size={16} />, title: 'Two at a time', desc: 'Two episodes from a show before moving to the next.' },
   { value: 'shuffle', icon: <Shuffle size={16} />, title: 'Shuffle', desc: 'Random picks from across your whole lineup.' },
+  // Marathon is implemented (backend + picker) but hidden for now — re-add this entry to expose it.
+];
+// How items are placed in time.
+const SLOT_SIZINGS = [
+  { value: 'fixed', label: 'Even slots' },
+  { value: 'fit', label: 'Back-to-back' },
 ];
 
 const toMin = (hhmm: string) => {
@@ -121,6 +142,14 @@ export function ProtoSchedule() {
   const [customEnd, setCustomEnd] = useLocalStorage({ key: 'lineup.customEnd', defaultValue: '23:00' });
   const [rotation, setRotation] = useLocalStorage({ key: 'lineup.rotation', defaultValue: 'turns' });
   const [dateRange, setDateRange] = useLocalStorage({ key: 'lineup.dateRange', defaultValue: 'tonight' });
+  // Frequency controls (global — how often a title can repeat across the run).
+  // (Per-show order / resume / include-watched live on each lineup card instead.)
+  const [appearanceCap, setAppearanceCap] = useLocalStorage({ key: 'lineup.appearanceCap', defaultValue: 'off' });
+  const [minGap, setMinGap] = useLocalStorage({ key: 'lineup.minGap', defaultValue: 'off' });
+  // How items are packed in time: even slots (fixed grid) or back-to-back (fit to runtime).
+  const [slotSizing, setSlotSizing] = useLocalStorage<'fixed' | 'fit'>({ key: 'lineup.slotSizing', defaultValue: 'fixed' });
+  // Marathon: which show to binge (chosen from the active lineup shows).
+  const [marathonContentId, setMarathonContentId] = useLocalStorage({ key: 'lineup.marathonContentId', defaultValue: '' });
   const [date, setDate] = useState(todayStr());
   // Custom-range clear dialog (pick any from/to span to wipe).
   const [clearRangeOpen, setClearRangeOpen] = useState(false);
@@ -158,6 +187,12 @@ export function ProtoSchedule() {
   const items = dayQueries.flatMap((qr) => qr.data ?? []);
   const isLoading = dayQueries.some((qr) => qr.isLoading);
   const isError = dayQueries.some((qr) => qr.isError);
+
+  // Active shows in the lineup — the choices for a marathon target (shared queue cache).
+  const queueData = useQuery({ queryKey: ['queue'], queryFn: getQueue, staleTime: 30000 });
+  const marathonShows = (queueData.data ?? [])
+    .filter((qi) => qi.is_active !== false && qi.content_type !== 'movie')
+    .map((qi) => ({ value: qi.content_id, label: qi.title ?? 'Untitled' }));
 
   const queryClient = useQueryClient();
   // Generate/clear can touch several days, so refresh the whole schedule cache.
@@ -223,9 +258,15 @@ export function ProtoSchedule() {
       end_time: `${pad(Math.floor(endMin / 60) % 24)}:${pad(endMin % 60)}`,
       timezone_offset: tzOffset(),
       rotation_type:
-        rotation === 'shuffle' ? 'random' : rotation === 'two' ? 'round_robin_double' : 'round_robin',
-      include_reruns: false,
+        rotation === 'shuffle' ? 'random'
+          : rotation === 'two' ? 'round_robin_double'
+          : rotation === 'marathon' ? 'marathon'
+          : 'round_robin',
+      marathon_content_id: rotation === 'marathon' ? (marathonContentId || undefined) : undefined,
+      slot_sizing: slotSizing,
       episode_filters: Object.keys(episodeFilters).length ? episodeFilters : undefined,
+      appearance_cap: appearanceCap === 'off' ? undefined : Number(appearanceCap),
+      min_gap_minutes: minGap === 'off' ? undefined : Number(minGap),
     });
   };
 
@@ -397,6 +438,56 @@ export function ProtoSchedule() {
                       desc={r.desc}
                     />
                   ))}
+                </div>
+                {/* Marathon: pick which show to binge */}
+                {rotation === 'marathon' && (
+                  <div className="mt-3">
+                    <p className="text-xs text-[rgb(var(--color-text-tertiary))] mb-1">Marathon which show?</p>
+                    <Select
+                      size="sm"
+                      data={marathonShows}
+                      value={marathonContentId || null}
+                      onChange={(v) => setMarathonContentId(v || '')}
+                      placeholder={marathonShows.length ? 'Pick a show' : 'No shows in your lineup yet'}
+                      disabled={marathonShows.length === 0}
+                      className="sm:max-w-xs"
+                    />
+                  </div>
+                )}
+                {/* Spacing: even fixed slots vs packed back-to-back (fit to runtime) */}
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-xs text-[rgb(var(--color-text-tertiary))]">Spacing</span>
+                  {SLOT_SIZINGS.map((s) => (
+                    <Chip key={s.value} active={slotSizing === s.value} onClick={() => setSlotSizing(s.value as 'fixed' | 'fit')}>
+                      {s.label}
+                    </Chip>
+                  ))}
+                </div>
+              </Field>
+
+              {/* How often a title can repeat across the run */}
+              <Field label="How often shows repeat">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-[rgb(var(--color-text-tertiary))] mb-1">Show each title at most</p>
+                    <Select
+                      size="sm"
+                      data={APPEARANCE_CAPS}
+                      value={appearanceCap}
+                      onChange={(v) => setAppearanceCap(v || 'off')}
+                      allowDeselect={false}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs text-[rgb(var(--color-text-tertiary))] mb-1">Space repeats by</p>
+                    <Select
+                      size="sm"
+                      data={MIN_GAPS}
+                      value={minGap}
+                      onChange={(v) => setMinGap(v || 'off')}
+                      allowDeselect={false}
+                    />
+                  </div>
                 </div>
               </Field>
             </div>

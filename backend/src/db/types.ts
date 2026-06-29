@@ -81,6 +81,9 @@ export interface Database {
     position: number;
     synced: boolean;
     is_active: boolean;
+    include_watched: boolean;
+    episode_order: 'sequential' | 'shuffle';
+    resume_from_last_watched: boolean;
     created_at: Date;
   };
   programming_blocks: {

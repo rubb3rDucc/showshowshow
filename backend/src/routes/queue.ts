@@ -23,6 +23,9 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
         'queue.season',
         'queue.episode',
         'queue.is_active',
+        'queue.include_watched',
+        'queue.episode_order',
+        'queue.resume_from_last_watched',
         'queue.created_at',
         'content.id as content_id',
         'content.tmdb_id',
@@ -72,15 +75,20 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
 
     const newPosition = (maxPosition?.max ?? -1) + 1;
 
-    // Check if already in queue
-    const existing = await db
+    // Check if already in queue. Use IS NULL for absent season/episode — in SQL
+    // `season = NULL` is never true, which previously let whole-show duplicates through.
+    let existingQuery = db
       .selectFrom('queue')
       .select('id')
       .where('user_id', '=', userId)
-      .where('content_id', '=', content_id)
-      .where('season', '=', season ?? null)
-      .where('episode', '=', episode ?? null)
-      .executeTakeFirst();
+      .where('content_id', '=', content_id);
+    existingQuery = season == null
+      ? existingQuery.where('season', 'is', null)
+      : existingQuery.where('season', '=', season);
+    existingQuery = episode == null
+      ? existingQuery.where('episode', 'is', null)
+      : existingQuery.where('episode', '=', episode);
+    const existing = await existingQuery.executeTakeFirst();
 
     if (existing) {
       // Track duplicate attempt
@@ -108,6 +116,9 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
         position: newPosition,
         synced: false,
         is_active: true,
+        include_watched: false,
+        episode_order: 'shuffle',
+        resume_from_last_watched: false,
         created_at: new Date(),
       })
       .returningAll()
@@ -159,25 +170,37 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
 
     const userId = request.user.userId;
     const { id } = request.params as { id: string };
-    const { is_active } = request.body as { is_active?: boolean };
+    const body = request.body as {
+      is_active?: boolean;
+      include_watched?: boolean;
+      episode_order?: 'sequential' | 'shuffle';
+      resume_from_last_watched?: boolean;
+    };
 
-    if (typeof is_active !== 'boolean') {
-      throw new ValidationError('is_active (boolean) is required');
+    // Update whichever per-show settings were provided (toggles update one at a time).
+    const patch: Record<string, unknown> = {};
+    if (typeof body.is_active === 'boolean') patch.is_active = body.is_active;
+    if (typeof body.include_watched === 'boolean') patch.include_watched = body.include_watched;
+    if (body.episode_order === 'sequential' || body.episode_order === 'shuffle') patch.episode_order = body.episode_order;
+    if (typeof body.resume_from_last_watched === 'boolean') patch.resume_from_last_watched = body.resume_from_last_watched;
+
+    if (Object.keys(patch).length === 0) {
+      throw new ValidationError('No valid fields to update');
     }
 
     const updated = await db
       .updateTable('queue')
-      .set({ is_active })
+      .set(patch)
       .where('id', '=', id)
       .where('user_id', '=', userId)
-      .returning('id')
+      .returning(['id', 'is_active', 'include_watched', 'episode_order', 'resume_from_last_watched'])
       .executeTakeFirst();
 
     if (!updated) {
       throw new NotFoundError('Queue item not found');
     }
 
-    return reply.send({ success: true, is_active });
+    return reply.send({ success: true, ...updated });
   });
 
   fastify.delete('/api/queue/:id', { preHandler: requireActiveSubscription }, async (request, reply) => {

@@ -25,6 +25,10 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       rerun_frequency = 'rarely',
       rotation_type = 'round_robin',
       episode_filters,
+      appearance_cap,
+      min_gap_minutes,
+      slot_sizing = 'fixed',
+      marathon_content_id,
     } = request.body as {
       start_date?: string;
       end_date?: string;
@@ -35,12 +39,16 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       max_shows_per_time_slot?: number;
       include_reruns?: boolean;
       rerun_frequency?: string;
-      rotation_type?: 'round_robin' | 'random' | 'round_robin_double';
+      rotation_type?: 'round_robin' | 'random' | 'round_robin_double' | 'marathon';
+      slot_sizing?: 'fixed' | 'fit'; // 'fit' packs items back-to-back at 1-min resolution
+      marathon_content_id?: string;  // marathon: which show to binge first
       episode_filters?: Record<string, {
         mode: 'all' | 'include' | 'exclude';
         seasons?: number[];
         episodes?: Array<{ season: number; episode: number }>;
       }>;
+      appearance_cap?: number;        // max times any title appears across the run
+      min_gap_minutes?: number;       // min minutes between repeats of the same title
     };
 
     if (!start_date || !end_date) {
@@ -96,6 +104,12 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       calculatedTimeSlotDuration = 30; // Default fallback
     }
 
+    // Fit-to-runtime: pack items back-to-back by using 1-minute slots (the overlap guard
+    // then places each item right where the previous ends, instead of on a fixed grid).
+    if (slot_sizing === 'fit') {
+      calculatedTimeSlotDuration = 1;
+    }
+
     // Generate time slots
     fastify.log.info(`Generating time slots from ${start_time} to ${end_time} with ${calculatedTimeSlotDuration} minute duration`);
     const timeSlots = generateTimeSlots(start_time, end_time, calculatedTimeSlotDuration);
@@ -114,7 +128,10 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       includeReruns: include_reruns,
       rerunFrequency: rerun_frequency,
       rotationType: rotation_type,
+      marathonContentId: marathon_content_id,
       episodeFilters: episode_filters,
+      appearanceCap: appearance_cap,
+      minGapMinutes: min_gap_minutes,
     });
 
     const generationTime = Date.now() - generationStartTime;
