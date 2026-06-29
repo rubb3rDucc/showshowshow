@@ -27,11 +27,6 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       episode_filters,
       appearance_cap,
       min_gap_minutes,
-      exhaust_before_repeat = false,
-      episode_order = 'shuffle',
-      resume_from_last_watched = false,
-      stay_within_season = false,
-      max_runtime_minutes,
     } = request.body as {
       start_date?: string;
       end_date?: string;
@@ -50,11 +45,6 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       }>;
       appearance_cap?: number;        // max times any title appears across the run
       min_gap_minutes?: number;       // min minutes between repeats of the same title
-      exhaust_before_repeat?: boolean; // no repeats until every title has appeared once
-      episode_order?: 'sequential' | 'shuffle';
-      resume_from_last_watched?: boolean;
-      stay_within_season?: boolean;
-      max_runtime_minutes?: number; // only include episodes/movies at or under this runtime
     };
 
     if (!start_date || !end_date) {
@@ -131,11 +121,6 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       episodeFilters: episode_filters,
       appearanceCap: appearance_cap,
       minGapMinutes: min_gap_minutes,
-      exhaustBeforeRepeat: exhaust_before_repeat,
-      episodeOrder: episode_order,
-      resumeFromLastWatched: resume_from_last_watched,
-      stayWithinSeason: stay_within_season,
-      maxRuntimeMinutes: max_runtime_minutes,
     });
 
     const generationTime = Date.now() - generationStartTime;
