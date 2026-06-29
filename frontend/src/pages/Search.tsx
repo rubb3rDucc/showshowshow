@@ -24,13 +24,17 @@ import type { LibraryStatus } from '../types/library.types';
 export function Search() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  // Prefill from a ?q= param so other surfaces (e.g. the Home quick-add) can hand off a search.
-  const initialQuery = new URLSearchParams(window.location.search).get('q')?.trim() ?? '';
+  // Seed from the URL so other surfaces can hand off a search (?q=) AND so returning from a
+  // content detail page restores the exact query, page, and source instead of a blank page.
+  const initialParams = new URLSearchParams(window.location.search);
+  const initialQuery = initialParams.get('q')?.trim() ?? '';
+  const initialPage = Math.max(1, Number(initialParams.get('page')) || 1);
+  const initialAnime = initialParams.get('source') === 'anime';
   const [query, setQuery] = useState(initialQuery);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage);
   const [includeAdult] = useState(false);
-  const [animeOnly, setAnimeOnly] = useState(false);
+  const [animeOnly, setAnimeOnly] = useState(initialAnime);
   const [titlePreference] = useState<'english' | 'japanese' | 'romanji'>('english');
   const [addingToQueueId, setAddingToQueueId] = useState<string | null>(null);
   const [addingToLibraryId, setAddingToLibraryId] = useState<string | null>(null);
@@ -41,7 +45,19 @@ export function Search() {
   useEffect(() => {
     searchInputRef.current?.focus();
   }, []);
-  
+
+  // Mirror the active search into the URL (replace, so keystrokes don't spam history).
+  // This is what makes back-navigation from a detail page restore the results: the /search
+  // history entry carries q/page/source, and on remount we re-seed state from it.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (page > 1) params.set('page', String(page));
+    if (animeOnly) params.set('source', 'anime');
+    const qs = params.toString();
+    window.history.replaceState(window.history.state, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+  }, [searchQuery, page, animeOnly]);
+
   // Store pagination metadata separately to keep pagination controls stable
   // Store the last known good metadata for the current search query
   const [lastKnownMetadata, setLastKnownMetadata] = useState<{

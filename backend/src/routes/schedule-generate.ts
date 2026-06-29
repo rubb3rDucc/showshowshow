@@ -25,6 +25,10 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       rerun_frequency = 'rarely',
       rotation_type = 'round_robin',
       episode_filters,
+      appearance_cap,
+      min_gap_minutes,
+      slot_sizing = 'fixed',
+      marathon_content_id,
     } = request.body as {
       start_date?: string;
       end_date?: string;
@@ -35,12 +39,16 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       max_shows_per_time_slot?: number;
       include_reruns?: boolean;
       rerun_frequency?: string;
-      rotation_type?: 'round_robin' | 'random' | 'round_robin_double';
+      rotation_type?: 'round_robin' | 'random' | 'round_robin_double' | 'marathon';
+      slot_sizing?: 'fixed' | 'fit'; // 'fit' packs items back-to-back at 1-min resolution
+      marathon_content_id?: string;  // marathon: which show to binge first
       episode_filters?: Record<string, {
         mode: 'all' | 'include' | 'exclude';
         seasons?: number[];
         episodes?: Array<{ season: number; episode: number }>;
       }>;
+      appearance_cap?: number;        // max times any title appears across the run
+      min_gap_minutes?: number;       // min minutes between repeats of the same title
     };
 
     if (!start_date || !end_date) {
@@ -96,6 +104,12 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       calculatedTimeSlotDuration = 30; // Default fallback
     }
 
+    // Fit-to-runtime: pack items back-to-back by using 1-minute slots (the overlap guard
+    // then places each item right where the previous ends, instead of on a fixed grid).
+    if (slot_sizing === 'fit') {
+      calculatedTimeSlotDuration = 1;
+    }
+
     // Generate time slots
     fastify.log.info(`Generating time slots from ${start_time} to ${end_time} with ${calculatedTimeSlotDuration} minute duration`);
     const timeSlots = generateTimeSlots(start_time, end_time, calculatedTimeSlotDuration);
@@ -114,13 +128,28 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       includeReruns: include_reruns,
       rerunFrequency: rerun_frequency,
       rotationType: rotation_type,
+      marathonContentId: marathon_content_id,
       episodeFilters: episode_filters,
+      appearanceCap: appearance_cap,
+      minGapMinutes: min_gap_minutes,
     });
 
     const generationTime = Date.now() - generationStartTime;
 
     if (scheduleItems.length === 0) {
-      // Track failed generation
+      // Nothing placed: distinguish "those times are already full" (gap-fill found no room)
+      // from "there's genuinely no content to schedule", so the user gets a real reason.
+      const occStart = new Date(startDate.getTime() - 24 * 60 * 60 * 1000);
+      const occEnd = new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+      const existing = await db
+        .selectFrom('schedule')
+        .select((eb) => eb.fn.count('id').as('c'))
+        .where('user_id', '=', userId)
+        .where('scheduled_time', '>=', occStart)
+        .where('scheduled_time', '<=', occEnd)
+        .executeTakeFirst();
+      const alreadyScheduled = Number((existing as any)?.c ?? 0) > 0;
+
       const { captureEvent } = await import('../lib/posthog.js');
       captureEvent('schedule_generation_failed', {
         distinctId: userId,
@@ -128,7 +157,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
           start_date,
           end_date,
           queue_size: contentIds.length,
-          error_type: 'no_content_available',
+          error_type: alreadyScheduled ? 'all_slots_occupied' : 'no_content_available',
           generation_time_ms: generationTime,
         },
       });
@@ -136,8 +165,9 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       return reply.code(200).send({
         count: 0,
         schedule: [],
-        message:
-          'No content available to schedule. For shows, make sure episodes have been fetched. For movies, ensure they are not already watched (unless reruns are enabled).',
+        message: alreadyScheduled
+          ? 'Those times are already filled — clear them to reschedule.'
+          : 'Nothing to schedule. Add shows to your lineup, or check that episodes are available (movies you’ve already watched are skipped unless reruns are on).',
       });
     }
 

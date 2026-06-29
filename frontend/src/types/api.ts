@@ -90,6 +90,10 @@ export interface QueueItem {
   season?: number | null;
   episode?: number | null;
   is_active?: boolean; // false = stays in the lineup but the generator skips it
+  // Per-show scheduler flags the generator honors for this show.
+  include_watched?: boolean;
+  episode_order?: 'sequential' | 'shuffle';
+  resume_from_last_watched?: boolean;
   created_at: string;
   // Joined data from backend
   tmdb_id?: number;
@@ -144,7 +148,9 @@ export interface GenerateScheduleRequest {
   end_time?: string;
   time_slot_duration?: number; // in minutes (default: 30)
   timezone_offset?: string; // Timezone offset like "-05:00" (EST) or "+00:00" (UTC)
-  rotation_type?: 'round_robin' | 'random' | 'round_robin_double';
+  rotation_type?: 'round_robin' | 'random' | 'round_robin_double' | 'marathon';
+  marathon_content_id?: string; // marathon: which show to binge first
+  slot_sizing?: 'fixed' | 'fit';
   include_reruns?: boolean;
   episode_filters?: Record<
     string,
@@ -154,4 +160,7 @@ export interface GenerateScheduleRequest {
       episodes?: Array<{ season: number; episode: number }>;
     }
   >;
+  // Frequency controls (global)
+  appearance_cap?: number; // max times any title appears across the run
+  min_gap_minutes?: number; // min minutes between repeats of the same title
 }

@@ -102,6 +102,21 @@ export async function setQueueItemActive(
   });
 }
 
+// Update a queue item's per-show scheduler flags (any subset).
+export async function updateQueueItem(
+  queueItemId: string,
+  patch: {
+    include_watched?: boolean;
+    episode_order?: 'sequential' | 'shuffle';
+    resume_from_last_watched?: boolean;
+  }
+): Promise<{ success: boolean }> {
+  return apiCall(`/api/queue/${queueItemId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+}
+
 /**
  * Reorder queue items
  * @param itemIds - Array of queue item IDs in desired order

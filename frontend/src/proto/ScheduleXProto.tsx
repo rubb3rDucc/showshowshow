@@ -1,12 +1,13 @@
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import { Temporal } from 'temporal-polyfill';
 import { useNextCalendarApp, ScheduleXCalendar } from '@schedule-x/react';
 import { createViewDay, createViewWeek } from '@schedule-x/calendar';
 import { createEventsServicePlugin } from '@schedule-x/events-service';
+import { createScrollControllerPlugin } from '@schedule-x/scroll-controller';
 import { X } from 'lucide-react';
 import '@schedule-x/theme-default/dist/index.css';
 import './schedulex-proto.css';
-import { scheduleItemsToEvents, firstEventDate } from './scheduleAdapter';
+import { scheduleItemsToEvents, firstEventDate, firstEventTime } from './scheduleAdapter';
 import type { ScheduleItem } from '../types/api';
 
 const today = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, local
@@ -71,7 +72,8 @@ function TimeGridEvent({ calendarEvent }: { calendarEvent: SxEvent }) {
         onClick={(e) => { stop(e); onRemove(calendarEvent.id); }}
         title="Remove"
         aria-label="Remove"
-        className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+        // touch-manipulation: stop iOS double-tap-to-zoom firing when tapping remove on mobile.
+        className="absolute right-0.5 top-0.5 flex h-6 w-6 touch-manipulation items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
       >
         <X size={14} />
       </button>
@@ -89,33 +91,91 @@ export function ScheduleXProto({
   selectedDate,
   onRemove,
   view = 'day',
+  windowStart,
 }: {
   items: ScheduleItem[];
   selectedDate?: string;
   onRemove?: (id: string) => void;
   view?: 'day' | 'week';
+  /** 24h "HH:MM" the schedule window opens at — where the timeline scrolls when there are no events yet. */
+  windowStart?: string;
 }) {
+  // Seeds the calendar on first render; afterwards live updates flow through the effect
+  // below (set()) rather than a remount, so editing an item doesn't rebuild the grid.
   const events = scheduleItemsToEvents(items);
-  const initialDate = selectedDate ?? firstEventDate(events) ?? today();
+  // `||` (not `??`) so an empty-string selectedDate falls through to a real date —
+  // Temporal.PlainDate.from('') throws "can't parse empty string as date-time".
+  const initialDate = selectedDate || firstEventDate(events) || today();
 
-  // Each instance gets its own events-service — reusing one Schedule-X plugin
-  // instance across calendar configs can stop events from loading.
+  // Stable plugin instances — these are wired into the calendar at creation, so they must
+  // not be recreated (a fresh instance wouldn't be attached). Reusing one plugin across
+  // calendar configs can also stop events from loading, hence per-mount via useMemo.
   const ownService = useMemo(() => createEventsServicePlugin(), []);
+  const scrollController = useMemo(() => {
+    // Open near the first item (floored to its hour for headroom), else the window start.
+    // Mount-only seed; post-mount scrolling happens in the effect below.
+    const t = firstEventTime(events);
+    return createScrollControllerPlugin({ initialScroll: t ? `${t.slice(0, 2)}:00` : (windowStart ?? '06:00') });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const calendar = useNextCalendarApp({
     views: [createViewDay(), createViewWeek()],
     defaultView: view,
     selectedDate: Temporal.PlainDate.from(initialDate),
     weekOptions: { gridHeight: 2880 }, // 120px/hour — matches the Lineup builder's slot sizing
-    plugins: [ownService],
+    plugins: [ownService, scrollController],
     events,
   });
+
+  // Keep events in sync WITHOUT remounting AND without repainting the whole grid: diff the
+  // items against the last sync and only add/update/remove the events that changed, so
+  // deleting one item removes just that block (set() replaced every event and flickered).
+  // prevSigs starts null: the calendar is already seeded with the first render's events, so
+  // the first run just records them. Scroll to the first item only on the initial populate.
+  const didInitialScroll = useRef(false);
+  const prevSigs = useRef<Map<string, string> | null>(null);
+  const itemsSig = items.map((i) => `${i.id}|${i.scheduled_time}|${i.duration}|${i.watched ? 1 : 0}`).join(',');
+  useEffect(() => {
+    const sigOf = (it: ScheduleItem) =>
+      `${it.scheduled_time}|${it.duration}|${it.watched ? 1 : 0}|${it.title}|${it.season}|${it.episode}`;
+    const nextSigs = new Map(items.map((it) => [it.id, sigOf(it)] as const));
+
+    if (prevSigs.current === null) {
+      prevSigs.current = nextSigs; // already seeded at creation — don't re-add
+    } else {
+      const eventById = new Map(scheduleItemsToEvents(items).map((e) => [e.id, e] as const));
+      for (const id of prevSigs.current.keys()) {
+        if (!nextSigs.has(id)) ownService.remove(id); // gone -> remove just this block
+      }
+      for (const [id, sig] of nextSigs) {
+        const ev = eventById.get(id);
+        if (!ev) continue;
+        const prev = prevSigs.current.get(id);
+        if (prev === undefined) ownService.add(ev);
+        else if (prev !== sig) ownService.update(ev);
+      }
+      prevSigs.current = nextSigs;
+    }
+
+    if (!didInitialScroll.current && items.length > 0) {
+      const t = firstEventTime(scheduleItemsToEvents(items));
+      if (t) requestAnimationFrame(() => scrollController.scrollTo(`${t.slice(0, 2)}:00`));
+      didInitialScroll.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemsSig]);
 
   return (
     <RemoveContext.Provider value={onRemove ?? (() => {})}>
       <div className="h-[700px] rounded-lg border border-[rgb(var(--color-border-default))] overflow-hidden bg-white">
-        <ScheduleXCalendar calendarApp={calendar} customComponents={{ timeGridEvent: TimeGridEvent }} />
+        <ScheduleXCalendar calendarApp={calendar} customComponents={CUSTOM_COMPONENTS} />
       </div>
     </RemoveContext.Provider>
   );
 }
+
+// Stable identity: ScheduleXCalendar's render effect depends on `customComponents`, so a new
+// object here would re-run it every render — destroy()+render() rebuilds the whole calendar
+// (the flicker/refresh on delete). Module-level constant keeps it referentially stable.
+const CUSTOM_COMPONENTS = { timeGridEvent: TimeGridEvent };
