@@ -158,4 +158,8 @@ export interface GenerateScheduleRequest {
   appearance_cap?: number; // max times any title appears across the run
   min_gap_minutes?: number; // min minutes between repeats of the same title
   exhaust_before_repeat?: boolean; // no repeats until every title has appeared once
+  // Episode progression
+  episode_order?: 'sequential' | 'shuffle';
+  resume_from_last_watched?: boolean;
+  stay_within_season?: boolean;
 }

@@ -243,6 +243,36 @@ interface GenerateScheduleOptions {
   appearanceCap?: number;       // max times any single title may appear across the run
   minGapMinutes?: number;       // min minutes between two appearances of the same title
   exhaustBeforeRepeat?: boolean; // don't repeat any title until every title has appeared once
+  // Episode progression (PR G):
+  episodeOrder?: 'sequential' | 'shuffle'; // play a show's episodes in order, or shuffled (default)
+  resumeFromLastWatched?: boolean;          // start each show after its latest watched episode
+  stayWithinSeason?: boolean;               // only schedule one season per show per run
+}
+
+// Latest watched (season, episode) per show — used by "resume from last watched".
+async function getLastWatchedPositions(
+  userId: string,
+  showIds: string[]
+): Promise<Map<string, { season: number; episode: number }>> {
+  const map = new Map<string, { season: number; episode: number }>();
+  if (showIds.length === 0) return map;
+  const rows = await db
+    .selectFrom('watch_history')
+    .select(['content_id', 'season', 'episode'])
+    .where('user_id', '=', userId)
+    .where('content_id', 'in', showIds)
+    .where('season', 'is not', null)
+    .where('episode', 'is not', null)
+    .execute();
+  for (const r of rows) {
+    const s = Number(r.season);
+    const e = Number(r.episode);
+    const cur = map.get(r.content_id);
+    if (!cur || s > cur.season || (s === cur.season && e > cur.episode)) {
+      map.set(r.content_id, { season: s, episode: e });
+    }
+  }
+  return map;
 }
 
 // Generate schedule from queue or shows
@@ -261,6 +291,9 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     appearanceCap,
     minGapMinutes,
     exhaustBeforeRepeat = false,
+    episodeOrder = 'shuffle',
+    resumeFromLastWatched = false,
+    stayWithinSeason = false,
   } = options;
 
   // Get content info to separate shows from movies
@@ -298,11 +331,37 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
         options.episodeFilters
       );
 
-      // Group episodes by show for rotation and shuffle them for randomization
+      // Last-watched positions only needed when resuming.
+      const lastWatched = resumeFromLastWatched
+        ? await getLastWatchedPositions(userId, showIdsOnly)
+        : new Map<string, { season: number; episode: number }>();
+
+      // Group episodes by show, then apply resume / stay-within-season / ordering.
       showIdsOnly.forEach((showId) => {
-        const showEpisodes = availableEpisodes.filter((e: any) => e.content_id === showId);
-        // Shuffle episodes to randomize selection order
-        episodesByShow.set(showId, shuffleArray(showEpisodes));
+        let showEpisodes = availableEpisodes.filter((e: any) => e.content_id === showId);
+
+        // Resume: only episodes after the latest watched (season, episode).
+        if (resumeFromLastWatched) {
+          const lw = lastWatched.get(showId);
+          if (lw) {
+            showEpisodes = showEpisodes.filter((e: any) =>
+              e.season > lw.season || (e.season === lw.season && e.episode_number > lw.episode)
+            );
+          }
+        }
+
+        // Stay within one season: keep only the lowest season that still has episodes.
+        if (stayWithinSeason && showEpisodes.length > 0) {
+          const minSeason = Math.min(...showEpisodes.map((e: any) => e.season));
+          showEpisodes = showEpisodes.filter((e: any) => e.season === minSeason);
+        }
+
+        // Order: sequential by (season, episode) or shuffled for variety (default).
+        showEpisodes = episodeOrder === 'sequential'
+          ? [...showEpisodes].sort((a: any, b: any) => a.season - b.season || a.episode_number - b.episode_number)
+          : shuffleArray(showEpisodes);
+
+        episodesByShow.set(showId, showEpisodes);
       });
     }
   }

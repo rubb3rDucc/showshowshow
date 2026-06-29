@@ -139,6 +139,10 @@ export function ProtoSchedule() {
   const [appearanceCap, setAppearanceCap] = useLocalStorage({ key: 'lineup.appearanceCap', defaultValue: 'off' });
   const [minGap, setMinGap] = useLocalStorage({ key: 'lineup.minGap', defaultValue: 'off' });
   const [exhaustFirst, setExhaustFirst] = useLocalStorage({ key: 'lineup.exhaustFirst', defaultValue: false });
+  // Episode progression (which episode of a show plays, in what order).
+  const [episodeOrder, setEpisodeOrder] = useLocalStorage<'sequential' | 'shuffle'>({ key: 'lineup.episodeOrder', defaultValue: 'shuffle' });
+  const [resumeWatched, setResumeWatched] = useLocalStorage({ key: 'lineup.resumeWatched', defaultValue: false });
+  const [stayWithinSeason, setStayWithinSeason] = useLocalStorage({ key: 'lineup.stayWithinSeason', defaultValue: false });
   const [date, setDate] = useState(todayStr());
   // Custom-range clear dialog (pick any from/to span to wipe).
   const [clearRangeOpen, setClearRangeOpen] = useState(false);
@@ -247,6 +251,9 @@ export function ProtoSchedule() {
       appearance_cap: appearanceCap === 'off' ? undefined : Number(appearanceCap),
       min_gap_minutes: minGap === 'off' ? undefined : Number(minGap),
       exhaust_before_repeat: exhaustFirst,
+      episode_order: episodeOrder,
+      resume_from_last_watched: resumeWatched,
+      stay_within_season: stayWithinSeason,
     });
   };
 
@@ -453,6 +460,36 @@ export function ProtoSchedule() {
                     className="h-4 w-4 accent-[#646cff]"
                   />
                   <span>Play everything once before repeating anything</span>
+                </label>
+              </Field>
+
+              {/* Which episode of a show plays, and in what order */}
+              <Field label="Episodes">
+                <div className="flex items-center gap-2 mb-3">
+                  <Chip active={episodeOrder === 'shuffle'} onClick={() => setEpisodeOrder('shuffle')}>
+                    Shuffle
+                  </Chip>
+                  <Chip active={episodeOrder === 'sequential'} onClick={() => setEpisodeOrder('sequential')}>
+                    In order
+                  </Chip>
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={resumeWatched}
+                    onChange={(e) => setResumeWatched(e.currentTarget.checked)}
+                    className="h-4 w-4 accent-[#646cff]"
+                  />
+                  <span>Resume each show from where I left off</span>
+                </label>
+                <label className="mt-2 flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={stayWithinSeason}
+                    onChange={(e) => setStayWithinSeason(e.currentTarget.checked)}
+                    className="h-4 w-4 accent-[#646cff]"
+                  />
+                  <span>Stay within one season at a time</span>
                 </label>
               </Field>
             </div>
