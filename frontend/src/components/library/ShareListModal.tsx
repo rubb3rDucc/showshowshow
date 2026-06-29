@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, SegmentedControl, Button, Group, Loader, Switch, TextInput, Select } from '@mantine/core';
-import { Download, Copy, Share2, Check } from 'lucide-react';
+import { Download, Copy, Check } from 'lucide-react';
 import { domToBlob } from 'modern-screenshot';
 import { useUser } from '@clerk/clerk-react';
 import { toast } from 'sonner';
@@ -37,6 +37,13 @@ async function toDataUrl(url: string): Promise<string> {
     fr.onerror = () => reject(fr.error);
     fr.readAsDataURL(blob);
   });
+}
+
+// Posters arrive from TMDB at w500+; the share-card tiles render ~270-360px
+// wide, so request w342 — roughly half the bytes, much faster to fetch and
+// base64-encode. Non-TMDB URLs pass through unchanged.
+function compactPosterUrl(url: string): string {
+  return url.replace(/\/t\/p\/(w\d+|original)\//, '/t/p/w342/');
 }
 
 export function ShareListModal({ opened, onClose, collection, items }: ShareListModalProps) {
@@ -82,37 +89,47 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
   }, []);
   const slug = collection.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'list';
 
-  const canShare = typeof navigator !== 'undefined' && !!navigator.canShare;
   // iOS Safari throws on clipboard image writes (the "request not allowed"
-  // error) — prefer the native share sheet there instead of a Copy button.
+  // error), so Copy is desktop-only. The native share sheet was also dropped
+  // (unreliable permissions on iOS); Download is the universal action.
   const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write && !IS_IOS;
 
-  // Pre-resolve every poster to a data URL so the off-screen card renders
+  // Only the titles that will actually appear on the card (respecting `limit`)
+  // need resolving — capping to "First 6" then fetches just 6 posters.
+  const shownItems = useMemo(
+    () => (limit && limit < items.length ? items.slice(0, limit) : items),
+    [items, limit],
+  );
+  // Pre-resolve each shown poster to a data URL so the off-screen card renders
   // inlined images — required for a clean image export on iOS.
   const posterUrls = useMemo(
-    () => Array.from(new Set(items.map((i) => i.posterUrl).filter((u): u is string => !!u))),
-    [items],
+    () => Array.from(new Set(shownItems.map((i) => i.posterUrl).filter((u): u is string => !!u))),
+    [shownItems],
   );
   const [posters, setPosters] = useState<Record<string, string>>({});
   const postersReady = posterUrls.every((u) => posters[u]);
   useEffect(() => {
     if (!opened) return;
+    // Fetch only what's missing, then merge — raising the limit doesn't refetch
+    // posters already resolved. (Effect re-runs after setPosters, then no-ops.)
+    const missing = posterUrls.filter((u) => !posters[u]);
+    if (missing.length === 0) return;
     let cancelled = false;
     Promise.all(
-      posterUrls.map(async (u) => {
+      missing.map(async (u) => {
         try {
-          return [u, await toDataUrl(u)] as const;
+          return [u, await toDataUrl(compactPosterUrl(u))] as const;
         } catch {
           return [u, u] as const; // fall back to the remote URL on fetch failure
         }
       }),
     ).then((pairs) => {
-      if (!cancelled) setPosters(Object.fromEntries(pairs));
+      if (!cancelled) setPosters((prev) => ({ ...prev, ...Object.fromEntries(pairs) }));
     });
     return () => {
       cancelled = true;
     };
-  }, [opened, posterUrls]);
+  }, [opened, posterUrls, posters]);
 
   // Extract a dominant poster color for the 'tinted' theme (CORS-enabled).
   useEffect(() => {
@@ -148,7 +165,9 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
     // and without an explicit size the capture is taken from the scaled bounding
     // box and comes out cropped to the top-left corner. offsetWidth/Height are
     // layout dimensions, unaffected by the ancestor transform.
-    return domToBlob(node, { width: node.offsetWidth, height: node.offsetHeight, scale: 1 });
+    // font: false skips web-font (Nunito Sans) download/embed — the single
+    // biggest cost per export; the card's text falls back to system-ui.
+    return domToBlob(node, { width: node.offsetWidth, height: node.offsetHeight, scale: 1, font: false });
   };
 
   const withBusy = async (fn: () => Promise<void>) => {
@@ -181,18 +200,6 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
       if (!blob) return;
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
       toast.success('Image copied');
-    });
-
-  const handleShare = () =>
-    withBusy(async () => {
-      const blob = await render();
-      if (!blob) return;
-      const file = new File([blob], `${slug}.png`, { type: 'image/png' });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: collection.name });
-      } else {
-        toast.info('Sharing not supported here — try Download');
-      }
     });
 
   return (
@@ -233,7 +240,7 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
             ]}
           />
 
-          {items.length > 10 && (
+          {items.length > 3 && (
             <Select
               size="xs"
               label="Titles shown"
@@ -242,7 +249,9 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
               allowDeselect={false}
               data={[
                 { value: 'all', label: `All (${items.length})` },
-                ...[10, 20, 30, 50].filter((n) => n < items.length).map((n) => ({ value: String(n), label: `First ${n}` })),
+                ...[3, 6, 8, 10, 12, 15, 20, 30, 50]
+                  .filter((n) => n < items.length)
+                  .map((n) => ({ value: String(n), label: `First ${n}` })),
               ]}
             />
           )}
@@ -330,11 +339,6 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
             {canCopy && (
               <Button variant="light" color="gray" leftSection={<Copy size={15} />} onClick={handleCopy} disabled={busy || !postersReady}>
                 Copy
-              </Button>
-            )}
-            {canShare && (
-              <Button variant="light" color="gray" leftSection={<Share2 size={15} />} onClick={handleShare} disabled={busy || !postersReady}>
-                Share
               </Button>
             )}
           </Group>
