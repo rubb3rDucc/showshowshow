@@ -32,7 +32,7 @@ interface ListShareCardProps extends ShareCardOptions {
   tint?: string;
   /**
    * Maps a remote poster URL to a pre-fetched data URL. Inlining the images
-   * keeps html-to-image from tainting the canvas on iOS Safari (where the
+   * keeps the export from tainting the canvas on iOS Safari (where the
    * exported PNG would otherwise drop every poster). Falls back to the remote
    * URL when a poster hasn't been resolved.
    */
@@ -58,7 +58,7 @@ function hexA(hex: string, a: number): string {
  * Off-screen branded share card for a list. Fixed width, **auto height** (grows
  * with the items so posters are never cropped). Customizable: theme
  * (quiet/dark/tinted), accent, background (poster/solid/gradient), field toggles.
- * Posters use crossOrigin so the html-to-image export isn't tainted.
+ * Posters use crossOrigin so the image export isn't tainted.
  */
 export const ListShareCard = forwardRef<HTMLDivElement, ListShareCardProps>(function ListShareCard(
   { name, description, ranked, curator, items, format, theme, accent, background, showDescription, showRanks, showBranding, showCount, limit, tint, posters },

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, SegmentedControl, Button, Group, Loader, Switch, TextInput, Select } from '@mantine/core';
 import { Download, Copy, Share2, Check } from 'lucide-react';
-import { toBlob } from 'html-to-image';
+import { domToBlob } from 'modern-screenshot';
 import { useUser } from '@clerk/clerk-react';
 import { toast } from 'sonner';
 import { ListShareCard, type ShareFormat, type ShareTheme, type ShareBackground } from './ListShareCard';
@@ -25,7 +25,7 @@ const IS_IOS =
 
 /**
  * Fetch a (CORS-enabled) image and return it as a data URL. Inlining posters
- * before html-to-image runs avoids the tainted-canvas bug on iOS Safari, where
+ * before the export runs avoids the tainted-canvas bug on iOS Safari, where
  * remote TMDB images otherwise vanish from the exported PNG.
  */
 async function toDataUrl(url: string): Promise<string> {
@@ -88,7 +88,7 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
   const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write && !IS_IOS;
 
   // Pre-resolve every poster to a data URL so the off-screen card renders
-  // inlined images — required for a clean html-to-image export on iOS.
+  // inlined images — required for a clean image export on iOS.
   const posterUrls = useMemo(
     () => Array.from(new Set(items.map((i) => i.posterUrl).filter((u): u is string => !!u))),
     [items],
@@ -140,7 +140,10 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
 
   const render = async (): Promise<Blob | null> => {
     if (!cardRef.current) return null;
-    return toBlob(cardRef.current, { cacheBust: true, pixelRatio: 1 });
+    // modern-screenshot waits for images to decode before rasterizing, which
+    // fixes the blank-posters-on-iOS bug the old html-to-image had (its SVG
+    // foreignObject pass captured before Safari finished decoding the images).
+    return domToBlob(cardRef.current, { scale: 1 });
   };
 
   const withBusy = async (fn: () => Promise<void>) => {
