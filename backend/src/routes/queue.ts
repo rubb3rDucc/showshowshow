@@ -72,15 +72,20 @@ export const queueRoutes = async (fastify: FastifyInstance) => {
 
     const newPosition = (maxPosition?.max ?? -1) + 1;
 
-    // Check if already in queue
-    const existing = await db
+    // Check if already in queue. Use IS NULL for absent season/episode — in SQL
+    // `season = NULL` is never true, which previously let whole-show duplicates through.
+    let existingQuery = db
       .selectFrom('queue')
       .select('id')
       .where('user_id', '=', userId)
-      .where('content_id', '=', content_id)
-      .where('season', '=', season ?? null)
-      .where('episode', '=', episode ?? null)
-      .executeTakeFirst();
+      .where('content_id', '=', content_id);
+    existingQuery = season == null
+      ? existingQuery.where('season', 'is', null)
+      : existingQuery.where('season', '=', season);
+    existingQuery = episode == null
+      ? existingQuery.where('episode', 'is', null)
+      : existingQuery.where('episode', '=', episode);
+    const existing = await existingQuery.executeTakeFirst();
 
     if (existing) {
       // Track duplicate attempt
