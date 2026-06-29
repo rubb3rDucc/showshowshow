@@ -2,9 +2,17 @@
 import Layout from '../layouts/Layout.astro';
 import '../styles/home.css';
 
+// NOTE: Baseline / starting-template privacy policy drafted from the app's
+// actual data footprint (Clerk auth, Stripe payments, PostHog analytics +
+// error tracking, DigitalOcean hosting, TMDB/Jikan content metadata).
+// Self-hosted so it can't lapse like the old iubenda link. Review before
+// relying on it legally; refine with Termly- or lawyer-reviewed text when
+// ready. Keep the sub-processor list in sync as you add services (e.g. Resend).
+
 const title = 'Privacy Policy - ShowShowShow';
 const description = 'Privacy Policy for ShowShowShow';
 const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.app';
+const effectiveDate = 'June 29, 2026';
 ---
 
 <Layout title={title} description={description}>
@@ -25,16 +33,160 @@ const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.app';
 
     <div class="content">
       <main class="section">
-        <div class="card" style="max-width: 900px; margin: 0 auto; text-align: center;">
-          <h1 style="margin: 0 0 16px; font-family: Sora, sans-serif;">Privacy Policy</h1>
-          <p style="color: var(--soft-ink); margin-bottom: 24px;">View our full privacy policy on iubenda.</p>
-          <a href="https://www.iubenda.com/privacy-policy/97642526" class="btn primary" target="_blank" rel="noopener" title="Privacy Policy">View Privacy Policy</a>
-          <div style="margin-top: 24px;">
+        <div class="card legal">
+          <h1>Privacy Policy</h1>
+          <p class="legal-meta">Effective date: {effectiveDate}</p>
+
+          <p>
+            This Privacy Policy explains what information ShowShowShow (“we,” “us,” or “our”)
+            collects when you use our website and app at <a href={appUrl}>{appUrl}</a> (the
+            “Service”), how we use it, and the choices you have. By using the Service, you agree to
+            this policy.
+          </p>
+
+          <h2>1. Information we collect</h2>
+          <p><strong>Account information.</strong> When you sign up, our authentication provider
+            (Clerk) collects and stores information needed to create and secure your account, such
+            as your email address and name, and — if you sign in with a third-party provider — basic
+            profile details from that provider.</p>
+          <p><strong>Content you create.</strong> We store the things you create in the Service,
+            such as your library, lists, lineups, schedules, watch progress, ratings, and notes,
+            so we can show them back to you.</p>
+          <p><strong>Payment information.</strong> If you subscribe to a paid plan, payments are
+            handled by our payment processor, Stripe. Stripe collects and processes your payment
+            details directly; we receive limited billing information (such as a customer/subscription
+            identifier and your subscription status) and <strong>do not store your full payment card
+            number</strong>.</p>
+          <p><strong>Usage &amp; technical data.</strong> We use a product-analytics and
+            error-monitoring provider (PostHog) to understand how the Service is used and to diagnose
+            problems. This may include events about how you interact with the Service, device and
+            browser information, approximate location derived from your IP address, and error logs.</p>
+
+          <h2>2. How we use information</h2>
+          <ul>
+            <li>to provide, operate, and maintain the Service;</li>
+            <li>to authenticate you and keep your account secure;</li>
+            <li>to process subscriptions and payments;</li>
+            <li>to understand usage, fix bugs, and improve the Service;</li>
+            <li>to communicate with you about your account or support requests; and</li>
+            <li>to comply with legal obligations and enforce our Terms.</li>
+          </ul>
+
+          <h2>3. Service providers we share data with</h2>
+          <p>
+            We don’t sell your personal information. We share data only with the providers we rely
+            on to run the Service, and only as needed for them to perform their function:
+          </p>
+          <ul>
+            <li><strong>Clerk</strong> — account authentication and management</li>
+            <li><strong>Stripe</strong> — payment processing and subscription billing</li>
+            <li><strong>PostHog</strong> — product analytics and error monitoring</li>
+            <li><strong>DigitalOcean</strong> — application and database hosting</li>
+            <li><strong>TMDB</strong> and <strong>Jikan / MyAnimeList</strong> — sources of title
+              metadata (we send title search queries to retrieve show, movie, and anime
+              information; we do not send them your personal account data)</li>
+          </ul>
+          <p>We may also disclose information if required by law or to protect the rights, safety,
+            and security of our users or the Service.</p>
+
+          <h2>4. Cookies &amp; similar technologies</h2>
+          <p>
+            We and our providers use cookies and similar technologies to keep you signed in and to
+            measure how the Service is used. You can control cookies through your browser settings,
+            though some features may not work without them.
+          </p>
+
+          <h2>5. Data retention</h2>
+          <p>
+            We keep your information for as long as your account is active or as needed to provide
+            the Service. When you delete your account, we delete or anonymize your personal
+            information, except where we need to retain it to meet legal, accounting, or security
+            obligations.
+          </p>
+
+          <h2>6. Your rights &amp; choices</h2>
+          <p>
+            Depending on where you live, you may have rights to access, correct, export, or delete
+            your personal information, and to object to or restrict certain processing (for example,
+            under the GDPR or CCPA). You can manage much of your information from your account
+            settings, or contact us to exercise these rights. You can also stop processing at any
+            time by deleting your account.
+          </p>
+
+          <h2>7. Data security</h2>
+          <p>
+            We use reasonable technical and organizational measures to protect your information.
+            However, no method of transmission or storage is completely secure, and we can’t
+            guarantee absolute security.
+          </p>
+
+          <h2>8. International transfers</h2>
+          <p>
+            We and our providers may process and store information in countries other than your own.
+            Where required, we take steps to ensure your information receives an adequate level of
+            protection when transferred internationally.
+          </p>
+
+          <h2>9. Children’s privacy</h2>
+          <p>
+            The Service isn’t directed to children under 13, and we don’t knowingly collect personal
+            information from them. If you believe a child has provided us personal information,
+            please contact us and we’ll delete it.
+          </p>
+
+          <h2>10. Changes to this policy</h2>
+          <p>
+            We may update this Privacy Policy from time to time. When we do, we’ll update the
+            effective date above and, where appropriate, notify you.
+          </p>
+
+          <h2>11. Contact</h2>
+          <p>
+            Questions about your privacy or this policy? Email us at
+            <a href="mailto:hello@showshowshow.app">hello@showshowshow.app</a>.
+          </p>
+
+          <div class="legal-back">
             <a class="btn ghost" href="/">Back to home</a>
           </div>
         </div>
       </main>
     </div>
   </div>
-</Layout>
 
+  <style>
+    .legal {
+      max-width: 820px;
+      margin: 0 auto;
+      text-align: left;
+      line-height: 1.65;
+    }
+    .legal h1 {
+      margin: 0 0 8px;
+      font-family: Sora, sans-serif;
+    }
+    .legal h2 {
+      margin: 28px 0 8px;
+      font-family: Sora, sans-serif;
+      font-size: 1.15rem;
+    }
+    .legal p,
+    .legal li {
+      color: var(--soft-ink);
+    }
+    .legal ul {
+      padding-left: 20px;
+    }
+    .legal li {
+      margin-bottom: 6px;
+    }
+    .legal-meta {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-bottom: 24px;
+    }
+    .legal-back {
+      margin-top: 32px;
+    }
+  </style>
+</Layout>
