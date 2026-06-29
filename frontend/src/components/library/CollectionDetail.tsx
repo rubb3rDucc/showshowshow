@@ -46,11 +46,13 @@ function DetailTile({
   rank,
   onOpen,
   onRemove,
+  editing = false,
 }: {
   item: CollectionItem;
   rank?: number;
   onOpen: (i: CollectionItem) => void;
   onRemove?: (key: string) => void;
+  editing?: boolean;
 }) {
   return (
     <div className="group relative">
@@ -82,7 +84,7 @@ function DetailTile({
             e.stopPropagation();
             onRemove(itemKey(item));
           }}
-          className="absolute top-1.5 right-1.5 w-6 h-6 inline-flex items-center justify-center rounded-md bg-black/55 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/75"
+          className={`absolute top-1.5 right-1.5 w-6 h-6 inline-flex items-center justify-center rounded-md bg-black/55 text-white transition-opacity hover:bg-black/75 ${editing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
         >
           <X size={13} />
         </button>
@@ -96,11 +98,13 @@ function SortableItem({
   rank,
   onOpen,
   onRemove,
+  editing = false,
 }: {
   item: CollectionItem;
   rank: number;
   onOpen: (i: CollectionItem) => void;
   onRemove: (key: string) => void;
+  editing?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: itemKey(item) });
   return (
@@ -115,7 +119,7 @@ function SortableItem({
       {...attributes}
       {...listeners}
     >
-      <DetailTile item={item} rank={rank} onOpen={onOpen} onRemove={onRemove} />
+      <DetailTile item={item} rank={rank} onOpen={onOpen} onRemove={onRemove} editing={editing} />
     </div>
   );
 }
@@ -136,6 +140,11 @@ export function CollectionDetail({
   onSizeChange,
 }: CollectionDetailProps) {
   const [shareOpen, setShareOpen] = useState(false);
+  // Edit mode reveals an always-visible remove (✕) on every tile so titles can
+  // be removed on touch (the hover-only ✕ is unreachable on mobile). The Edit
+  // button and tiles only render when the list is non-empty, so edit state on
+  // an emptied list is harmless (invisible).
+  const [editing, setEditing] = useState(false);
   const gridClass = POSTER_GRID[size];
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -198,7 +207,7 @@ export function CollectionDetail({
   return (
     <div>
       {/* Cinematic banner — full-bleed, slideshow of the list's posters */}
-      <div className="relative overflow-hidden -mt-8 -mx-4 md:-mx-6 lg:-mx-8 mb-8" style={{ background: '#15161a' }}>
+      <div className="relative overflow-hidden -mt-8 -mx-4 md:-mx-6 lg:-mx-8 mb-5" style={{ background: '#15161a' }}>
         {heroPosters.map((url, i) => (
           <div
             key={i}
@@ -217,7 +226,7 @@ export function CollectionDetail({
             a vertical fade into the page background so the banner melts into the grid. */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-[rgb(var(--color-bg-page))] via-black/45 to-black/25" />
-        <div className="relative z-10 flex flex-col justify-between gap-10 px-4 md:px-6 lg:px-8 pt-8 pb-20 min-h-[300px]">
+        <div className="relative z-10 flex flex-col justify-between gap-10 px-4 md:px-6 lg:px-8 pt-8 pb-6 min-h-[220px]">
           <div className="flex items-start justify-between gap-3">
             <button
               type="button"
@@ -229,6 +238,16 @@ export function CollectionDetail({
               Lists
             </button>
             <div className="flex items-center gap-2">
+              {items.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setEditing((e) => !e)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 text-white text-sm font-medium hover:bg-white/25 transition-colors"
+                >
+                  {editing ? <Check size={15} /> : <Pencil size={15} />}
+                  {editing ? 'Done' : 'Edit'}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onAddTitles}
@@ -307,7 +326,7 @@ export function CollectionDetail({
               <SortableContext items={items.map(itemKey)} strategy={rectSortingStrategy}>
                 <div className={gridClass}>
                   {items.map((item, idx) => (
-                    <SortableItem key={itemKey(item)} item={item} rank={idx + 1} onOpen={onOpenItem} onRemove={onRemoveItem} />
+                    <SortableItem key={itemKey(item)} item={item} rank={idx + 1} onOpen={onOpenItem} onRemove={onRemoveItem} editing={editing} />
                   ))}
                 </div>
               </SortableContext>
@@ -315,7 +334,7 @@ export function CollectionDetail({
           ) : (
             <div className={gridClass}>
               {items.map((item) => (
-                <DetailTile key={itemKey(item)} item={item} onOpen={onOpenItem} onRemove={onRemoveItem} />
+                <DetailTile key={itemKey(item)} item={item} onOpen={onOpenItem} onRemove={onRemoveItem} editing={editing} />
               ))}
             </div>
           )}

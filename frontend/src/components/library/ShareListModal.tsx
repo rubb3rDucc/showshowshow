@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, SegmentedControl, Button, Group, Loader, Switch, TextInput, Select } from '@mantine/core';
-import { Download, Copy, Share2, Check } from 'lucide-react';
-import { toBlob } from 'html-to-image';
+import { Download, Copy, Check } from 'lucide-react';
+import { domToBlob } from 'modern-screenshot';
 import { useUser } from '@clerk/clerk-react';
 import { toast } from 'sonner';
 import { ListShareCard, type ShareFormat, type ShareTheme, type ShareBackground } from './ListShareCard';
@@ -16,6 +16,35 @@ interface ShareListModalProps {
 
 const PREVIEW_W = 300;
 const ACCENTS = ['#646cff', '#f43f5e', '#f59e0b', '#10b981', '#0ea5e9', '#a855f7'];
+
+// iPadOS reports as "Macintosh" but is touch-capable; cover both.
+const IS_IOS =
+  typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+
+/**
+ * Fetch a (CORS-enabled) image and return it as a data URL. Inlining posters
+ * before the export runs avoids the tainted-canvas bug on iOS Safari, where
+ * remote TMDB images otherwise vanish from the exported PNG.
+ */
+async function toDataUrl(url: string): Promise<string> {
+  const res = await fetch(url, { mode: 'cors' });
+  const blob = await res.blob();
+  return await new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result as string);
+    fr.onerror = () => reject(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
+
+// Posters arrive from TMDB at w500+; the share-card tiles render ~270-360px
+// wide, so request w342 — roughly half the bytes, much faster to fetch and
+// base64-encode. Non-TMDB URLs pass through unchanged.
+function compactPosterUrl(url: string): string {
+  return url.replace(/\/t\/p\/(w\d+|original)\//, '/t/p/w342/');
+}
 
 export function ShareListModal({ opened, onClose, collection, items }: ShareListModalProps) {
   const { user } = useUser();
@@ -60,8 +89,47 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
   }, []);
   const slug = collection.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'list';
 
-  const canShare = typeof navigator !== 'undefined' && !!navigator.canShare;
-  const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write;
+  // iOS Safari throws on clipboard image writes (the "request not allowed"
+  // error), so Copy is desktop-only. The native share sheet was also dropped
+  // (unreliable permissions on iOS); Download is the universal action.
+  const canCopy = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write && !IS_IOS;
+
+  // Only the titles that will actually appear on the card (respecting `limit`)
+  // need resolving — capping to "First 6" then fetches just 6 posters.
+  const shownItems = useMemo(
+    () => (limit && limit < items.length ? items.slice(0, limit) : items),
+    [items, limit],
+  );
+  // Pre-resolve each shown poster to a data URL so the off-screen card renders
+  // inlined images — required for a clean image export on iOS.
+  const posterUrls = useMemo(
+    () => Array.from(new Set(shownItems.map((i) => i.posterUrl).filter((u): u is string => !!u))),
+    [shownItems],
+  );
+  const [posters, setPosters] = useState<Record<string, string>>({});
+  const postersReady = posterUrls.every((u) => posters[u]);
+  useEffect(() => {
+    if (!opened) return;
+    // Fetch only what's missing, then merge — raising the limit doesn't refetch
+    // posters already resolved. (Effect re-runs after setPosters, then no-ops.)
+    const missing = posterUrls.filter((u) => !posters[u]);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      missing.map(async (u) => {
+        try {
+          return [u, await toDataUrl(compactPosterUrl(u))] as const;
+        } catch {
+          return [u, u] as const; // fall back to the remote URL on fetch failure
+        }
+      }),
+    ).then((pairs) => {
+      if (!cancelled) setPosters((prev) => ({ ...prev, ...Object.fromEntries(pairs) }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [opened, posterUrls, posters]);
 
   // Extract a dominant poster color for the 'tinted' theme (CORS-enabled).
   useEffect(() => {
@@ -88,8 +156,18 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
   }, [theme, tint, items]);
 
   const render = async (): Promise<Blob | null> => {
-    if (!cardRef.current) return null;
-    return toBlob(cardRef.current, { cacheBust: true, pixelRatio: 1 });
+    const node = cardRef.current;
+    if (!node) return null;
+    // modern-screenshot waits for images to decode before rasterizing, which
+    // fixes the blank-posters-on-iOS bug the old html-to-image had (its SVG
+    // foreignObject pass captured before Safari finished decoding the images).
+    // Pass the node's natural size: it sits inside a `scale()` preview wrapper,
+    // and without an explicit size the capture is taken from the scaled bounding
+    // box and comes out cropped to the top-left corner. offsetWidth/Height are
+    // layout dimensions, unaffected by the ancestor transform.
+    // font: false skips web-font (Nunito Sans) download/embed — the single
+    // biggest cost per export; the card's text falls back to system-ui.
+    return domToBlob(node, { width: node.offsetWidth, height: node.offsetHeight, scale: 1, font: false });
   };
 
   const withBusy = async (fn: () => Promise<void>) => {
@@ -122,18 +200,6 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
       if (!blob) return;
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
       toast.success('Image copied');
-    });
-
-  const handleShare = () =>
-    withBusy(async () => {
-      const blob = await render();
-      if (!blob) return;
-      const file = new File([blob], `${slug}.png`, { type: 'image/png' });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: collection.name });
-      } else {
-        toast.info('Sharing not supported here — try Download');
-      }
     });
 
   return (
@@ -174,7 +240,7 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
             ]}
           />
 
-          {items.length > 10 && (
+          {items.length > 3 && (
             <Select
               size="xs"
               label="Titles shown"
@@ -183,7 +249,9 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
               allowDeselect={false}
               data={[
                 { value: 'all', label: `All (${items.length})` },
-                ...[10, 20, 30, 50].filter((n) => n < items.length).map((n) => ({ value: String(n), label: `First ${n}` })),
+                ...[3, 6, 8, 10, 12, 15, 20, 30, 50]
+                  .filter((n) => n < items.length)
+                  .map((n) => ({ value: String(n), label: `First ${n}` })),
               ]}
             />
           )}
@@ -227,7 +295,7 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
         {/* Preview + actions */}
         <div className="flex-1 flex flex-col items-center gap-4 order-1 md:order-2">
           <div
-            style={{ width: PREVIEW_W, height: cardH * scale, overflow: 'hidden', borderRadius: 12 }}
+            style={{ width: PREVIEW_W, height: cardH * scale || 360, overflow: 'hidden', borderRadius: 12, position: 'relative' }}
             className="shadow-md ring-1 ring-black/5"
           >
             <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
@@ -248,27 +316,29 @@ export function ShareListModal({ opened, onClose, collection, items }: ShareList
                 showCount={showCount}
                 limit={limit ?? undefined}
                 tint={tint}
+                posters={posters}
               />
             </div>
+            {!postersReady && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/80 backdrop-blur-sm">
+                <Loader size={20} />
+                <span className="text-xs text-[rgb(var(--color-text-secondary))]">Preparing image…</span>
+              </div>
+            )}
           </div>
 
           <Group gap="sm" justify="center" className="w-full">
             <Button
-              leftSection={busy ? <Loader size={14} /> : <Download size={15} />}
+              leftSection={busy || !postersReady ? <Loader size={14} /> : <Download size={15} />}
               onClick={handleDownload}
-              disabled={busy}
+              disabled={busy || !postersReady}
               className="bg-[rgb(var(--color-accent))] text-white hover:opacity-80"
             >
               Download
             </Button>
             {canCopy && (
-              <Button variant="light" color="gray" leftSection={<Copy size={15} />} onClick={handleCopy} disabled={busy}>
+              <Button variant="light" color="gray" leftSection={<Copy size={15} />} onClick={handleCopy} disabled={busy || !postersReady}>
                 Copy
-              </Button>
-            )}
-            {canShare && (
-              <Button variant="light" color="gray" leftSection={<Share2 size={15} />} onClick={handleShare} disabled={busy}>
-                Share
               </Button>
             )}
           </Group>
