@@ -247,6 +247,8 @@ interface GenerateScheduleOptions {
   episodeOrder?: 'sequential' | 'shuffle'; // play a show's episodes in order, or shuffled (default)
   resumeFromLastWatched?: boolean;          // start each show after its latest watched episode
   stayWithinSeason?: boolean;               // only schedule one season per show per run
+  // Eligibility filters (PR H):
+  maxRuntimeMinutes?: number; // only include episodes/movies at or under this runtime
 }
 
 // Latest watched (season, episode) per show — used by "resume from last watched".
@@ -294,6 +296,7 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
     episodeOrder = 'shuffle',
     resumeFromLastWatched = false,
     stayWithinSeason = false,
+    maxRuntimeMinutes,
   } = options;
 
   // Get content info to separate shows from movies
@@ -339,6 +342,11 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       // Group episodes by show, then apply resume / stay-within-season / ordering.
       showIdsOnly.forEach((showId) => {
         let showEpisodes = availableEpisodes.filter((e: any) => e.content_id === showId);
+
+        // Runtime ceiling: drop episodes longer than the cap.
+        if (maxRuntimeMinutes) {
+          showEpisodes = showEpisodes.filter((e: any) => (e.duration ?? e.default_duration ?? 30) <= maxRuntimeMinutes);
+        }
 
         // Resume: only episodes after the latest watched (season, episode).
         if (resumeFromLastWatched) {
@@ -393,6 +401,10 @@ export async function generateSchedule(options: GenerateScheduleOptions) {
       // Only include unwatched movies (or all if reruns are enabled)
       if (includeReruns || !isWatched) {
         if (!movie.default_duration || movie.default_duration <= 0) {
+          return;
+        }
+        // Runtime ceiling: skip movies longer than the cap.
+        if (maxRuntimeMinutes && movie.default_duration > maxRuntimeMinutes) {
           return;
         }
         moviesByShow.set(movieId, [{

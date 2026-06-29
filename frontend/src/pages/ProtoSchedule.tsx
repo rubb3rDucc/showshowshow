@@ -97,6 +97,14 @@ const MIN_GAPS = [
   { value: '60', label: '1 hour apart' },
   { value: '120', label: '2 hours apart' },
 ];
+// Only include episodes/movies at or under this runtime.
+const RUNTIME_CEILINGS = [
+  { value: 'off', label: 'Any length' },
+  { value: '30', label: '30 min or less' },
+  { value: '45', label: '45 min or less' },
+  { value: '60', label: '1 hour or less' },
+  { value: '90', label: '90 min or less' },
+];
 const ROTATIONS = [
   { value: 'turns', icon: <Repeat size={16} />, title: 'Take turns', desc: 'One episode from each show, then loop back around.' },
   { value: 'two', icon: <Layers size={16} />, title: 'Two at a time', desc: 'Two episodes from a show before moving to the next.' },
@@ -143,6 +151,9 @@ export function ProtoSchedule() {
   const [episodeOrder, setEpisodeOrder] = useLocalStorage<'sequential' | 'shuffle'>({ key: 'lineup.episodeOrder', defaultValue: 'shuffle' });
   const [resumeWatched, setResumeWatched] = useLocalStorage({ key: 'lineup.resumeWatched', defaultValue: false });
   const [stayWithinSeason, setStayWithinSeason] = useLocalStorage({ key: 'lineup.stayWithinSeason', defaultValue: false });
+  // Eligibility filters (what's allowed into the pool).
+  const [maxRuntime, setMaxRuntime] = useLocalStorage({ key: 'lineup.maxRuntime', defaultValue: 'off' });
+  const [includeWatched, setIncludeWatched] = useLocalStorage({ key: 'lineup.includeWatched', defaultValue: false });
   const [date, setDate] = useState(todayStr());
   // Custom-range clear dialog (pick any from/to span to wipe).
   const [clearRangeOpen, setClearRangeOpen] = useState(false);
@@ -246,7 +257,8 @@ export function ProtoSchedule() {
       timezone_offset: tzOffset(),
       rotation_type:
         rotation === 'shuffle' ? 'random' : rotation === 'two' ? 'round_robin_double' : 'round_robin',
-      include_reruns: false,
+      include_reruns: includeWatched,
+      max_runtime_minutes: maxRuntime === 'off' ? undefined : Number(maxRuntime),
       episode_filters: Object.keys(episodeFilters).length ? episodeFilters : undefined,
       appearance_cap: appearanceCap === 'off' ? undefined : Number(appearanceCap),
       min_gap_minutes: minGap === 'off' ? undefined : Number(minGap),
@@ -490,6 +502,29 @@ export function ProtoSchedule() {
                     className="h-4 w-4 accent-[#646cff]"
                   />
                   <span>Stay within one season at a time</span>
+                </label>
+              </Field>
+
+              {/* What's allowed into the pool */}
+              <Field label="What's eligible">
+                <div className="sm:max-w-xs">
+                  <p className="text-xs text-[rgb(var(--color-text-tertiary))] mb-1">Only include things this long or shorter</p>
+                  <Select
+                    size="sm"
+                    data={RUNTIME_CEILINGS}
+                    value={maxRuntime}
+                    onChange={(v) => setMaxRuntime(v || 'off')}
+                    allowDeselect={false}
+                  />
+                </div>
+                <label className="mt-3 flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={includeWatched}
+                    onChange={(e) => setIncludeWatched(e.currentTarget.checked)}
+                    className="h-4 w-4 accent-[#646cff]"
+                  />
+                  <span>Include things I've already watched</span>
                 </label>
               </Field>
             </div>

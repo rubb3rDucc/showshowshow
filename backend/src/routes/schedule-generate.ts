@@ -31,6 +31,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       episode_order = 'shuffle',
       resume_from_last_watched = false,
       stay_within_season = false,
+      max_runtime_minutes,
     } = request.body as {
       start_date?: string;
       end_date?: string;
@@ -53,6 +54,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       episode_order?: 'sequential' | 'shuffle';
       resume_from_last_watched?: boolean;
       stay_within_season?: boolean;
+      max_runtime_minutes?: number; // only include episodes/movies at or under this runtime
     };
 
     if (!start_date || !end_date) {
@@ -133,6 +135,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       episodeOrder: episode_order,
       resumeFromLastWatched: resume_from_last_watched,
       stayWithinSeason: stay_within_season,
+      maxRuntimeMinutes: max_runtime_minutes,
     });
 
     const generationTime = Date.now() - generationStartTime;

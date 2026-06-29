@@ -162,4 +162,6 @@ export interface GenerateScheduleRequest {
   episode_order?: 'sequential' | 'shuffle';
   resume_from_last_watched?: boolean;
   stay_within_season?: boolean;
+  // Eligibility filters
+  max_runtime_minutes?: number; // only include episodes/movies at or under this runtime
 }
