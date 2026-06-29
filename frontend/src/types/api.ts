@@ -149,6 +149,7 @@ export interface GenerateScheduleRequest {
   time_slot_duration?: number; // in minutes (default: 30)
   timezone_offset?: string; // Timezone offset like "-05:00" (EST) or "+00:00" (UTC)
   rotation_type?: 'round_robin' | 'random' | 'round_robin_double' | 'marathon';
+  marathon_content_id?: string; // marathon: which show to binge first
   slot_sizing?: 'fixed' | 'fit';
   include_reruns?: boolean;
   episode_filters?: Record<

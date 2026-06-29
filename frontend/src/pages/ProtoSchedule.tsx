@@ -11,12 +11,13 @@ import {
   Flame,
   Trash2,
 } from 'lucide-react';
-import { useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ScheduleXProto } from '../proto/ScheduleXProto';
 import { RealLineupDrawer } from '../proto/RealLineupDrawer';
 import type { EpisodeFilter } from '../proto/LineupEpisodePicker';
 import { getSchedule, deleteScheduleItem, generateScheduleFromQueue, clearScheduleForDate } from '../api/schedule';
+import { getQueue } from '../api/content';
 import { getTimeOfDayLabel } from '../utils/format';
 import type { GenerateScheduleRequest, ScheduleItem } from '../types/api';
 
@@ -148,6 +149,8 @@ export function ProtoSchedule() {
   const [minGap, setMinGap] = useLocalStorage({ key: 'lineup.minGap', defaultValue: 'off' });
   // How items are packed in time: even slots (fixed grid) or back-to-back (fit to runtime).
   const [slotSizing, setSlotSizing] = useLocalStorage<'fixed' | 'fit'>({ key: 'lineup.slotSizing', defaultValue: 'fixed' });
+  // Marathon: which show to binge (chosen from the active lineup shows).
+  const [marathonContentId, setMarathonContentId] = useLocalStorage({ key: 'lineup.marathonContentId', defaultValue: '' });
   const [date, setDate] = useState(todayStr());
   // Custom-range clear dialog (pick any from/to span to wipe).
   const [clearRangeOpen, setClearRangeOpen] = useState(false);
@@ -185,6 +188,12 @@ export function ProtoSchedule() {
   const items = dayQueries.flatMap((qr) => qr.data ?? []);
   const isLoading = dayQueries.some((qr) => qr.isLoading);
   const isError = dayQueries.some((qr) => qr.isError);
+
+  // Active shows in the lineup — the choices for a marathon target (shared queue cache).
+  const queueData = useQuery({ queryKey: ['queue'], queryFn: getQueue, staleTime: 30000 });
+  const marathonShows = (queueData.data ?? [])
+    .filter((qi) => qi.is_active !== false && qi.content_type !== 'movie')
+    .map((qi) => ({ value: qi.content_id, label: qi.title ?? 'Untitled' }));
 
   const queryClient = useQueryClient();
   // Generate/clear can touch several days, so refresh the whole schedule cache.
@@ -254,6 +263,7 @@ export function ProtoSchedule() {
           : rotation === 'two' ? 'round_robin_double'
           : rotation === 'marathon' ? 'marathon'
           : 'round_robin',
+      marathon_content_id: rotation === 'marathon' ? (marathonContentId || undefined) : undefined,
       slot_sizing: slotSizing,
       episode_filters: Object.keys(episodeFilters).length ? episodeFilters : undefined,
       appearance_cap: appearanceCap === 'off' ? undefined : Number(appearanceCap),
@@ -430,6 +440,21 @@ export function ProtoSchedule() {
                     />
                   ))}
                 </div>
+                {/* Marathon: pick which show to binge */}
+                {rotation === 'marathon' && (
+                  <div className="mt-3">
+                    <p className="text-xs text-[rgb(var(--color-text-tertiary))] mb-1">Marathon which show?</p>
+                    <Select
+                      size="sm"
+                      data={marathonShows}
+                      value={marathonContentId || null}
+                      onChange={(v) => setMarathonContentId(v || '')}
+                      placeholder={marathonShows.length ? 'Pick a show' : 'No shows in your lineup yet'}
+                      disabled={marathonShows.length === 0}
+                      className="sm:max-w-xs"
+                    />
+                  </div>
+                )}
                 {/* Spacing: even fixed slots vs packed back-to-back (fit to runtime) */}
                 <div className="mt-3 flex items-center gap-2">
                   <span className="text-xs text-[rgb(var(--color-text-tertiary))]">Spacing</span>

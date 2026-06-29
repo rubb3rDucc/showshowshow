@@ -210,6 +210,7 @@ interface GenerateScheduleOptions {
   includeReruns?: boolean;
   rerunFrequency?: string;
   rotationType?: 'round_robin' | 'random' | 'round_robin_double' | 'marathon';
+  marathonContentId?: string; // for marathon: the show to binge first (falls through to the rest)
   episodeFilters?: Record<string, EpisodeFilterRule>;
   // Frequency controls (global):
   appearanceCap?: number;       // max times any single title may appear across the run
@@ -1033,9 +1034,15 @@ export async function generateScheduleFromQueue(
     .orderBy('position', 'asc')
     .execute();
 
-  const showIds = [...new Set(queueItems.map((q: any) => q.content_id))] as string[];
+  let showIds = [...new Set(queueItems.map((q: any) => q.content_id))] as string[];
   if (showIds.length === 0) {
     return [];
+  }
+
+  // Marathon: float the chosen show to the front so it's binged first (round-robin then
+  // continues with the rest once it's exhausted).
+  if (options.marathonContentId && showIds.includes(options.marathonContentId)) {
+    showIds = [options.marathonContentId, ...showIds.filter((id) => id !== options.marathonContentId)];
   }
 
   // Build per-show config keyed by content_id (last item wins on duplicates).

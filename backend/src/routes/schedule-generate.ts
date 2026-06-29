@@ -28,6 +28,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       appearance_cap,
       min_gap_minutes,
       slot_sizing = 'fixed',
+      marathon_content_id,
     } = request.body as {
       start_date?: string;
       end_date?: string;
@@ -40,6 +41,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       rerun_frequency?: string;
       rotation_type?: 'round_robin' | 'random' | 'round_robin_double' | 'marathon';
       slot_sizing?: 'fixed' | 'fit'; // 'fit' packs items back-to-back at 1-min resolution
+      marathon_content_id?: string;  // marathon: which show to binge first
       episode_filters?: Record<string, {
         mode: 'all' | 'include' | 'exclude';
         seasons?: number[];
@@ -126,6 +128,7 @@ export const scheduleGenerateRoutes = async (fastify: FastifyInstance) => {
       includeReruns: include_reruns,
       rerunFrequency: rerun_frequency,
       rotationType: rotation_type,
+      marathonContentId: marathon_content_id,
       episodeFilters: episode_filters,
       appearanceCap: appearance_cap,
       minGapMinutes: min_gap_minutes,
