@@ -12,6 +12,7 @@ import {
   getContentByTmdbId,
   getContentByMalId,
   setQueueItemActive,
+  updateQueueItem,
 } from '../api/content';
 import type { QueueItem, SearchResult } from '../types/api';
 
@@ -50,6 +51,25 @@ export function RealLineupDrawer({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => setQueueItemActive(id, isActive),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queue'] }),
     onError: () => toast.error('Could not update that item'),
+  });
+
+  // Per-show scheduler flags (include-watched, order, resume). Optimistic so toggles feel
+  // instant and don't refetch/flicker the whole lineup.
+  const settingsMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updateQueueItem>[1] }) =>
+      updateQueueItem(id, patch),
+    onMutate: async ({ id, patch }) => {
+      await queryClient.cancelQueries({ queryKey: ['queue'] });
+      const prev = queryClient.getQueryData<QueueItem[]>(['queue']);
+      queryClient.setQueryData<QueueItem[]>(['queue'], (old) =>
+        old?.map((it) => (it.id === id ? { ...it, ...patch } : it))
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['queue'], ctx.prev);
+      toast.error('Could not update that setting');
+    },
   });
 
   const items = queue.data ?? [];
@@ -201,6 +221,28 @@ export function RealLineupDrawer({
                       </button>
                     )}
                   </div>
+                  {/* Per-show scheduler flags */}
+                  <div className="flex items-center gap-x-3 gap-y-1 flex-wrap">
+                    <Flag
+                      checked={item.include_watched ?? false}
+                      onChange={(v) => settingsMutation.mutate({ id: item.id, patch: { include_watched: v } })}
+                      label="Watched"
+                    />
+                    {item.content_type !== 'movie' && (
+                      <>
+                        <Flag
+                          checked={(item.episode_order ?? 'shuffle') === 'sequential'}
+                          onChange={(v) => settingsMutation.mutate({ id: item.id, patch: { episode_order: v ? 'sequential' : 'shuffle' } })}
+                          label="In order"
+                        />
+                        <Flag
+                          checked={item.resume_from_last_watched ?? false}
+                          onChange={(v) => settingsMutation.mutate({ id: item.id, patch: { resume_from_last_watched: v } })}
+                          label="Resume"
+                        />
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -223,5 +265,19 @@ export function RealLineupDrawer({
         </div>
       )}
     </section>
+  );
+}
+
+// Compact per-show on/off flag used on each lineup card.
+function Flag({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <Switch
+      size="xs"
+      checked={checked}
+      onChange={(e) => onChange(e.currentTarget.checked)}
+      label={label}
+      labelPosition="left"
+      classNames={{ label: 'text-xs text-[rgb(var(--color-text-tertiary))]' }}
+    />
   );
 }

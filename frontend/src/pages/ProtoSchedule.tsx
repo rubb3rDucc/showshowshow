@@ -97,14 +97,6 @@ const MIN_GAPS = [
   { value: '60', label: '1 hour apart' },
   { value: '120', label: '2 hours apart' },
 ];
-// Only include episodes/movies at or under this runtime.
-const RUNTIME_CEILINGS = [
-  { value: 'off', label: 'Any length' },
-  { value: '30', label: '30 min or less' },
-  { value: '45', label: '45 min or less' },
-  { value: '60', label: '1 hour or less' },
-  { value: '90', label: '90 min or less' },
-];
 const ROTATIONS = [
   { value: 'turns', icon: <Repeat size={16} />, title: 'Take turns', desc: 'One episode from each show, then loop back around.' },
   { value: 'two', icon: <Layers size={16} />, title: 'Two at a time', desc: 'Two episodes from a show before moving to the next.' },
@@ -143,17 +135,10 @@ export function ProtoSchedule() {
   const [customEnd, setCustomEnd] = useLocalStorage({ key: 'lineup.customEnd', defaultValue: '23:00' });
   const [rotation, setRotation] = useLocalStorage({ key: 'lineup.rotation', defaultValue: 'turns' });
   const [dateRange, setDateRange] = useLocalStorage({ key: 'lineup.dateRange', defaultValue: 'tonight' });
-  // Frequency controls (how often a title can repeat across the run).
+  // Frequency controls (global — how often a title can repeat across the run).
+  // (Per-show order / resume / include-watched live on each lineup card instead.)
   const [appearanceCap, setAppearanceCap] = useLocalStorage({ key: 'lineup.appearanceCap', defaultValue: 'off' });
   const [minGap, setMinGap] = useLocalStorage({ key: 'lineup.minGap', defaultValue: 'off' });
-  const [exhaustFirst, setExhaustFirst] = useLocalStorage({ key: 'lineup.exhaustFirst', defaultValue: false });
-  // Episode progression (which episode of a show plays, in what order).
-  const [episodeOrder, setEpisodeOrder] = useLocalStorage<'sequential' | 'shuffle'>({ key: 'lineup.episodeOrder', defaultValue: 'shuffle' });
-  const [resumeWatched, setResumeWatched] = useLocalStorage({ key: 'lineup.resumeWatched', defaultValue: false });
-  const [stayWithinSeason, setStayWithinSeason] = useLocalStorage({ key: 'lineup.stayWithinSeason', defaultValue: false });
-  // Eligibility filters (what's allowed into the pool).
-  const [maxRuntime, setMaxRuntime] = useLocalStorage({ key: 'lineup.maxRuntime', defaultValue: 'off' });
-  const [includeWatched, setIncludeWatched] = useLocalStorage({ key: 'lineup.includeWatched', defaultValue: false });
   const [date, setDate] = useState(todayStr());
   // Custom-range clear dialog (pick any from/to span to wipe).
   const [clearRangeOpen, setClearRangeOpen] = useState(false);
@@ -257,15 +242,9 @@ export function ProtoSchedule() {
       timezone_offset: tzOffset(),
       rotation_type:
         rotation === 'shuffle' ? 'random' : rotation === 'two' ? 'round_robin_double' : 'round_robin',
-      include_reruns: includeWatched,
-      max_runtime_minutes: maxRuntime === 'off' ? undefined : Number(maxRuntime),
       episode_filters: Object.keys(episodeFilters).length ? episodeFilters : undefined,
       appearance_cap: appearanceCap === 'off' ? undefined : Number(appearanceCap),
       min_gap_minutes: minGap === 'off' ? undefined : Number(minGap),
-      exhaust_before_repeat: exhaustFirst,
-      episode_order: episodeOrder,
-      resume_from_last_watched: resumeWatched,
-      stay_within_season: stayWithinSeason,
     });
   };
 
@@ -464,68 +443,6 @@ export function ProtoSchedule() {
                     />
                   </div>
                 </div>
-                <label className="mt-3 flex items-center gap-2 text-sm cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={exhaustFirst}
-                    onChange={(e) => setExhaustFirst(e.currentTarget.checked)}
-                    className="h-4 w-4 accent-[#646cff]"
-                  />
-                  <span>Play everything once before repeating anything</span>
-                </label>
-              </Field>
-
-              {/* Which episode of a show plays, and in what order */}
-              <Field label="Episodes">
-                <div className="flex items-center gap-2 mb-3">
-                  <Chip active={episodeOrder === 'shuffle'} onClick={() => setEpisodeOrder('shuffle')}>
-                    Shuffle
-                  </Chip>
-                  <Chip active={episodeOrder === 'sequential'} onClick={() => setEpisodeOrder('sequential')}>
-                    In order
-                  </Chip>
-                </div>
-                <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={resumeWatched}
-                    onChange={(e) => setResumeWatched(e.currentTarget.checked)}
-                    className="h-4 w-4 accent-[#646cff]"
-                  />
-                  <span>Resume each show from where I left off</span>
-                </label>
-                <label className="mt-2 flex items-center gap-2 text-sm cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={stayWithinSeason}
-                    onChange={(e) => setStayWithinSeason(e.currentTarget.checked)}
-                    className="h-4 w-4 accent-[#646cff]"
-                  />
-                  <span>Stay within one season at a time</span>
-                </label>
-              </Field>
-
-              {/* What's allowed into the pool */}
-              <Field label="What's eligible">
-                <div className="sm:max-w-xs">
-                  <p className="text-xs text-[rgb(var(--color-text-tertiary))] mb-1">Only include things this long or shorter</p>
-                  <Select
-                    size="sm"
-                    data={RUNTIME_CEILINGS}
-                    value={maxRuntime}
-                    onChange={(v) => setMaxRuntime(v || 'off')}
-                    allowDeselect={false}
-                  />
-                </div>
-                <label className="mt-3 flex items-center gap-2 text-sm cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={includeWatched}
-                    onChange={(e) => setIncludeWatched(e.currentTarget.checked)}
-                    className="h-4 w-4 accent-[#646cff]"
-                  />
-                  <span>Include things I've already watched</span>
-                </label>
               </Field>
             </div>
           </Collapse>

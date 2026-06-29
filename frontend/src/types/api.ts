@@ -90,6 +90,10 @@ export interface QueueItem {
   season?: number | null;
   episode?: number | null;
   is_active?: boolean; // false = stays in the lineup but the generator skips it
+  // Per-show scheduler flags the generator honors for this show.
+  include_watched?: boolean;
+  episode_order?: 'sequential' | 'shuffle';
+  resume_from_last_watched?: boolean;
   created_at: string;
   // Joined data from backend
   tmdb_id?: number;
@@ -154,14 +158,7 @@ export interface GenerateScheduleRequest {
       episodes?: Array<{ season: number; episode: number }>;
     }
   >;
-  // Frequency controls
+  // Frequency controls (global)
   appearance_cap?: number; // max times any title appears across the run
   min_gap_minutes?: number; // min minutes between repeats of the same title
-  exhaust_before_repeat?: boolean; // no repeats until every title has appeared once
-  // Episode progression
-  episode_order?: 'sequential' | 'shuffle';
-  resume_from_last_watched?: boolean;
-  stay_within_season?: boolean;
-  // Eligibility filters
-  max_runtime_minutes?: number; // only include episodes/movies at or under this runtime
 }
