@@ -9,6 +9,10 @@ on:
     branches: [master]
     paths-ignore:
       - '**/*.md'
+  # Weekly audit sweep, so a quiet month still surfaces new advisories.
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
 
 jobs:
   test-backend:
@@ -51,9 +55,6 @@ jobs:
       - name: Build
         working-directory: backend
         run: pnpm build
-      - name: Security audit
-        working-directory: backend
-        run: pnpm audit --audit-level=moderate
 
   test-frontend:
     runs-on: ubuntu-latest
@@ -76,8 +77,40 @@ jobs:
       - name: Build
         working-directory: frontend
         run: pnpm build
-      - name: Security audit
-        working-directory: frontend
+
+  # Advisories are reported, never merge-blocking.
+  #
+  # This used to be a step inside test-backend and test-frontend, which are the
+  # two required status checks. That meant any advisory published against any
+  # transitive dependency turned both checks red on every open PR, including
+  # PRs that touched no dependency at all. Dependabot's own PRs were caught by
+  # the same gate, so the updates that would have fixed the advisory could not
+  # merge either. The jam sustained itself.
+  #
+  # As its own job it still shows up on every PR, so nothing is hidden, but it
+  # is not in the required-checks list and cannot block a merge. The schedule
+  # keeps it honest during quiet weeks when no PRs are opened.
+  security-audit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: '${{ matrix.project }}/pnpm-lock.yaml'
+      - name: Install dependencies
+        working-directory: ${{ matrix.project }}
+        run: pnpm install
+      - name: Audit
+        working-directory: ${{ matrix.project }}
         run: pnpm audit --audit-level=moderate
 
   build-and-push-backend:
