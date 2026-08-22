@@ -1,118 +1,68 @@
-# ShowShowShow Landing Page
+# ShowShowShow Marketing Site
 
-Marketing landing page for ShowShowShow built with Astro and Tailwind CSS.
+The public marketing site at [showshowshow.app](https://showshowshow.app), built with Astro and Tailwind CSS. The app itself lives at `app.showshowshow.app` and is served from `frontend/`.
+
+## Pages
+
+| Route | Purpose |
+|---|---|
+| `/` | Homepage. Copy and layout are inlined directly in `index.astro` plus `styles/home.css`. |
+| `/privacy` | Self-hosted privacy policy |
+| `/terms` | Self-hosted terms, covering subscriptions, refunds, and auto-renewal |
+| `/contact` | Contact details |
+| `/404` | Not found |
+
+The legal pages are self-hosted rather than embedded from a third party. They are a
+starting template and have not been reviewed by a lawyer.
 
 ## Setup
 
-1. Install dependencies:
 ```bash
 cd smallweb
 pnpm install
-# or
-npm install
-```
-
-2. Copy the example environment file and fill in your values:
-```bash
 cp .env.example .env
 ```
 
-Then edit `.env` with your actual values. See `.env.example` for all available options.
-
-**Required for waitlist:**
-- `PUBLIC_API_URL` - Your backend API URL (e.g., `https://api.showshowshow.com`)
-
-**Optional:**
-- `PUBLIC_APP_URL` - Main app URL for links
-- `PUBLIC_UMAMI_URL` & `PUBLIC_UMAMI_ID` - Analytics (optional)
+| Variable | Required | Description |
+|---|---|---|
+| `PUBLIC_API_URL` | for the waitlist | Backend API URL, e.g. `https://api.showshowshow.app` |
+| `PUBLIC_APP_URL` | no | Main app URL for links, defaults to `https://app.showshowshow.app` |
+| `PUBLIC_UMAMI_URL`, `PUBLIC_UMAMI_ID` | no | Umami analytics, wired up in `layouts/Layout.astro`. The app itself uses PostHog; these are separate. |
 
 ## Development
 
 ```bash
-pnpm dev
-# or
-npm run dev
+pnpm dev      # http://localhost:4321
+pnpm build    # outputs to dist/
+pnpm preview  # serve the build
 ```
-
-Visit `http://localhost:4321`
-
-## Build
-
-```bash
-pnpm build
-# or
-npm run build
-```
-
-Output will be in `dist/`
-
-## Preview
-
-```bash
-pnpm preview
-# or
-npm run preview
-```
-
-## Deployment
-
-See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for detailed deployment instructions.
-
-**Quick start (Vercel - Recommended):**
-
-1. Push code to GitHub
-2. Go to [vercel.com](https://vercel.com) and import your repository
-3. Set root directory to `smallweb`
-4. Add environment variables:
-   - `PUBLIC_API_URL` (required)
-   - `PUBLIC_APP_URL` (optional)
-   - `PUBLIC_UMAMI_URL` & `PUBLIC_UMAMI_ID` (optional)
-5. Deploy!
-
-Vercel auto-detects Astro and requires zero configuration. See `DEPLOYMENT.md` for Netlify, Cloudflare Pages, and other options.
 
 ## Project Structure
 
-```
+```text
 smallweb/
 ├── src/
 │   ├── components/     # Astro components
-│   ├── layouts/        # Layout components
-│   ├── pages/          # Pages (index.astro)
-│   └── styles/         # Global styles
-├── public/             # Static assets
-└── dist/              # Build output
+│   ├── layouts/        # Layout.astro, wraps every page
+│   ├── pages/          # index, privacy, terms, contact, 404
+│   └── styles/         # global.css, home.css
+├── public/
+│   ├── images/         # Screenshots
+│   └── videos/
+└── dist/               # Build output, gitignored
 ```
 
-## Features
+## A note on components
 
-- Single-page marketing site
-- Brutalist design aesthetic
-- Responsive design
-- SEO optimized
-- Umami analytics integration
-- Image rotation system
-- Waitlist signup
-- Legal pages (Privacy, Terms, Contact)
+`src/components/` still holds section components from an earlier multi-section
+homepage (`Hero`, `Features`, `Pricing`, `FAQ`, `Comparison`, `UseCases`, and
+others). The homepage was rewritten to inline its markup, so **only `Header.astro`
+is still imported**, by `404.astro`. The rest are unreferenced and are candidates
+for deletion. They remain in git history either way.
 
-## Images
+## Deployment
 
-Screenshot images should be placed in `/public/images/`:
-
-- **Features section**: `schedule1.png`, `schedule2.png`, `schedule3.png`
-- **HowItWorks section**: `scheduling-interface.png`, `scheduling-interface-2.png`, etc.
-- **Pricing section**: `billing-dashboard.png`, `billing-dashboard-2.png`, etc.
-- **UseCases section**: `user-profile.png`, `user-profile-2.png`, etc.
-- **Comparison section**: `comparison-view.png`, `comparison-view-2.png`, etc.
-
-Images will automatically rotate every 4 seconds. Update the image arrays in each component's frontmatter.
-
-## Missing Assets
-
-Before deployment, add:
-- `/public/favicon.ico` (or `.svg`)
-- `/public/og-image.png` (1200x630px for social sharing)
-
-## TODO
-
-See `COMPLETION_CHECKLIST.md` for full list of remaining tasks.
+Deployed as a static build. `dist/` is the output directory and Astro is detected
+automatically by every major static host. Set `PUBLIC_API_URL` in the host's
+environment settings before building, since Astro inlines `PUBLIC_*` values at
+build time.

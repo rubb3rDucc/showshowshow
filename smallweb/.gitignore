@@ -23,3 +23,6 @@ pnpm-debug.log*
 .idea/
 smallweb/.env
 smallweb/.env.local
+
+# Astro generated cache
+.astro/

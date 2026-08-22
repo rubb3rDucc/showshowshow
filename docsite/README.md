@@ -1,41 +1,27 @@
-# Website
+# ShowShowShow Docs
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+Documentation site built with [Docusaurus](https://docusaurus.io/).
 
-## Installation
+## Status
 
-```bash
-yarn
-```
+Not deployed. `docusaurus.config.ts` still points `url` at `http://localhost:3001`.
 
-## Local Development
+The content in `docs/` is currently a mirror of private working notes, including
+audits and strategy documents, so **it is not publishable as-is**. Making this
+public-facing means authoring a separate, smaller doc set.
 
-```bash
-yarn start
-```
+There is also a build blocker: the repo root `.gitignore` ignores `docs` with an
+unanchored rule, which matches `docsite/docs` as well as the root `docs/`. That
+means the site's content is untracked and CI cannot build it. Anchoring the rule
+to `/docs/` is a prerequisite.
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
-
-## Build
-
-```bash
-yarn build
-```
-
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
-
-## Deployment
-
-Using SSH:
+## Development
 
 ```bash
-USE_SSH=true yarn deploy
+cd docsite
+pnpm install
+pnpm start      # http://localhost:3001
+pnpm build      # static build into build/
+pnpm serve      # serve the build
+pnpm typecheck
 ```
-
-Not using SSH:
-
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
