@@ -10,7 +10,9 @@ overrides:
   protobufjs: '>=8.6.0'
   js-cookie: '>=3.0.7'
   esbuild: '>=0.28.1'
-  vite: '^7.3.5'
+  vite: '>=7.3.6'
+  postcss: '>=8.5.23'   # GHSA-r28c-9q8g-f849, GHSA-fxqj-rqcc-2cmp
+  nanoid: '>=3.3.18'    # GHSA-28wg-ghj8-5hjv, GHSA-2v37-7h3g-55p8
   '@babel/core': '>=7.29.6'
   markdown-it: '>=14.2.0'
   '@opentelemetry/core': '>=2.8.0'
