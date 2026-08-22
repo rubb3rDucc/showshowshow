@@ -21,7 +21,6 @@ import { scheduleRoutes } from './routes/schedule.js';
 import { scheduleGenerateRoutes } from './routes/schedule-generate.js';
 import { libraryRoutes } from './routes/library.js';
 import { userRoutes } from './routes/user.js';
-import { waitlistRoutes } from './routes/waitlist.js';
 import { networkRoutes } from './routes/networks.js';
 import { peopleRoutes } from './routes/people.js';
 import { billingRoutes } from './routes/billing.js';
@@ -242,7 +241,6 @@ const start = async () => {
     await fastify.register(scheduleGenerateRoutes);
     await fastify.register(libraryRoutes);
     await fastify.register(userRoutes);
-    await fastify.register(waitlistRoutes);
     await fastify.register(networkRoutes);
     await fastify.register(peopleRoutes);
     await fastify.register(billingRoutes);
@@ -288,9 +286,6 @@ const start = async () => {
     console.log(`   PATCH  ${host}:${port}/api/user/email`);
     console.log(`   PATCH  ${host}:${port}/api/user/password`);
     console.log(`   DELETE ${host}:${port}/api/user/account`);
-    console.log(`📧 Waitlist:`);
-    console.log(`   POST   ${host}:${port}/api/waitlist`);
-    console.log(`   GET    ${host}:${port}/api/waitlist`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

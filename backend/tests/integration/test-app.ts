@@ -13,7 +13,6 @@ import { queueRoutes } from '../../src/routes/queue.js';
 import { scheduleRoutes } from '../../src/routes/schedule.js';
 import { scheduleGenerateRoutes } from '../../src/routes/schedule-generate.js';
 import { libraryRoutes } from '../../src/routes/library.js';
-import { waitlistRoutes } from '../../src/routes/waitlist.js';
 import { networkRoutes } from '../../src/routes/networks.js';
 import { authRoutes } from '../../src/routes/auth.js';
 
@@ -75,7 +74,6 @@ export async function buildTestApp(options: TestAppOptions = {}): Promise<Fastif
   await app.register(scheduleRoutes);
   await app.register(scheduleGenerateRoutes);
   await app.register(libraryRoutes);
-  await app.register(waitlistRoutes);
   await app.register(networkRoutes);
 
   return app;

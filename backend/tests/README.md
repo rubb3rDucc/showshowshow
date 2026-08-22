@@ -1,8 +1,21 @@
-# ShowShowShow Test Scripts
+# ShowShowShow Backend Tests
 
 ## Overview
 
-This directory contains automated test scripts for the ShowShowShow backend API.
+Three kinds of tests live here:
+
+| Location | Kind | How to run |
+|---|---|---|
+| `unit/` | Vitest unit tests over pure logic | `pnpm run test:unit` |
+| `integration/` | Vitest integration tests against a real Fastify instance (`setup/test-app.ts`) | `pnpm run test:integration` |
+| `*.sh`, this file | Shell smoke tests hitting a running server | see below |
+| `load/` | k6 load script | see `load/README.md` |
+
+`pnpm run test` starts Vitest in watch mode; `pnpm run test:run` runs once and
+`pnpm run test:coverage` adds coverage.
+
+The rest of this document covers the **shell smoke tests** only. They require a
+server already running on `http://localhost:3000` and are not part of CI.
 
 ## Prerequisites
 
