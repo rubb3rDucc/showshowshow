@@ -1,14 +1,16 @@
 # pnpm settings. Since pnpm 11, these live here instead of the package.json
 # "pnpm" field (which pnpm 11 silently ignores).
 
-# CVE-pinning overrides for transitive dependencies.
+# Overrides are for TRANSITIVE packages only.
+#
+# Never add an override for something that is also a direct dependency here.
+# The two disagree the moment `pnpm update` rewrites the manifest range, and
+# `--frozen-lockfile` then refuses to install with a mismatch naming a package
+# nobody touched. vite and postcss were both removed for exactly that reason;
+# their own ranges in package.json already exceed the advisory floors.
 overrides:
   esbuild: '>=0.28.1'
   picomatch: '>=4.0.4'
-  # Caret-bounded on purpose. vite is a DIRECT dependency, so an unbounded
-  # '>=' here lets `pnpm update` resolve vite 8 and rewrite package.json to
-  # match, which is how a major slipped into an automated refresh.
-  vite: '^7.3.6'
   postcss: '>=8.5.23'   # GHSA-r28c-9q8g-f849, GHSA-fxqj-rqcc-2cmp
   fast-uri: '>=4.1.2'   # GHSA-v2hh-gcrm-f6hx, GHSA-7p8r-x3mc-p8w7, GHSA-4c8g-83qw-93j6
   find-my-way: '>=9.6.1' # GHSA-c96f-x56v-gq3h

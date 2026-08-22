@@ -60,6 +60,22 @@ jobs:
             echo "::endgroup::"
           done
 
+          # Keep this strictly lockfile-only.
+          #
+          # `pnpm update` also rewrites package.json ranges, which is not what
+          # this job is for: declared-range bumps are Dependabot's job, and it
+          # opens reviewable PRs for them. Worse, a rewritten range can end up
+          # disagreeing with a pnpm-workspace.yaml override, and then
+          # --frozen-lockfile refuses to install with a mismatch naming a
+          # package nobody touched. That is exactly how the first two dry runs
+          # of this job broke CI, on vite and then postcss.
+          #
+          # So restore the manifests and reconcile the lockfiles against them.
+          git checkout -- '*/package.json'
+          for p in backend frontend; do
+            (cd "$p" && pnpm install --no-frozen-lockfile --ignore-scripts)
+          done
+
       - name: Audit
         id: audit
         run: |
@@ -95,10 +111,9 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
             git diff --stat -- '*/pnpm-lock.yaml' '*/package.json' > /tmp/stat.txt
           fi
-          # Manifest edits are the risky ones and need calling out separately.
-          # `pnpm update` DOES rewrite package.json ranges when an override is
-          # unbounded: a '>=x' override on a direct dependency let it resolve
-          # vite 8 and rewrite the caret to match. Never assume lockfile-only.
+          # Belt and braces. The refresh step restores manifests, so this should
+          # always be false; if it ever fires, something changed in how pnpm
+          # writes package.json and the PR body will say so loudly.
           if git diff --quiet -- '*/package.json'; then
             echo "manifest=false" >> "$GITHUB_OUTPUT"
           else
