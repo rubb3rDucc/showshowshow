@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# Pre-push gate. Mirrors the required CI checks (test-backend, test-frontend)
+# so a push cannot turn master's PR checks red for something reproducible here.
+#
+# Not committed: .git/hooks is local. See scripts/install-hooks.sh to reinstall.
+
+set -u
+ROOT="$(git rev-parse --show-toplevel)"
+FAILED=""
+
+note()  { printf '\n\033[1m%s\033[0m\n' "$1"; }
+fail()  { FAILED="$FAILED\n  - $1"; printf '  \033[31mFAIL\033[0m %s\n' "$1"; }
+ok()    { printf '  \033[32mok\033[0m   %s\n' "$1"; }
+
+# ---------------------------------------------------------------------------
+# 1. Lockfile consistency, the check that actually bit us.
+#
+# CI runs `pnpm install` with frozen-lockfile implied. If package.json and
+# pnpm-lock.yaml disagree on any specifier, install dies before a single test
+# runs. Running `pnpm install --frozen-lockfile` HERE does not catch it: with a
+# warm node_modules pnpm short-circuits on "Already up to date" and skips the
+# specifier comparison entirely. --lockfile-only and --resolution-only miss it
+# too, and one of them rewrites the lockfile as a side effect.
+#
+# So copy just the manifests into a temp dir and install there. No node_modules
+# means no short-circuit, and it is fast because the pnpm store is already warm.
+#
+# Remember that the specifier compared is the one AFTER pnpm-workspace.yaml
+# overrides are applied, which is why that file has to come along too.
+# ---------------------------------------------------------------------------
+note "Checking lockfiles against manifests (as CI would)"
+for proj in backend frontend; do
+  [ -f "$ROOT/$proj/pnpm-lock.yaml" ] || continue
+  tmp="$(mktemp -d)"
+  cp "$ROOT/$proj/package.json" "$ROOT/$proj/pnpm-lock.yaml" "$tmp/" 2>/dev/null
+  [ -f "$ROOT/$proj/pnpm-workspace.yaml" ] && cp "$ROOT/$proj/pnpm-workspace.yaml" "$tmp/"
+  if out=$(cd "$tmp" && pnpm install --frozen-lockfile --ignore-scripts 2>&1); then
+    ok "$proj lockfile in sync"
+  else
+    fail "$proj lockfile out of sync with package.json"
+    echo "$out" | grep -A5 "ERR_PNPM_OUTDATED_LOCKFILE" | sed 's/^/       /'
+    echo "       fix: cd $proj && pnpm install"
+  fi
+  rm -rf "$tmp"
+done
+
+# ---------------------------------------------------------------------------
+# 2. Backend tests. CI runs test:run (unit + integration), not just test:unit.
+# ---------------------------------------------------------------------------
+note "Backend tests"
+if (cd "$ROOT/backend" && pnpm run test:run >/dev/null 2>&1); then
+  ok "tests pass"
+else
+  fail "backend tests"
+  echo "       see: cd backend && pnpm run test:run"
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Frontend lint. The previous hook ran this but never checked its exit code,
+#    so a lint failure still printed "Tests passed. Pushing..." and exited 0.
+# ---------------------------------------------------------------------------
+note "Frontend lint"
+if (cd "$ROOT/frontend" && pnpm run lint >/dev/null 2>&1); then
+  ok "lint clean"
+else
+  fail "frontend lint"
+  echo "       see: cd frontend && pnpm run lint"
+fi
+
+if [ -n "$FAILED" ]; then
+  printf '\n\033[31mPush aborted.\033[0m These would fail CI:%b\n\n' "$FAILED"
+  echo "To push anyway (e.g. a WIP branch nobody depends on): git push --no-verify"
+  exit 1
+fi
+
+printf '\n\033[32mAll pre-push checks passed.\033[0m\n\n'
+exit 0
