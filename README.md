@@ -47,7 +47,7 @@ Built for people who want to watch TV intentionally, instead of scrolling and ta
   │                                                    │
   │  Routes  :  queue     schedule  library   content  │
   │             lists     reviews   people    networks │
-  │             billing   user      waitlist  webhooks │
+  │             billing   user      auth      webhooks │
   │  Auth    :  Clerk JWT verification                 │
   │  Billing :  Stripe subscription entitlements       │
   │  Cache   :  Redis (TMDB and Jikan responses)       │

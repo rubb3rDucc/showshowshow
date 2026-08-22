@@ -25,9 +25,10 @@ cp .env.example .env
 
 | Variable | Required | Description |
 |---|---|---|
-| `PUBLIC_API_URL` | for the waitlist | Backend API URL, e.g. `https://api.showshowshow.app` |
-| `PUBLIC_APP_URL` | no | Main app URL for links, defaults to `https://app.showshowshow.app` |
+| `PUBLIC_APP_URL` | no | Main app URL for the Login, Start Trial, and Go to app links. Defaults to `https://app.showshowshow.app`. |
 | `PUBLIC_UMAMI_URL`, `PUBLIC_UMAMI_ID` | no | Umami analytics, wired up in `layouts/Layout.astro`. The app itself uses PostHog; these are separate. |
+
+The site is fully static and makes **no API calls**, so it needs no backend URL.
 
 ## Development
 
@@ -63,6 +64,6 @@ for deletion. They remain in git history either way.
 ## Deployment
 
 Deployed as a static build. `dist/` is the output directory and Astro is detected
-automatically by every major static host. Set `PUBLIC_API_URL` in the host's
-environment settings before building, since Astro inlines `PUBLIC_*` values at
-build time.
+automatically by every major static host. Set any `PUBLIC_*` values in the host's
+environment settings before the build runs, since Astro inlines them at build
+time rather than reading them per request.

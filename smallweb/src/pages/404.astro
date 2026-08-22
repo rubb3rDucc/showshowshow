@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import '../styles/global.css';
 
+const appUrl = import.meta.env.PUBLIC_APP_URL || 'https://app.showshowshow.app';
 const title = '404 - Page Not Found - ShowShowShow';
 const description = 'Page not found on ShowShowShow';
 ---
@@ -40,10 +41,10 @@ const description = 'Page not found on ShowShowShow';
             ← Back to Home
           </a>
           <a
-            href="#waitlist"
+            href={appUrl}
             class="bg-pastel-blue text-black border-4 border-black px-6 py-3 font-black uppercase hover:bg-pastel-yellow transition-colors inline-block"
           >
-            Join Waitlist
+            Go to App
           </a>
         </div>
       </div>

@@ -171,7 +171,6 @@ so TMDB and Jikan titles are handled identically.
 **Other**
 - `GET /api/networks` - Networks and providers
 - `GET /api/user` - User profile
-- `POST /api/waitlist` - Waitlist signup
 - `POST /api/webhooks/clerk` - Clerk lifecycle events
 
 ## Project Structure
@@ -218,8 +217,7 @@ backend/
 │   │   ├── reviews.ts
 │   │   ├── schedule.ts
 │   │   ├── schedule-generate.ts
-│   │   ├── user.ts
-│   │   └── waitlist.ts
+│   │   └── user.ts
 │   └── index.ts                 # Server entry point
 ├── tests/
 │   ├── unit/                    # Vitest unit tests
