@@ -95,12 +95,23 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
             git diff --stat -- '*/pnpm-lock.yaml' '*/package.json' > /tmp/stat.txt
           fi
+          # Manifest edits are the risky ones and need calling out separately.
+          # `pnpm update` DOES rewrite package.json ranges when an override is
+          # unbounded: a '>=x' override on a direct dependency let it resolve
+          # vite 8 and rewrite the caret to match. Never assume lockfile-only.
+          if git diff --quiet -- '*/package.json'; then
+            echo "manifest=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "manifest=true" >> "$GITHUB_OUTPUT"
+            git diff -U0 -- '*/package.json' | grep -E '^[-+]    "' > /tmp/manifest.txt || true
+          fi
 
       # ---- Case 1: something moved. Open or update a PR. --------------------
       - name: Open refresh PR
         if: steps.diff.outputs.changed == 'true'
         env:
           AUDIT_CLEAN: ${{ steps.audit.outputs.clean }}
+          MANIFEST_CHANGED: ${{ steps.diff.outputs.manifest }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -116,8 +127,18 @@ jobs:
           git push -f origin "$BRANCH"
 
           {
-            echo "Automated monthly refresh. \`pnpm update --depth Infinity\` in both projects, which only moves to versions the existing semver ranges already permit."
+            echo "Automated monthly refresh: \`pnpm update --depth Infinity\` in both projects."
             echo
+            if [ "$MANIFEST_CHANGED" = "true" ]; then
+              echo "### :warning: package.json ranges changed"
+              echo
+              echo "This is not a lockfile-only update. A declared range moved, which can cross a major if an override is unbounded. Review these before merging:"
+              echo
+              echo '```diff'
+              cat /tmp/manifest.txt
+              echo '```'
+              echo
+            fi
             echo "### Lockfile changes"
             echo '```'
             cat /tmp/stat.txt
@@ -140,9 +161,22 @@ jobs:
           if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
             gh pr edit "$BRANCH" --body-file /tmp/body.md
             echo "Updated the existing refresh PR."
+          elif gh pr create --base master --head "$BRANCH" \
+                 --title "chore: monthly dependency refresh" --body-file /tmp/body.md; then
+            echo "Opened a refresh PR."
           else
-            gh pr create --base master --head "$BRANCH" \
-              --title "chore: monthly dependency refresh" --body-file /tmp/body.md
+            # Repos disallow this by default: Settings > Actions > General >
+            # "Allow GitHub Actions to create and approve pull requests".
+            # The branch is pushed either way, so this is a nudge, not a failure.
+            # Do not fail the job over it; the useful work is already done.
+            {
+              echo "### Branch pushed, PR not opened"
+              echo
+              echo "\`gh pr create\` was refused. Usually that means **Settings > Actions > General > Allow GitHub Actions to create and approve pull requests** is off, or a \`DEPENDENCY_REFRESH_TOKEN\` is needed."
+              echo
+              echo "Open it by hand: https://github.com/${GITHUB_REPOSITORY}/compare/master...${BRANCH}?expand=1"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Refresh branch pushed but the PR could not be opened; see the job summary."
           fi
 
       # ---- Case 2: nothing moved, but advisories remain. Open an issue. -----

@@ -5,7 +5,10 @@
 overrides:
   esbuild: '>=0.28.1'
   picomatch: '>=4.0.4'
-  vite: '>=7.3.6'
+  # Caret-bounded on purpose. vite is a DIRECT dependency, so an unbounded
+  # '>=' here lets `pnpm update` resolve vite 8 and rewrite package.json to
+  # match, which is how a major slipped into an automated refresh.
+  vite: '^7.3.6'
   postcss: '>=8.5.23'   # GHSA-r28c-9q8g-f849, GHSA-fxqj-rqcc-2cmp
   fast-uri: '>=4.1.2'   # GHSA-v2hh-gcrm-f6hx, GHSA-7p8r-x3mc-p8w7, GHSA-4c8g-83qw-93j6
   find-my-way: '>=9.6.1' # GHSA-c96f-x56v-gq3h
