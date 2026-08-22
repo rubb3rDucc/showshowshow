@@ -1,0 +1,180 @@
+name: Monthly dependency refresh
+
+# Keeps transitive dependencies current, which Dependabot cannot do here.
+#
+# Dependabot edits manifests. This project's security floors live in each
+# project's pnpm-workspace.yaml under `overrides`, and Dependabot does not
+# manage overrides at all. So advisories against transitive-only packages
+# (fast-uri, find-my-way, nanoid, postcss and friends) were never going to be
+# fixed by Dependabot no matter how it was configured. This job covers that gap.
+#
+# Two distinct outcomes, because they need different responses:
+#
+#   - Lockfiles moved  -> open a PR. `pnpm update` found newer versions inside
+#                         the ranges already allowed, so no manifest edit is
+#                         needed and the change is low risk.
+#   - Nothing moved but the audit is still dirty -> open an ISSUE. The tree is
+#                         already at the newest version its ranges permit, so a
+#                         floor in pnpm-workspace.yaml has to be raised by hand.
+#                         An automated PR cannot make that judgement.
+
+on:
+  schedule:
+    - cron: '0 9 1 * *'   # 09:00 UTC on the 1st
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: chore/dependency-refresh
+      # A PR opened with GITHUB_TOKEN does NOT trigger workflow runs; GitHub
+      # blocks that to prevent recursion. Such a PR arrives with no checks and,
+      # since test-backend and test-frontend are required, can never merge.
+      # Set a DEPENDENCY_REFRESH_TOKEN secret (PAT, repo scope) to get checks
+      # automatically. Without one the PR is still opened and its body explains
+      # how to kick CI by hand.
+      GH_TOKEN: ${{ secrets.DEPENDENCY_REFRESH_TOKEN || secrets.GITHUB_TOKEN }}
+      HAS_PAT: ${{ secrets.DEPENDENCY_REFRESH_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.DEPENDENCY_REFRESH_TOKEN || secrets.GITHUB_TOKEN }}
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Refresh lockfiles within existing ranges
+        run: |
+          for p in backend frontend; do
+            echo "::group::pnpm update ($p)"
+            (cd "$p" && pnpm update --depth Infinity)
+            echo "::endgroup::"
+          done
+
+      - name: Audit
+        id: audit
+        run: |
+          : > /tmp/audit.txt
+          clean=true
+          for p in backend frontend; do
+            printf '### %s\n' "$p" >> /tmp/audit.txt
+            if (cd "$p" && pnpm audit --audit-level=moderate) > /tmp/one.txt 2>&1; then
+              printf 'No known vulnerabilities.\n' >> /tmp/audit.txt
+            else
+              clean=false
+              # Collapse pnpm's box-drawn tables into one line per advisory.
+              # The patched floor is the number that goes into pnpm-workspace.yaml,
+              # so that is what this surfaces. Matching on fields rather than the
+              # box-drawing characters, because awk regex does not portably
+              # understand \xNN escapes.
+              awk '
+                $2 ~ /^(low|moderate|high|critical)$/ { sev=$2 }
+                $2 == "Package"                       { pkg=$4 }
+                $2 == "Patched" && $3 == "versions"   { printf "%-9s %-26s patched %s\n", sev, pkg, $5 }
+              ' /tmp/one.txt >> /tmp/audit.txt || true
+            fi
+            printf '\n' >> /tmp/audit.txt
+          done
+          echo "clean=$clean" >> "$GITHUB_OUTPUT"
+
+      - name: Detect lockfile changes
+        id: diff
+        run: |
+          if git diff --quiet -- '*/pnpm-lock.yaml' '*/package.json'; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- '*/pnpm-lock.yaml' '*/package.json' > /tmp/stat.txt
+          fi
+
+      # ---- Case 1: something moved. Open or update a PR. --------------------
+      - name: Open refresh PR
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          AUDIT_CLEAN: ${{ steps.audit.outputs.clean }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add -- '*/pnpm-lock.yaml' '*/package.json'
+          git commit -F - <<'MSG'
+          chore: monthly dependency refresh
+
+          Ran `pnpm update --depth Infinity` in backend and frontend. Only moves
+          to versions the existing semver ranges already permit; no manifest
+          ranges were widened.
+          MSG
+          git push -f origin "$BRANCH"
+
+          {
+            echo "Automated monthly refresh. \`pnpm update --depth Infinity\` in both projects, which only moves to versions the existing semver ranges already permit."
+            echo
+            echo "### Lockfile changes"
+            echo '```'
+            cat /tmp/stat.txt
+            echo '```'
+            echo
+            echo "### Audit after the refresh"
+            echo '```'
+            cat /tmp/audit.txt
+            echo '```'
+            echo
+            if [ "$AUDIT_CLEAN" != "true" ]; then
+              echo "> Advisories remain. Those need a floor raised in the relevant \`pnpm-workspace.yaml\` under \`overrides\`, which this job deliberately will not do on its own."
+              echo
+            fi
+            if [ "$HAS_PAT" != "true" ]; then
+              echo "> **CI will not run on this PR.** It was opened with \`GITHUB_TOKEN\`, and GitHub does not trigger workflows for those events. Close and reopen the PR to kick the checks, or set a \`DEPENDENCY_REFRESH_TOKEN\` secret so this stops happening."
+            fi
+          } > /tmp/body.md
+
+          if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+            gh pr edit "$BRANCH" --body-file /tmp/body.md
+            echo "Updated the existing refresh PR."
+          else
+            gh pr create --base master --head "$BRANCH" \
+              --title "chore: monthly dependency refresh" --body-file /tmp/body.md
+          fi
+
+      # ---- Case 2: nothing moved, but advisories remain. Open an issue. -----
+      - name: Report advisories needing a manual override bump
+        if: steps.diff.outputs.changed == 'false' && steps.audit.outputs.clean == 'false'
+        run: |
+          TITLE="Advisories need a manual override bump"
+          {
+            echo "\`pnpm update\` changed nothing, so both projects are already at the newest versions their ranges allow, yet the audit is still dirty."
+            echo
+            echo "That means the fix is a floor in \`pnpm-workspace.yaml\` under \`overrides\`, which needs a human."
+            echo
+            echo '```'
+            cat /tmp/audit.txt
+            echo '```'
+            echo
+            echo "Add or raise the floor with its GHSA id, run \`pnpm install\` in that project, then commit the workspace file and the lockfile together."
+          } > /tmp/issue.md
+          EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body-file /tmp/issue.md
+          else
+            gh issue create --title "$TITLE" --body-file /tmp/issue.md --label dependencies
+          fi
+
+      - name: Summary
+        run: |
+          {
+            echo "lockfiles changed: ${{ steps.diff.outputs.changed }}"
+            echo "audit clean:       ${{ steps.audit.outputs.clean }}"
+            echo
+            echo '```'
+            cat /tmp/audit.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
