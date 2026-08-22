@@ -14,12 +14,22 @@ updates:
     commit-message:
       prefix: "chore(backend)"
       include: "scope"
-    # Group updates to reduce PR noise
+    # Group updates to reduce PR noise.
+    #
+    # The update-types filter is load-bearing, not cosmetic. Without it a major
+    # bump lands in the group, and dependabot/fetch-metadata reports the group's
+    # update-type as the HIGHEST change in it, i.e. semver-major. The auto-merge
+    # workflow only fires on semver-patch/minor, so one major among 24 packages
+    # silently blocked the whole group from ever auto-merging.
+    #
+    # Majors now arrive as their own PRs, which is what you want to review by hand.
     groups:
       production-dependencies:
         dependency-type: "production"
+        update-types: ["minor", "patch"]
       development-dependencies:
         dependency-type: "development"
+        update-types: ["minor", "patch"]
 
   # Frontend dependencies
   - package-ecosystem: "npm"
@@ -35,12 +45,22 @@ updates:
     commit-message:
       prefix: "chore(frontend)"
       include: "scope"
-    # Group updates to reduce PR noise
+    # Group updates to reduce PR noise.
+    #
+    # The update-types filter is load-bearing, not cosmetic. Without it a major
+    # bump lands in the group, and dependabot/fetch-metadata reports the group's
+    # update-type as the HIGHEST change in it, i.e. semver-major. The auto-merge
+    # workflow only fires on semver-patch/minor, so one major among 24 packages
+    # silently blocked the whole group from ever auto-merging.
+    #
+    # Majors now arrive as their own PRs, which is what you want to review by hand.
     groups:
       production-dependencies:
         dependency-type: "production"
+        update-types: ["minor", "patch"]
       development-dependencies:
         dependency-type: "development"
+        update-types: ["minor", "patch"]
 
   # GitHub Actions dependencies
   - package-ecosystem: "github-actions"
