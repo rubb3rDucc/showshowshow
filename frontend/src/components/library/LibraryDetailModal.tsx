@@ -57,6 +57,7 @@ export function LibraryDetailModal({
   // Reset form when the item changes
   useEffect(() => {
     if (item) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting the form when the item changes; tracked as known debt
       onStatusChange(item.status as LibraryStatus);
       onScoreChange(item.score || null);
       lastSavedRef.current = { status: item.status, score: item.score };

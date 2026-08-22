@@ -145,6 +145,7 @@ export function Networks() {
     }
 
     if (searchQuery.trim().length < 2) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing a debounced search; tracked as known debt
       setSearchResults([]);
       setHasSearched(false);
       return;

@@ -64,6 +64,7 @@ export function LineupEpisodePicker({
   // Seed the selection from `value` once episodes load for this opening.
   useEffect(() => {
     if (!opened || episodes.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing the seed on close; tracked as known debt
       if (!opened) setSelected(null);
       return;
     }
