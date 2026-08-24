@@ -23,7 +23,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@mantine/core": "^8.3.18",
     "@mantine/dates": "^8.3.18",
-    "@mantine/form": "^8.3.18",
+    "@mantine/form": "^9.5.1",
     "@mantine/hooks": "^8.3.18",
     "@schedule-x/calendar": "^4.6.1",
     "@schedule-x/events-service": "^4.6.1",
