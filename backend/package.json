@@ -38,7 +38,7 @@
     "@clerk/backend": "^2.33.6",
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",
-    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/rate-limit": "^11.2.0",
     "@types/ms": "^2.1.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
