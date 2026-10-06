@@ -67,8 +67,8 @@ importers:
         specifier: ^5.50.0
         version: 5.50.0
       stripe:
-        specifier: ^20.4.1
-        version: 20.4.1(@types/node@25.9.5)
+        specifier: ^23.0.0
+        version: 23.0.0(@types/node@25.9.5)
       svix:
         specifier: ^1.99.1
         version: 1.99.1
@@ -149,6 +149,7 @@ packages:
   '@clerk/types@4.101.26':
     resolution: {integrity: sha512-tUeiElAZoXu9Dxom9t6IjkEfsfP7aWSVf5x5mCoHnSr2w+wV4EtEwoLl9vexT5LL0di4qidROSfcrOnorzczIQ==}
     engines: {node: '>=18.17.0'}
+    deprecated: 'This package is no longer supported. Please import types from @clerk/shared/types instead. See the upgrade guide for more info: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3'
 
   '@esbuild/aix-ppc64@0.28.2':
     resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
@@ -1133,11 +1134,11 @@ packages:
     resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
     engines: {node: '>=14.16'}
 
-  stripe@20.4.1:
-    resolution: {integrity: sha512-axCguHItc8Sxt0HC6aSkdVRPffjYPV7EQqZRb2GkIa8FzWDycE7nHJM19C6xAIynH1Qp1/BHiopSi96jGBxT0w==}
-    engines: {node: '>=16'}
+  stripe@23.0.0:
+    resolution: {integrity: sha512-MDE2A5ZVVluYURORaZEVghSmnLJc3w6aHAlZSxDQMsOjOb3V0O6ro/CiaeFlJS4N7uIVmsg98ocRsPmUK6YfyA==}
+    engines: {node: '>=20'}
     peerDependencies:
-      '@types/node': '>=16'
+      '@types/node': '>=20'
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -2197,7 +2198,7 @@ snapshots:
 
   strip-json-comments@5.0.3: {}
 
-  stripe@20.4.1(@types/node@25.9.5):
+  stripe@23.0.0(@types/node@25.9.5):
     optionalDependencies:
       '@types/node': 25.9.5
 
