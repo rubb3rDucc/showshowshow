@@ -1,40 +1,34 @@
 import dotenv from 'dotenv';
+import { createExternalApi } from './external-api.js';
 
 dotenv.config();
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_API_BASE_URL = process.env.TMDB_API_BASE_URL || 'https://api.themoviedb.org/3';
-const TMDB_TIMEOUT_MS = parseInt(process.env.TMDB_TIMEOUT_MS || '10000', 10); // 10 second default
 
 // TMDB_API_KEY validation happens at request time
 
-// Fetch with timeout and error handling
+// Timeout, kill switch and circuit breaker live in the shared guard
+const tmdbApi = createExternalApi({
+  name: 'TMDB',
+  timeoutMs: parseInt(process.env.TMDB_TIMEOUT_MS || '10000', 10),
+  enabled: process.env.TMDB_API_ENABLED !== 'false',
+  probe: () => fetchTMDB('/configuration'),
+});
+
 async function fetchTMDB(endpoint: string): Promise<any> {
   if (!TMDB_API_KEY) {
     throw new Error('TMDB_API_KEY not configured');
   }
 
   const url = `${TMDB_API_BASE_URL}${endpoint}${endpoint.includes('?') ? '&' : '?'}api_key=${TMDB_API_KEY}`;
+  const response = await tmdbApi.request(url);
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TMDB_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-
-    if (!response.ok) {
-      throw new Error(`TMDB API error: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      throw new Error(`TMDB API request timed out after ${TMDB_TIMEOUT_MS}ms`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
+  if (!response.ok) {
+    throw new Error(`TMDB API error: ${response.status} ${response.statusText}`);
   }
+
+  return response.json();
 }
 
 // Search for shows and movies

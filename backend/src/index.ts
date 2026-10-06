@@ -26,6 +26,7 @@ import { peopleRoutes } from './routes/people.js';
 import { billingRoutes } from './routes/billing.js';
 import { reviewsRoutes } from './routes/reviews.js';
 import { listsRoutes } from './routes/lists.js';
+import { healthRoutes } from './routes/health.js';
 
 const fastify = Fastify({
   logger: {
@@ -43,97 +44,8 @@ const fastify = Fastify({
 // Register database instance
 fastify.decorate('db', db);
 
-// Health check endpoint
-fastify.get('/health', async (_request, reply) => {
-  const health: {
-    status: 'ok' | 'degraded' | 'error';
-    timestamp: string;
-    services: {
-      database: { status: 'ok' | 'error'; latency_ms?: number; error?: string };
-      tmdb?: { status: 'ok' | 'error'; latency_ms?: number; error?: string };
-      jikan?: { status: 'ok' | 'error'; latency_ms?: number; error?: string };
-    };
-  } = {
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    services: {
-      database: { status: 'ok' },
-    },
-  };
-
-  // Check database
-  const dbStart = Date.now();
-  try {
-    await testConnection();
-    health.services.database.latency_ms = Date.now() - dbStart;
-  } catch (error) {
-    health.services.database = {
-      status: 'error',
-      latency_ms: Date.now() - dbStart,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-    health.status = 'error';
-  }
-
-  // Check TMDB API (only if API key is configured)
-  if (process.env.TMDB_API_KEY) {
-    const tmdbStart = Date.now();
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const response = await fetch(
-        `https://api.themoviedb.org/3/configuration?api_key=${process.env.TMDB_API_KEY}`,
-        { signal: controller.signal }
-      );
-      clearTimeout(timeoutId);
-      health.services.tmdb = {
-        status: response.ok ? 'ok' : 'error',
-        latency_ms: Date.now() - tmdbStart,
-        ...(response.ok ? {} : { error: `HTTP ${response.status}` }),
-      };
-    } catch (error: any) {
-      health.services.tmdb = {
-        status: 'error',
-        latency_ms: Date.now() - tmdbStart,
-        error: error.name === 'AbortError' ? 'Timeout' : error.message,
-      };
-      if (health.status === 'ok') health.status = 'degraded';
-    }
-  }
-
-  // Check Jikan API
-  const jikanStart = Date.now();
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch('https://api.jikan.moe/v4/anime/1', {
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    health.services.jikan = {
-      status: response.ok ? 'ok' : 'error',
-      latency_ms: Date.now() - jikanStart,
-      ...(response.ok ? {} : { error: `HTTP ${response.status}` }),
-    };
-  } catch (error: any) {
-    health.services.jikan = {
-      status: 'error',
-      latency_ms: Date.now() - jikanStart,
-      error: error.name === 'AbortError' ? 'Timeout' : error.message,
-    };
-    if (health.status === 'ok') health.status = 'degraded';
-  }
-
-  // Fail the check only on a critical dependency (DB) so a broken deploy is held
-  // back by the rolling health check. A 'degraded' status from a third-party
-  // (TMDB/Jikan) outage stays 200 — an external blip must not fail our own health
-  // gate and take the site down with it.
-  if (health.status === 'error') {
-    reply.code(503);
-  }
-
-  return health;
-});
+// Health checks (DB-only /health, informational /health/deps)
+fastify.register(healthRoutes);
 
 // Test endpoint
 fastify.get('/api/test', async (request, reply) => {

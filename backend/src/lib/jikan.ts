@@ -1,58 +1,46 @@
 /**
- * Jikan API Client
- * Unofficial MyAnimeList API wrapper
- * Documentation: https://docs.api.jikan.moe/
- * Rate limit: 3 requests/second
+ * Anime API Client
+ * Speaks the Jikan v4 schema (unofficial MyAnimeList data), which several
+ * providers serve. The provider is config, not code:
+ *   ANIME_API_BASE_URL    any Jikan v4-compatible base URL
+ *   ANIME_API_ENABLED     "true" turns anime lookups on; otherwise they fail fast (503)
+ *   ANIME_API_TIMEOUT_MS  per-request timeout
+ * The public Jikan API (api.jikan.moe) was discontinued on 2026-10-01. The
+ * default base URL is Tenrai (https://tenrai.org, public tier 4 req/sec), but
+ * anime stays opt-in until a provider passes `pnpm test:contract:anime`.
  */
 
-const JIKAN_API_BASE_URL = 'https://api.jikan.moe/v4';
-const JIKAN_TIMEOUT_MS = parseInt(process.env.JIKAN_TIMEOUT_MS || '15000', 10); // 15 second default (Jikan can be slow)
+import { createExternalApi } from './external-api.js';
 
-// Rate limiting: stagger requests to respect 3 req/sec limit
-let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 350; // 350ms between requests (slightly more than 3/sec)
+export const ANIME_API_BASE_URL = (process.env.ANIME_API_BASE_URL || 'https://api.tenrai.org/v1').replace(/\/$/, '');
+
+const animeApi = createExternalApi({
+  name: 'Anime API',
+  timeoutMs: parseInt(process.env.ANIME_API_TIMEOUT_MS || '8000', 10),
+  enabled: process.env.ANIME_API_ENABLED === 'true',
+  minIntervalMs: 350, // slightly over 3 req/sec
+  probe: () => rateLimitedFetch(`${ANIME_API_BASE_URL}/anime/1`),
+});
 
 async function rateLimitedFetch(url: string): Promise<Response> {
-  const now = Date.now();
-  const timeSinceLastRequest = now - lastRequestTime;
+  const response = await animeApi.request(url);
 
-  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-    const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
-    await new Promise(resolve => setTimeout(resolve, waitTime));
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error('Anime API rate limit exceeded. Please wait a moment.');
+    }
+    if (response.status === 404) {
+      throw new Error('Anime not found');
+    }
+    throw new Error(`Anime API error: ${response.status} ${response.statusText}`);
   }
 
-  lastRequestTime = Date.now();
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), JIKAN_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        throw new Error('Jikan API rate limit exceeded. Please wait a moment.');
-      }
-      if (response.status === 404) {
-        throw new Error('Anime not found in Jikan API');
-      }
-      throw new Error(`Jikan API error: ${response.status} ${response.statusText}`);
-    }
-
-    return response;
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      throw new Error(`Jikan API request timed out after ${JIKAN_TIMEOUT_MS}ms`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  return response;
 }
 
 // Search anime
 export async function searchJikan(query: string, page: number = 1): Promise<any> {
-  const url = `${JIKAN_API_BASE_URL}/anime?q=${encodeURIComponent(query)}&page=${page}&limit=25`;
+  const url = `${ANIME_API_BASE_URL}/anime?q=${encodeURIComponent(query)}&page=${page}&limit=25`;
   const response = await rateLimitedFetch(url);
   const data = await response.json() as any;
   
@@ -66,7 +54,7 @@ export async function searchJikan(query: string, page: number = 1): Promise<any>
 
 // Get anime details by MAL ID
 export async function getAnimeDetails(malId: number): Promise<any> {
-  const url = `${JIKAN_API_BASE_URL}/anime/${malId}/full`;
+  const url = `${ANIME_API_BASE_URL}/anime/${malId}/full`;
   const response = await rateLimitedFetch(url);
   const data = await response.json() as any;
   
@@ -75,7 +63,7 @@ export async function getAnimeDetails(malId: number): Promise<any> {
 
 // Get anime episodes by MAL ID
 export async function getAnimeEpisodes(malId: number, page: number = 1): Promise<any> {
-  const url = `${JIKAN_API_BASE_URL}/anime/${malId}/episodes?page=${page}`;
+  const url = `${ANIME_API_BASE_URL}/anime/${malId}/episodes?page=${page}`;
   const response = await rateLimitedFetch(url);
   const data = await response.json() as any;
   
@@ -124,22 +112,8 @@ export function jikanToContentFormat(jikanAnime: any): {
   // Determine default duration
   // For movies: duration is total runtime (e.g., "120 min")
   // For shows: duration is per episode (e.g., "24 min per ep")
-  let defaultDuration = isMovie ? 120 : 24; // Default 120 min for movies, 24 min for shows
-  if (jikanAnime.duration) {
-    if (isMovie) {
-      // For movies, parse total duration (e.g., "120 min")
-      const durationMatch = jikanAnime.duration.match(/(\d+)\s*min/);
-      if (durationMatch) {
-        defaultDuration = parseInt(durationMatch[1], 10);
-      }
-    } else {
-      // For shows, parse per-episode duration (e.g., "24 min per ep")
-      const durationMatch = jikanAnime.duration.match(/(\d+)\s*min/);
-      if (durationMatch) {
-        defaultDuration = parseInt(durationMatch[1], 10);
-      }
-    }
-  }
+  // Movies: total runtime ("2 hr 4 min"). Shows: per episode ("24 min per ep").
+  const defaultDuration = parseDurationMinutes(jikanAnime.duration) ?? (isMovie ? 120 : 24);
 
   // Map status
   let status: string | null = null;
@@ -212,6 +186,15 @@ export function jikanSearchToSearchResult(jikanAnime: any): {
     data_source: 'jikan',
     rating: normalizeJikanRating(jikanAnime.rating),
   };
+}
+
+// Parse MAL durations like "24 min per ep", "2 hr 4 min" or "1 hr" into minutes
+function parseDurationMinutes(duration: string | null | undefined): number | null {
+  if (!duration) return null;
+  const hours = duration.match(/(\d+)\s*hr/);
+  const minutes = duration.match(/(\d+)\s*min/);
+  if (!hours && !minutes) return null;
+  return (hours ? parseInt(hours[1], 10) * 60 : 0) + (minutes ? parseInt(minutes[1], 10) : 0);
 }
 
 // Normalize Jikan rating to just the code (e.g., "TV-14", "R", "PG-13")
