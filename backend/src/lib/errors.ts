@@ -42,6 +42,15 @@ export class ConflictError extends AppError {
   }
 }
 
+export class ExternalServiceUnavailableError extends AppError {
+  service: string;
+
+  constructor(service: string, message: string = `${service} is unavailable`) {
+    super(message, 503, 'EXTERNAL_SERVICE_UNAVAILABLE');
+    this.service = service;
+  }
+}
+
 export class DatabaseConnectionError extends AppError {
   constructor(message: string = 'Database connection error') {
     super(message, 503, 'DATABASE_CONNECTION_ERROR'); // 503 = Service Unavailable

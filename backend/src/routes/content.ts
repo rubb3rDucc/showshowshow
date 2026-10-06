@@ -3,7 +3,7 @@ import { searchTMDB, getShowDetails, getMovieDetails, getSeason, getImageUrl, ge
 import { searchJikan, jikanSearchToSearchResult, getAnimeDetails, getAnimeEpisodes, jikanToContentFormat } from '../lib/jikan.js';
 import { normalizeRating } from '../lib/rating-utils.js';
 import { dbTypeToApiType } from '../lib/content-type.js';
-import { NotFoundError, ValidationError } from '../lib/errors.js';
+import { NotFoundError, ValidationError, ExternalServiceUnavailableError } from '../lib/errors.js';
 import { parseIntWithDefault } from '../lib/utils.js';
 import { authenticateClerk } from '../plugins/clerk-auth.js';
 import { requireActiveSubscription } from '../plugins/entitlements.js';
@@ -748,7 +748,17 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       let hasMore = true;
 
       while (hasMore) {
-        const jikanEpisodes = await getAnimeEpisodes(content.mal_id, page);
+        let jikanEpisodes;
+        try {
+          jikanEpisodes = await getAnimeEpisodes(content.mal_id, page);
+        } catch (error) {
+          // Provider down: serve what's cached rather than failing the request
+          if (error instanceof ExternalServiceUnavailableError && existingEpisodes.length > 0) {
+            request.log.warn({ contentId: content.id, err: error.message }, 'Anime API unavailable, serving cached episodes');
+            return reply.send(existingEpisodes);
+          }
+          throw error;
+        }
         const episodes = jikanEpisodes.episodes || [];
 
         for (const ep of episodes) {

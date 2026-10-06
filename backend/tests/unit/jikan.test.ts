@@ -86,9 +86,7 @@ describe('Jikan - Data Transformations', () => {
         expect(result.default_duration).toBe(125);
       });
 
-      it('should handle complex duration format "2 hr 5 min" (extracts only minute part)', () => {
-        // NOTE: Current implementation regex only extracts "5" from "2 hr 5 min"
-        // This is a known limitation - the regex /(\d+)\s*min/ gets the last number before "min"
+      it('should parse hours and minutes in "2 hr 5 min"', () => {
         const jikanAnime = {
           mal_id: 199,
           type: 'Movie',
@@ -96,8 +94,7 @@ describe('Jikan - Data Transformations', () => {
         };
 
         const result = jikanToContentFormat(jikanAnime);
-        // Actual behavior: extracts "5" from "2 hr 5 min"
-        expect(result.default_duration).toBe(5);
+        expect(result.default_duration).toBe(125);
       });
     });
 
@@ -135,8 +132,7 @@ describe('Jikan - Data Transformations', () => {
         expect(result.default_duration).toBe(120);
       });
 
-      it('should parse "1 hr 45 min" - extracts only minutes portion', () => {
-        // NOTE: Current implementation limitation - regex only gets "45"
+      it('should parse "1 hr 45 min" as 105 minutes', () => {
         const jikanAnime = {
           mal_id: 1,
           type: 'Movie',
@@ -144,8 +140,18 @@ describe('Jikan - Data Transformations', () => {
         };
 
         const result = jikanToContentFormat(jikanAnime);
-        // Actual behavior: only extracts the number before "min"
-        expect(result.default_duration).toBe(45);
+        expect(result.default_duration).toBe(105);
+      });
+
+      it('should parse an hours-only duration like "2 hr"', () => {
+        const jikanAnime = {
+          mal_id: 1,
+          type: 'Movie',
+          duration: '2 hr',
+        };
+
+        const result = jikanToContentFormat(jikanAnime);
+        expect(result.default_duration).toBe(120);
       });
 
       it('should use default 24 min for shows with no duration', () => {
