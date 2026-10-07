@@ -262,7 +262,7 @@ function App() {
           </ProtectedRoute>
         </Route>
 
-        <Route path="/content/:type/:tmdbId">
+        <Route path="/content/:type/:id">
           <ProtectedRoute>
             <Layout>
               <Suspense fallback={<PageLoader />}>

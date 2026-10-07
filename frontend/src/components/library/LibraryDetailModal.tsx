@@ -9,6 +9,7 @@ import { getContentByTmdbId } from '../../api/content';
 import { EpisodeTracker } from './EpisodeTracker';
 import { Button } from '../common/Button';
 import { StarRating } from '../common/StarRating';
+import { contentHref } from '../../utils/contentHref';
 
 interface LibraryDetailModalProps {
   item: LibraryItemUI | null;
@@ -85,6 +86,9 @@ export function LibraryDetailModal({
   }, [item, status, score, onSave]);
 
   const tmdbId = item?.content.tmdbId ?? null;
+  const fullPageHref = item
+    ? contentHref({ tmdb_id: tmdbId, mal_id: item.content.malId, content_type: item.content.contentType })
+    : null;
   const apiType: 'tv' | 'movie' = item?.content.contentType === 'movie' ? 'movie' : 'tv';
 
   // Pull backdrop + overview (not in the library payload) when we have a TMDB id
@@ -175,11 +179,9 @@ export function LibraryDetailModal({
                     {watched}/{total} ep
                   </span>
                 )}
-                {tmdbId && (
+                {fullPageHref && (
                   <button
-                    onClick={() =>
-                      setLocation(`/content/${apiType}/${tmdbId}?from=lib&cid=${item.contentId}`)
-                    }
+                    onClick={() => setLocation(`${fullPageHref}?from=lib&cid=${item.contentId}`)}
                     className="inline-flex items-center gap-1 font-semibold text-white hover:underline"
                   >
                     <ExternalLink size={14} /> View full page

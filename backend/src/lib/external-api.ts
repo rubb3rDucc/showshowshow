@@ -76,9 +76,12 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
       }
 
       if (minIntervalMs > 0) {
-        const wait = lastRequestTime + minIntervalMs - Date.now();
-        if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
-        lastRequestTime = Date.now();
+        // Reserve a start slot before waiting, so concurrent callers queue up
+        // minIntervalMs apart instead of all reading the same time and firing together
+        const now = Date.now();
+        const slot = Math.max(now, lastRequestTime + minIntervalMs);
+        lastRequestTime = slot;
+        if (slot > now) await new Promise(resolve => setTimeout(resolve, slot - now));
       }
 
       const controller = new AbortController();

@@ -20,6 +20,7 @@ import { SearchResultCard } from '../components/search/SearchResultCard';
 import { ContentDetailModal } from '../components/browse/ContentDetailModal';
 import type { SearchResult, SearchResponse, QueueItem } from '../types/api';
 import type { LibraryStatus } from '../types/library.types';
+import { contentHref } from '../utils/contentHref';
 
 export function Search() {
   const queryClient = useQueryClient();
@@ -450,8 +451,9 @@ export function Search() {
                   key={itemKey}
                   item={result}
                   onClick={() => {
-                    if (result.tmdb_id) {
-                      setLocation(`/content/${result.content_type === 'movie' ? 'movie' : 'tv'}/${result.tmdb_id}`);
+                    const href = contentHref(result);
+                    if (href) {
+                      setLocation(href);
                     } else {
                       setSelectedContent(result);
                       setModalOpen(true);

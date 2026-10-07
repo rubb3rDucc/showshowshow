@@ -8,6 +8,7 @@ import { getLibrary, removeFromLibrary } from '../../api/library';
 import { useAddToLibrary, isAlreadyInLibraryError } from '../../hooks/useAddToLibrary';
 import type { SearchResult } from '../../types/api';
 import type { LibraryStatus } from '../../types/library.types';
+import { contentHref } from '../../utils/contentHref';
 
 const MAX_RESULTS = 6;
 
@@ -283,9 +284,8 @@ export function SearchWidget() {
   };
 
   const handleOpen = (item: SearchResult) => {
-    if (item.tmdb_id) {
-      setLocation(`/content/${item.content_type}/${item.tmdb_id}`);
-    }
+    const href = contentHref(item);
+    if (href) setLocation(href);
   };
 
   const showResults = enabled;

@@ -39,6 +39,8 @@ export interface Content {
   title: string;
   title_english: string | null;
   title_japanese: string | null;
+  /** Original-language title (romaji for anime) when the display title is a translation */
+  original_title: string | null;
   poster_url: string | null;
   backdrop_url: string | null;
   overview: string | null;

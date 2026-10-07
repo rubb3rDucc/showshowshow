@@ -858,7 +858,7 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
 
   // Import functions
   const { getShowDetails, getSeason, getImageUrl } = await import('./tmdb.js');
-  const { getAnimeEpisodes } = await import('./jikan.js');
+  const { syncAnimeEpisodes } = await import('./anime-episodes.js');
 
   // Create fetch tasks (functions that return promises)
   const fetchTasks = showsToFetch.map((item, index) => async () => {
@@ -871,62 +871,7 @@ export async function ensureEpisodesFetched(showIds: string[]): Promise<void> {
       let fetchedCount = 0;
 
       if (item.show.data_source === 'jikan' && item.show.mal_id) {
-        // Fetch from Jikan - collect all episodes first
-        let page = 1;
-        let hasMore = true;
-        const allEpisodes: any[] = [];
-
-        while (hasMore) {
-          const jikanEpisodes = await getAnimeEpisodes(item.show.mal_id, page);
-          allEpisodes.push(...(jikanEpisodes.episodes || []));
-          hasMore = page < (jikanEpisodes.pagination?.last_visible_page || 1);
-          page++;
-        }
-
-        // Batch check existence in ONE query
-        const existingEpisodes = await db
-          .selectFrom('episodes')
-          .select(['episode_number'])
-          .where('content_id', '=', item.show.id)
-          .where('season', '=', 1)
-          .execute();
-
-        const existingSet = new Set(
-          existingEpisodes.map(e => e.episode_number)
-        );
-
-        // Filter to only new episodes
-        const newEpisodes = allEpisodes
-          .map((ep, idx) => ({
-            episodeNum: ep.episode || idx + 1,
-            data: ep,
-          }))
-          .filter(({ episodeNum }) => !existingSet.has(episodeNum));
-
-        // Batch insert all new episodes in transaction
-        if (newEpisodes.length > 0) {
-          await db.transaction().execute(async (trx) => {
-            // Insert in batches of 100 to avoid query size limits
-            for (let i = 0; i < newEpisodes.length; i += 100) {
-              const batch = newEpisodes.slice(i, i + 100);
-              await trx.insertInto('episodes')
-                .values(batch.map(({ episodeNum, data }) => ({
-                  id: crypto.randomUUID(),
-                  content_id: item.show.id,
-                  season: 1,
-                  episode_number: episodeNum,
-                  title: data.title || `Episode ${episodeNum}`,
-                  overview: null,
-                  duration: item.show.default_duration || 24,
-                  air_date: data.aired ? new Date(data.aired) : null,
-                  still_url: data.images?.jpg?.image_url || null,
-                  created_at: new Date(),
-                })))
-                .execute();
-            }
-          });
-          fetchedCount = newEpisodes.length;
-        }
+        fetchedCount = (await syncAnimeEpisodes({ ...item.show, mal_id: item.show.mal_id })).inserted;
       } else if (item.show.tmdb_id) {
         // Fetch from TMDB
         const showDetails = await getShowDetails(item.show.tmdb_id);

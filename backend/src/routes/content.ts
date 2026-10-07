@@ -1,7 +1,9 @@
 import { db } from '../db/index.js';
 import { searchTMDB, getShowDetails, getMovieDetails, getSeason, getImageUrl, getContentType, getDefaultDuration, getShowContentRatings, getMovieReleaseDates, extractUSRating, getRecommendations, getSimilar, tmdbResultToSearchResult } from '../lib/tmdb.js';
 import { attachCacheStatus } from '../lib/content-cache.js';
-import { searchJikan, jikanSearchToSearchResult, getAnimeDetails, getAnimeEpisodes, jikanToContentFormat } from '../lib/jikan.js';
+import { searchJikan, jikanSearchToSearchResult, getAnimeDetails, jikanToContentFormat } from '../lib/jikan.js';
+import { syncAnimeEpisodes } from '../lib/anime-episodes.js';
+import { getOrCacheAnimeContent, getAnimeTitleDetail, getAnimeSeasons, getAnimeRelated, verifyImage } from '../lib/anime-service.js';
 import { normalizeRating } from '../lib/rating-utils.js';
 import { dbTypeToApiType } from '../lib/content-type.js';
 import { NotFoundError, ValidationError, ExternalServiceUnavailableError } from '../lib/errors.js';
@@ -9,6 +11,12 @@ import { parseIntWithDefault } from '../lib/utils.js';
 import { authenticateClerk } from '../plugins/clerk-auth.js';
 import { requireActiveSubscription } from '../plugins/entitlements.js';
 import type { FastifyInstance } from 'fastify';
+
+function parseMalId(params: unknown): number {
+  const malId = parseInt((params as { malId: string }).malId, 10);
+  if (Number.isNaN(malId)) throw new ValidationError('Invalid MAL ID');
+  return malId;
+}
 
 export const contentRoutes = async (fastify: FastifyInstance) => {
   // Search for shows and movies
@@ -275,59 +283,24 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Get or cache Jikan content by MAL ID
-  fastify.get('/api/content/jikan/:malId', { preHandler: requireActiveSubscription }, async (request, reply) => {
-    const { malId } = request.params as { malId: string };
-    const malIdNum = parseInt(malId, 10);
+  fastify.get('/api/content/jikan/:malId', { preHandler: requireActiveSubscription }, async (request) => {
+    // Episodes are fetched on demand via /api/content/by-id/:contentId/episodes
+    return getOrCacheAnimeContent(parseMalId(request.params));
+  });
 
-    if (isNaN(malIdNum)) {
-      throw new ValidationError('Invalid MAL ID');
-    }
+  // Anime detail page, keyed by MAL id: content row plus cast, crew, relations, streaming
+  fastify.get('/api/content/anime/:malId', { preHandler: requireActiveSubscription }, async (request) => {
+    return getAnimeTitleDetail(parseMalId(request.params));
+  });
 
-    // Check if already in database
-    const existing = await db
-      .selectFrom('content')
-      .selectAll()
-      .where('mal_id', '=', malIdNum)
-      .executeTakeFirst();
+  // Season picker for anime split across entries (Season 1..Final); empty for one season
+  fastify.get('/api/content/anime/:malId/seasons', { preHandler: requireActiveSubscription }, async (request) => {
+    return { seasons: await getAnimeSeasons(parseMalId(request.params)) };
+  });
 
-    if (existing) {
-      return reply.send(existing);
-    }
-
-    // Fetch from Jikan
-    const jikanAnime = await getAnimeDetails(malIdNum);
-    const contentData = jikanToContentFormat(jikanAnime);
-
-    // Save to database
-    const saved = await db
-      .insertInto('content')
-      .values({
-        id: crypto.randomUUID(),
-        tmdb_id: null, // Jikan content doesn't have TMDB ID
-        mal_id: contentData.mal_id,
-        data_source: 'jikan',
-        content_type: contentData.content_type, // 'show' or 'movie'
-        title: contentData.title,
-        title_english: contentData.title_english,
-        title_japanese: contentData.title_japanese,
-        overview: contentData.overview,
-        poster_url: contentData.poster_url,
-        backdrop_url: contentData.backdrop_url,
-        release_date: contentData.release_date, // For movies
-        first_air_date: contentData.first_air_date, // For shows
-        default_duration: contentData.default_duration,
-        number_of_episodes: contentData.number_of_episodes,
-        number_of_seasons: contentData.number_of_seasons,
-        status: contentData.status,
-        rating: contentData.rating,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    // Episodes will be fetched on-demand when user requests them via /api/content/by-id/:contentId/episodes
-    return reply.send(saved);
+  // "More like this" for anime: provider user recommendations, English titles
+  fastify.get('/api/content/anime/:malId/related', { preHandler: authenticateClerk }, async (request) => {
+    return { results: await getAnimeRelated(parseMalId(request.params)) };
   });
 
   // Get show or movie details (and cache in database)
@@ -663,40 +636,15 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
         // Fetch from Jikan (Jikan doesn't have seasons, all episodes are in one list)
         // For season 1, fetch all episodes
         if (seasonNum === 1) {
-          const allEpisodes: any[] = [];
-          let page = 1;
-          let hasMore = true;
-
-          while (hasMore) {
-            const jikanEpisodes = await getAnimeEpisodes(content.mal_id, page);
-            const episodes = jikanEpisodes.episodes || [];
-            
-            for (const ep of episodes) {
-              const episodeNum = ep.episode || allEpisodes.length + 1;
-              const saved = await db
-                .insertInto('episodes')
-                .values({
-                  id: crypto.randomUUID(),
-                  content_id: content.id,
-                  season: 1, // Jikan doesn't have seasons
-                  episode_number: episodeNum,
-                  title: ep.title || `Episode ${episodeNum}`,
-                  overview: null, // Jikan API doesn't provide episode descriptions
-                  duration: content.default_duration,
-                  air_date: ep.aired ? new Date(ep.aired) : null,
-                  still_url: ep.images?.jpg?.image_url || null,
-                  created_at: new Date(),
-                })
-                .returningAll()
-                .executeTakeFirstOrThrow();
-              allEpisodes.push(saved);
-            }
-
-            hasMore = page < (jikanEpisodes.pagination?.last_visible_page || 1);
-            page++;
-          }
-
-          return reply.send(allEpisodes);
+          await syncAnimeEpisodes({ ...content, mal_id: content.mal_id });
+          const episodes = await db
+            .selectFrom('episodes')
+            .selectAll()
+            .where('content_id', '=', content.id)
+            .where('season', '=', 1)
+            .orderBy('episode_number', 'asc')
+            .execute();
+          return reply.send(episodes);
         } else {
           // Jikan doesn't have multiple seasons
           return reply.send([]);
@@ -749,55 +697,23 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
 
     // Always fetch from API to ensure we have all seasons
     if (content.data_source === 'jikan' && content.mal_id) {
-      // Fetch all episodes from Jikan
-      const allEpisodes: any[] = [...existingEpisodes];
-      let page = 1;
-      let hasMore = true;
-
-      while (hasMore) {
-        let jikanEpisodes;
-        try {
-          jikanEpisodes = await getAnimeEpisodes(content.mal_id, page);
-        } catch (error) {
-          // Provider down: serve what's cached rather than failing the request
-          if (error instanceof ExternalServiceUnavailableError && existingEpisodes.length > 0) {
-            request.log.warn({ contentId: content.id, err: error.message }, 'Anime API unavailable, serving cached episodes');
-            return reply.send(existingEpisodes);
-          }
-          throw error;
+      // Pick up episodes aired since the last fetch
+      try {
+        await syncAnimeEpisodes({ ...content, mal_id: content.mal_id });
+      } catch (error) {
+        // Provider down: serve what's cached rather than failing the request
+        if (error instanceof ExternalServiceUnavailableError && existingEpisodes.length > 0) {
+          request.log.warn({ contentId: content.id, err: error.message }, 'Anime API unavailable, serving cached episodes');
+          return reply.send(existingEpisodes);
         }
-        const episodes = jikanEpisodes.episodes || [];
-
-        for (const ep of episodes) {
-          const episodeNum = ep.episode || allEpisodes.length + 1;
-          const key = `1-${episodeNum}`;
-
-          // Skip if already exists
-          if (existingSet.has(key)) continue;
-
-          const saved = await db
-            .insertInto('episodes')
-            .values({
-              id: crypto.randomUUID(),
-              content_id: content.id,
-              season: 1, // Jikan doesn't have seasons
-              episode_number: episodeNum,
-              title: ep.title || `Episode ${episodeNum}`,
-              overview: null, // Jikan API doesn't provide episode descriptions
-              duration: content.default_duration,
-              air_date: ep.aired ? new Date(ep.aired) : null,
-              still_url: ep.images?.jpg?.image_url || null,
-              created_at: new Date(),
-            })
-            .returningAll()
-            .executeTakeFirstOrThrow();
-          allEpisodes.push(saved);
-          existingSet.add(key);
-        }
-
-        hasMore = page < (jikanEpisodes.pagination?.last_visible_page || 1);
-        page++;
+        throw error;
       }
+
+      const allEpisodes = await db
+        .selectFrom('episodes')
+        .selectAll()
+        .where('content_id', '=', content.id)
+        .execute();
 
       // Return sorted by season and episode
       return reply.send(allEpisodes.sort((a, b) =>
@@ -954,9 +870,10 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
           title: contentData.title,
           title_english: contentData.title_english,
           title_japanese: contentData.title_japanese,
+          original_title: contentData.original_title,
           overview: contentData.overview,
           poster_url: contentData.poster_url,
-          backdrop_url: contentData.backdrop_url,
+          backdrop_url: await verifyImage(contentData.backdrop_url), // YouTube 404s some maxres thumbnails
           release_date: contentData.release_date,
           first_air_date: contentData.first_air_date,
           default_duration: contentData.default_duration,
