@@ -99,4 +99,23 @@ describe('createExternalApi', () => {
     expect((await api.request(URL)).status).toBe(200);
     expect(api.status()).toMatchObject({ breaker: 'closed', consecutive_failures: 0 });
   });
+
+  it('spaces concurrent requests minIntervalMs apart instead of firing them together', async () => {
+    vi.useRealTimers();
+    const starts: number[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        starts.push(Date.now());
+        return new Response('{}', { status: 200 });
+      })
+    );
+    const api = createExternalApi({ name: 'Spaced', timeoutMs: 1000, minIntervalMs: 40 });
+
+    await Promise.all([api.request(URL), api.request(URL), api.request(URL)]);
+
+    expect(starts).toHaveLength(3);
+    expect(starts[1] - starts[0]).toBeGreaterThanOrEqual(35);
+    expect(starts[2] - starts[1]).toBeGreaterThanOrEqual(35);
+  });
 });
