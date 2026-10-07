@@ -44,6 +44,7 @@ export interface LibraryItem {
   content: {
     id: string;
     tmdb_id: number | null;
+    mal_id: number | null;
     title: string;
     poster_url: string | null;
     content_type: 'show' | 'movie';
@@ -160,6 +161,7 @@ export interface LibraryItemUI {
   lastWatchedAt: Date | null;
   content: {
     tmdbId: number | null;
+    malId: number | null;
     title: string;
     posterUrl: string | null;
     contentType: 'show' | 'movie';

@@ -26,6 +26,7 @@ import type {
   LibraryFilterType,
   LibrarySortOption,
 } from '../types/library.types';
+import { contentHref } from '../utils/contentHref';
 
 /**
  * The Library: an album-wall of tracked titles + Lists/Collections. Reuses the
@@ -248,14 +249,15 @@ export function Library() {
   // Collection helpers
   const openList = openListId ? collectionsApi.collections.find((c) => c.id === openListId) ?? null : null;
 
-  // Open a list entry: in-library → detail modal; TMDB title → content page;
-  // anime/other not in library → prompt to add (no standalone detail page).
+  // Open a list entry: in-library → detail modal; otherwise its detail page
+  // (TMDB or anime); a title with neither id → prompt to add.
   const handleOpenListItem = (item: CollectionItem) => {
     const libItem = libraryByContentId.get(item.contentId);
+    const href = contentHref({ tmdb_id: item.tmdbId, mal_id: item.malId, content_type: item.type });
     if (libItem) {
       handleViewDetails(libItem);
-    } else if (item.tmdbId != null) {
-      setLocation(`/content/${item.type === 'show' ? 'tv' : 'movie'}/${item.tmdbId}`);
+    } else if (href) {
+      setLocation(href);
     } else {
       toast.info('Add this title to your library to view details');
     }

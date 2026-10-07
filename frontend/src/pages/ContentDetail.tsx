@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useLocation } from 'wouter';
-import { Container, Button, Loader, Center, Tabs, Select, Rating } from '@mantine/core';
-import { ArrowLeft, Plus, ListPlus, Trash2, Star } from 'lucide-react';
+import { Container, Button, Loader, Center, Tabs, Rating } from '@mantine/core';
+import { ArrowLeft, Plus, ListPlus, Trash2, Star, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
-import { getContentByTmdbId, getEpisodesByContentId } from '../api/content';
-import { getContentCredits, type CrewMember } from '../api/people';
+import { getEpisodesByContentId } from '../api/content';
 import {
   checkLibrary,
   addToLibrary,
@@ -18,6 +17,11 @@ import type { LibraryStatus } from '../types/library.types';
 import { useAddToQueue, isAlreadyInQueueError } from '../hooks/useAddToQueue';
 import { EpisodeTracker } from '../components/library/EpisodeTracker';
 import { RelatedTitles } from '../components/discover/RelatedTitles';
+import { TitleRelations } from '../components/detail/TitleRelations';
+import { SeasonPicker } from '../components/detail/SeasonPicker';
+import { SeasonTabs } from '../components/library/SeasonTabs';
+import { useTitleDetail } from '../hooks/useTitleDetail';
+import type { TitleCredit, TitleSource } from '../types/titleDetail';
 
 const STATUS_OPTIONS: { value: LibraryStatus; label: string }[] = [
   { value: 'watching', label: 'Watching' },
@@ -28,19 +32,21 @@ const STATUS_OPTIONS: { value: LibraryStatus; label: string }[] = [
 
 // Remount per title: wouter keeps this instance when only the params change, so hopping
 // title-to-title via "More like this" would otherwise carry over the season, tab, etc.
+// /content/tv/:tmdbId, /content/movie/:tmdbId, or /content/anime/:malId
 export function ContentDetail() {
-  const params = useParams<{ type: string; tmdbId: string }>();
-  return <ContentDetailView key={`${params.type}/${params.tmdbId}`} />;
+  const params = useParams<{ type: string; id: string }>();
+  const id = Number(params.id);
+  const source: TitleSource =
+    params.type === 'anime'
+      ? { kind: 'anime', malId: id }
+      : { kind: 'tmdb', type: params.type === 'movie' ? 'movie' : 'tv', tmdbId: id };
+  return <ContentDetailView key={`${params.type}/${params.id}`} source={source} />;
 }
 
-function ContentDetailView() {
-  const params = useParams<{ type: string; tmdbId: string }>();
+function ContentDetailView({ source }: { source: TitleSource }) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-
-  const routeType = params.type === 'movie' ? 'movie' : 'tv';
-  const creditsType: 'show' | 'movie' = routeType === 'tv' ? 'show' : 'movie';
-  const tmdbId = Number(params.tmdbId);
+  const isAnime = source.kind === 'anime';
 
   // When we arrived from the library quick-look modal, send the back button there
   // (the library page reopens the modal via ?open=<contentId>) instead of history.back().
@@ -57,25 +63,11 @@ function ContentDetailView() {
   const [activeTab, setActiveTab] = useState<string | null>('cast');
   const [season, setSeason] = useState(1);
 
-  // Resolve + cache the content (returns a stable UUID id)
-  const {
-    data: content,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ['content', routeType, tmdbId],
-    queryFn: () => getContentByTmdbId(tmdbId, routeType),
-    enabled: Number.isFinite(tmdbId),
-  });
-
+  // Resolve + cache the content (returns a stable UUID id), plus credits and extras
+  const { detail, isLoading, error, creditsLoading } = useTitleDetail(source);
+  const content = detail?.content;
   const contentId = content?.id;
   const isShow = content?.content_type === 'show';
-
-  const { data: credits, isLoading: creditsLoading } = useQuery({
-    queryKey: ['content-credits', tmdbId, creditsType],
-    queryFn: () => getContentCredits(tmdbId, creditsType),
-    enabled: Number.isFinite(tmdbId),
-  });
 
   const { data: libraryCheck } = useQuery({
     queryKey: ['library-check', contentId],
@@ -142,15 +134,17 @@ function ContentDetailView() {
   // ---- Derived ----
   const crewByDepartment = useMemo(
     () =>
-      credits?.crew.reduce((acc, member) => {
+      detail?.crew.reduce((acc, member) => {
         const dept = member.department || 'Other';
         (acc[dept] ??= []).push(member);
         return acc;
-      }, {} as Record<string, CrewMember[]>) ?? {},
-    [credits]
+      }, {} as Record<string, TitleCredit[]>) ?? {},
+    [detail]
   );
-  const directors = crewByDepartment['Directing']?.filter((m) => m.job === 'Director') ?? [];
+  const directors = crewByDepartment['Directing']?.filter((m) => m.role === 'Director') ?? [];
   const year = content?.first_air_date?.split('-')[0] ?? content?.release_date?.split('-')[0];
+  // Anime arrive one season per entry, so an episode count says more than "1 season"
+  const showEpisodeCount = isAnime && content?.number_of_episodes != null;
 
   if (isLoading) {
     return (
@@ -179,13 +173,23 @@ function ContentDetailView() {
       <div className="relative">
         {/* Backdrop */}
         <div className="absolute inset-0 overflow-hidden bg-gray-900">
-          {content.backdrop_url && (
+          {content.backdrop_url ? (
             <img
               src={content.backdrop_url}
               alt=""
               aria-hidden
               className="w-full h-full object-cover object-center"
             />
+          ) : (
+            content.poster_url && (
+              // No landscape image: a blurred poster keeps the hero from looking broken
+              <img
+                src={content.poster_url}
+                alt=""
+                aria-hidden
+                className="w-full h-full object-cover object-center scale-125 blur-2xl opacity-70"
+              />
+            )
           )}
           {/* Left scrim keeps the title/meta legible regardless of the image */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent" />
@@ -226,9 +230,17 @@ function ContentDetailView() {
               <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight break-words">
                 {content.title}
               </h1>
+              {detail.original_title && (
+                <p className="mt-1 text-base sm:text-lg text-white/70 break-words">{detail.original_title}</p>
+              )}
               <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 text-sm text-white/85">
                 {year && <span className="font-bold">{year}</span>}
-                {content.number_of_seasons != null && isShow && (
+                {showEpisodeCount && isShow && (
+                  <span>
+                    {content.number_of_episodes} episode{content.number_of_episodes === 1 ? '' : 's'}
+                  </span>
+                )}
+                {!showEpisodeCount && content.number_of_seasons != null && isShow && (
                   <span>
                     {content.number_of_seasons} season{content.number_of_seasons === 1 ? '' : 's'}
                   </span>
@@ -238,20 +250,29 @@ function ContentDetailView() {
                     {content.rating}
                   </span>
                 )}
-                {content.status && <span>{content.status}</span>}
+                {content.status && <span>{formatStatus(content.status)}</span>}
               </div>
+              {(detail.studios.length > 0 || detail.genres.length > 0) && (
+                <div className="mt-2 text-sm text-white/80">
+                  {[detail.studios.join(', '), detail.genres.join(', ')].filter(Boolean).join(' · ')}
+                </div>
+              )}
               {directors.length > 0 && (
                 <div className="mt-2 text-sm text-white/80">
                   Directed by{' '}
                   {directors.map((d, i) => (
-                    <span key={d.id}>
+                    <span key={`${d.person_id ?? d.name}`}>
                       {i > 0 && ', '}
-                      <button
-                        onClick={() => setLocation(`/people/${d.id}`)}
-                        className="font-bold text-white hover:underline"
-                      >
-                        {d.name}
-                      </button>
+                      {d.person_id != null ? (
+                        <button
+                          onClick={() => setLocation(`/people/${d.person_id}`)}
+                          className="font-bold text-white hover:underline"
+                        >
+                          {d.name}
+                        </button>
+                      ) : (
+                        <span className="font-bold text-white">{d.name}</span>
+                      )}
                     </span>
                   ))}
                 </div>
@@ -299,22 +320,15 @@ function ContentDetailView() {
                     <Center className="py-8">
                       <Loader size="sm" />
                     </Center>
-                  ) : credits?.cast.length ? (
+                  ) : detail.cast.length ? (
                     <div className="flex flex-wrap gap-2">
-                      {credits.cast.slice(0, 40).map((actor) => (
-                        <button
-                          key={actor.id}
-                          onClick={() => setLocation(`/people/${actor.id}`)}
-                          className="group inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-full border border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-surface))] hover:border-[rgb(var(--color-accent))] transition-colors"
-                          title={actor.character ? `as ${actor.character}` : undefined}
-                        >
-                          <span className="text-sm font-semibold">{actor.name}</span>
-                          {actor.character && (
-                            <span className="text-xs text-[rgb(var(--color-text-tertiary))] truncate max-w-[140px]">
-                              {actor.character}
-                            </span>
-                          )}
-                        </button>
+                      {detail.cast.slice(0, 40).map((actor, i) => (
+                        <CreditChip
+                          key={`${actor.person_id ?? actor.name}-${i}`}
+                          credit={actor}
+                          title={actor.role ? `as ${actor.role}` : undefined}
+                          onOpen={(id) => setLocation(`/people/${id}`)}
+                        />
                       ))}
                     </div>
                   ) : (
@@ -329,7 +343,7 @@ function ContentDetailView() {
                     <Center className="py-8">
                       <Loader size="sm" />
                     </Center>
-                  ) : credits?.crew.length ? (
+                  ) : detail.crew.length ? (
                     <div className="space-y-4">
                       {Object.entries(crewByDepartment).map(([dept, members]) => (
                         <div key={dept}>
@@ -338,16 +352,11 @@ function ContentDetailView() {
                           </h3>
                           <div className="flex flex-wrap gap-2">
                             {members.map((member) => (
-                              <button
-                                key={`${member.id}-${member.job}`}
-                                onClick={() => setLocation(`/people/${member.id}`)}
-                                className="inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-full border border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-surface))] hover:border-[rgb(var(--color-accent))] transition-colors"
-                              >
-                                <span className="text-sm font-semibold">{member.name}</span>
-                                <span className="text-xs text-[rgb(var(--color-text-tertiary))]">
-                                  {member.job}
-                                </span>
-                              </button>
+                              <CreditChip
+                                key={`${member.person_id ?? member.name}-${member.role}`}
+                                credit={member}
+                                onOpen={(id) => setLocation(`/people/${id}`)}
+                              />
                             ))}
                           </div>
                         </div>
@@ -366,6 +375,9 @@ function ContentDetailView() {
             {isShow && (
               <section>
                 <h2 className="text-lg font-bold tracking-tight mb-4">Episodes</h2>
+                {detail.seasons.length > 0 && (
+                  <SeasonPicker seasons={detail.seasons} currentMalId={content.mal_id} />
+                )}
                 {inLibrary ? (
                   <EpisodeTracker libraryItem={libraryItemToUI(libraryItem!)} />
                 ) : (
@@ -377,6 +389,14 @@ function ContentDetailView() {
                     loading={episodesLoading}
                   />
                 )}
+              </section>
+            )}
+
+            {/* Sequels, prequels, source material */}
+            {detail.relations.length > 0 && (
+              <section>
+                <h2 className="text-lg font-bold tracking-tight mb-4">Related</h2>
+                <TitleRelations relations={detail.relations} />
               </section>
             )}
           </div>
@@ -473,13 +493,82 @@ function ContentDetailView() {
                   </Button>
                 </>
               )}
+
+              {detail.streaming.length > 0 && (
+                <div className="pt-3 border-t border-[rgb(var(--color-border-subtle))]">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--color-text-tertiary))] mb-2">
+                    Where to watch
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {detail.streaming.map((s) => (
+                      <a
+                        key={s.name}
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-[rgb(var(--color-border-default))] text-xs font-semibold hover:border-[rgb(var(--color-accent))] transition-colors"
+                      >
+                        {s.name}
+                        <ExternalLink size={12} className="text-[rgb(var(--color-text-tertiary))]" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
         </div>
 
-        <RelatedTitles type={routeType} tmdbId={tmdbId} className="mt-10 sm:mt-14" />
+        {source.kind === 'tmdb' ? (
+          <RelatedTitles type={source.type} tmdbId={source.tmdbId} className="mt-10 sm:mt-14" />
+        ) : (
+          <RelatedTitles items={detail.recommendations} className="mt-10 sm:mt-14" />
+        )}
       </Container>
     </div>
+  );
+}
+
+// "finished_airing" (anime) or "Returning Series" (TMDB) -> "Finished airing" / "Returning Series"
+function formatStatus(status: string): string {
+  const spaced = status.replace(/_/g, ' ');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/** A person pill; links to their page only when they have one here */
+function CreditChip({
+  credit,
+  title,
+  onOpen,
+}: {
+  credit: TitleCredit;
+  title?: string;
+  onOpen: (personId: number) => void;
+}) {
+  const className =
+    'inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-full border border-[rgb(var(--color-border-default))] bg-[rgb(var(--color-bg-surface))]';
+  const body = (
+    <>
+      <span className="text-sm font-semibold">{credit.name}</span>
+      {credit.role && (
+        <span className="text-xs text-[rgb(var(--color-text-tertiary))] truncate max-w-[140px]">
+          {credit.role}
+        </span>
+      )}
+    </>
+  );
+  return credit.person_id != null ? (
+    <button
+      onClick={() => onOpen(credit.person_id!)}
+      className={`${className} hover:border-[rgb(var(--color-accent))] transition-colors`}
+      title={title}
+    >
+      {body}
+    </button>
+  ) : (
+    <span className={className} title={title}>
+      {body}
+    </span>
   );
 }
 
@@ -499,17 +588,12 @@ function ReadOnlyEpisodes({
   loading,
 }: ReadOnlyEpisodesProps) {
   return (
-    <div>
+    <div className="space-y-4">
       {seasons > 1 && (
-        <Select
-          value={String(season)}
-          onChange={(v) => onSeasonChange(Number(v) || 1)}
-          data={Array.from({ length: seasons }, (_, i) => ({
-            value: String(i + 1),
-            label: `Season ${i + 1}`,
-          }))}
-          className="mb-4 max-w-[180px]"
-          size="sm"
+        <SeasonTabs
+          tabs={Array.from({ length: seasons }, (_, i) => ({ key: i + 1, label: `Season ${i + 1}` }))}
+          activeKey={season}
+          onSelect={(key) => onSeasonChange(Number(key))}
         />
       )}
       {loading ? (
@@ -517,28 +601,27 @@ function ReadOnlyEpisodes({
           <Loader size="sm" />
         </Center>
       ) : episodes?.length ? (
-        <div className="divide-y divide-[rgb(var(--color-border-subtle))] border border-[rgb(var(--color-border-default))] rounded-lg overflow-hidden">
+        // Same rows as the library's EpisodeTracker, minus the watched checkbox
+        <ul className="divide-y divide-[rgb(var(--color-border-subtle))] border border-[rgb(var(--color-border-subtle))] overflow-hidden rounded-md">
           {episodes.map((ep) => (
-            <div key={ep.id} className="flex gap-3 p-3 bg-[rgb(var(--color-bg-surface))]">
-              <span className="text-sm font-bold text-[rgb(var(--color-text-tertiary))] w-8 flex-shrink-0 text-right">
-                {ep.episode_number}
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate">{ep.title || `Episode ${ep.episode_number}`}</p>
-                {ep.air_date && (
-                  <p className="text-xs text-[rgb(var(--color-text-tertiary))]">
-                    Air date: {formatFullDate(ep.air_date)}
-                  </p>
-                )}
+            <li key={ep.id} className="flex items-center gap-4 p-3 md:p-4 bg-[rgb(var(--color-bg-surface))]">
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm md:text-base font-medium text-[rgb(var(--color-text-primary))] truncate">
+                  {ep.title || `Episode ${ep.episode_number}`}
+                </span>
+                <span className="text-[10px] md:text-xs font-medium text-[rgb(var(--color-text-tertiary))]">
+                  Episode {ep.episode_number}
+                  {ep.air_date && ` · ${formatFullDate(ep.air_date)}`}
+                </span>
                 {ep.overview && (
-                  <p className="text-xs text-[rgb(var(--color-text-secondary))] mt-1 line-clamp-2">
+                  <span className="text-xs text-[rgb(var(--color-text-secondary))] mt-1 line-clamp-2">
                     {ep.overview}
-                  </p>
+                  </span>
                 )}
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (
         <p className="text-sm text-[rgb(var(--color-text-tertiary))] py-2">
           No episodes available

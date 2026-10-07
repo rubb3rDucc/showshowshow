@@ -1,5 +1,6 @@
 import { apiCall } from './client';
 import type { SearchResponse, SearchResult, Content, QueueItem, Episode } from '../types/api';
+import type { TitleDetail, TitleSeason } from '../types/titleDetail';
 
 /**
  * Search for content (shows/movies) via TMDB or Jikan
@@ -41,6 +42,29 @@ export async function getContentByTmdbId(tmdbId: number, type?: 'tv' | 'movie'):
  */
 export async function getRelatedTitles(type: 'tv' | 'movie', tmdbId: number): Promise<SearchResult[]> {
   const res = await apiCall<{ results: SearchResult[] }>(`/api/content/${type}/${tmdbId}/related`);
+  return res.results;
+}
+
+/** The anime detail page's data, minus seasons and "More like this" (fetched separately) */
+export type AnimeTitleDetail = Omit<TitleDetail, 'seasons' | 'recommendations'>;
+
+/**
+ * Anime detail page data by MAL ID: content row plus cast, crew, relations, streaming
+ * @param malId - MyAnimeList ID
+ */
+export async function getAnimeTitleDetail(malId: number): Promise<AnimeTitleDetail> {
+  return apiCall<AnimeTitleDetail>(`/api/content/anime/${malId}`);
+}
+
+/** Season picker for anime split across entries; empty when there's only one season */
+export async function getAnimeSeasons(malId: number): Promise<TitleSeason[]> {
+  const res = await apiCall<{ seasons: TitleSeason[] }>(`/api/content/anime/${malId}/seasons`);
+  return res.seasons;
+}
+
+/** "More like this" for an anime: user recommendations from the anime provider */
+export async function getAnimeRelated(malId: number): Promise<SearchResult[]> {
+  const res = await apiCall<{ results: SearchResult[] }>(`/api/content/anime/${malId}/related`);
   return res.results;
 }
 

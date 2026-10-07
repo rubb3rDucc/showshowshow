@@ -11,6 +11,7 @@
  */
 
 import { createExternalApi } from './external-api.js';
+import { animeDisplayTitle, animeOriginalTitle, animeBackdropUrl, cleanSynopsis } from './anime-detail.js';
 
 export const ANIME_API_BASE_URL = (process.env.ANIME_API_BASE_URL || 'https://api.tenrai.org/v1').replace(/\/$/, '');
 
@@ -73,12 +74,36 @@ export async function getAnimeEpisodes(malId: number, page: number = 1): Promise
   };
 }
 
+async function getData(path: string): Promise<any> {
+  const response = await rateLimitedFetch(`${ANIME_API_BASE_URL}${path}`);
+  const data = await response.json() as any;
+  return data.data;
+}
+
+// Detail-page extras (characters with voice actors, staff, user recommendations)
+export const getAnimeCharacters = (malId: number): Promise<any[]> => getData(`/anime/${malId}/characters`).then((d) => d ?? []);
+export const getAnimeStaff = (malId: number): Promise<any[]> => getData(`/anime/${malId}/staff`).then((d) => d ?? []);
+export const getAnimeRecommendations = (malId: number): Promise<any[]> =>
+  getData(`/anime/${malId}/recommendations`).then((d) => d ?? []);
+
+// Light record for an anime or manga, used to look up English titles of related entries
+export const getMalEntry = (media: 'anime' | 'manga', malId: number): Promise<any> => getData(`/${media}/${malId}`);
+
+/**
+ * The episode number of a provider episode. Jikan v4 puts it in `mal_id`
+ * (there is no `episode` field); `fallback` covers providers that omit it.
+ */
+export function animeEpisodeNumber(ep: any, fallback: number): number {
+  return ep.mal_id ?? ep.episode ?? fallback;
+}
+
 // Transform Jikan anime data to our content format
 export function jikanToContentFormat(jikanAnime: any): {
   mal_id: number;
   title: string;
   title_english: string | null;
   title_japanese: string | null;
+  original_title: string | null;
   overview: string | null;
   poster_url: string | null;
   backdrop_url: string | null;
@@ -96,10 +121,6 @@ export function jikanToContentFormat(jikanAnime: any): {
                     jikanAnime.images?.jpg?.image_url || 
                     null;
   
-  const backdropUrl = jikanAnime.images?.jpg?.large_image_url || 
-                      jikanAnime.images?.jpg?.image_url || 
-                      null;
-
   // Parse dates
   const startDate = jikanAnime.aired?.from 
     ? new Date(jikanAnime.aired.from) 
@@ -127,12 +148,13 @@ export function jikanToContentFormat(jikanAnime: any): {
 
   return {
     mal_id: jikanAnime.mal_id,
-    title: jikanAnime.title || jikanAnime.title_english || jikanAnime.title_japanese || 'Unknown',
+    title: animeDisplayTitle(jikanAnime),
     title_english: jikanAnime.title_english || null,
     title_japanese: jikanAnime.title_japanese || null,
-    overview: jikanAnime.synopsis || null,
+    original_title: animeOriginalTitle(jikanAnime),
+    overview: cleanSynopsis(jikanAnime.synopsis),
     poster_url: posterUrl,
-    backdrop_url: backdropUrl,
+    backdrop_url: animeBackdropUrl(jikanAnime),
     content_type: isMovie ? 'movie' : 'show',
     release_date: isMovie ? startDate : null, // Movies use release_date
     first_air_date: isMovie ? null : startDate, // Shows use first_air_date
@@ -172,12 +194,12 @@ export function jikanSearchToSearchResult(jikanAnime: any): {
   return {
     mal_id: jikanAnime.mal_id,
     tmdb_id: null,
-    title: jikanAnime.title || jikanAnime.title_english || jikanAnime.title_japanese || 'Unknown',
+    title: animeDisplayTitle(jikanAnime),
     title_english: jikanAnime.title_english || null,
     title_japanese: jikanAnime.title_japanese || null,
-    overview: jikanAnime.synopsis || null,
+    overview: cleanSynopsis(jikanAnime.synopsis),
     poster_url: posterUrl,
-    backdrop_url: posterUrl, // Use same image for backdrop
+    backdrop_url: animeBackdropUrl(jikanAnime),
     content_type: isMovie ? 'movie' : 'tv',
     media_type: isMovie ? 'movie' : 'tv',
     release_date: jikanAnime.aired?.from || null,

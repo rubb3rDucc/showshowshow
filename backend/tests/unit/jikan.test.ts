@@ -38,12 +38,12 @@ describe('Jikan - Data Transformations', () => {
         const result = jikanToContentFormat(jikanAnime);
 
         expect(result.mal_id).toBe(21);
-        expect(result.title).toBe('One Punch Man');
+        expect(result.title).toBe('One-Punch Man'); // English first
         expect(result.title_english).toBe('One-Punch Man');
         expect(result.title_japanese).toBe('ワンパンマン');
         expect(result.overview).toBe('A hero who can defeat any enemy with a single punch.');
         expect(result.poster_url).toBe('https://cdn.myanimelist.net/images/anime/12/76049l.jpg');
-        expect(result.backdrop_url).toBe('https://cdn.myanimelist.net/images/anime/12/76049l.jpg');
+        expect(result.backdrop_url).toBeNull(); // no trailer, and the portrait poster is never reused
         expect(result.content_type).toBe('show');
         expect(result.first_air_date).toEqual(new Date('2015-10-05T00:00:00+00:00'));
         expect(result.release_date).toBeNull();
@@ -291,14 +291,14 @@ describe('Jikan - Data Transformations', () => {
     });
 
     describe('Title fallbacks', () => {
-      it('should use main title if available', () => {
+      it('should prefer the English title over the romaji default', () => {
         const result = jikanToContentFormat({
           mal_id: 1,
           title: 'Main Title',
           title_english: 'English Title',
           title_japanese: '日本語タイトル',
         });
-        expect(result.title).toBe('Main Title');
+        expect(result.title).toBe('English Title');
       });
 
       it('should fallback to title_english if title is missing', () => {
@@ -354,7 +354,7 @@ describe('Jikan - Data Transformations', () => {
           },
         });
         expect(result.poster_url).toBe('https://example.com/large.jpg');
-        expect(result.backdrop_url).toBe('https://example.com/large.jpg');
+        expect(result.backdrop_url).toBeNull();
       });
 
       it('should fallback to image_url if large_image_url is missing', () => {
@@ -502,12 +502,12 @@ describe('Jikan - Data Transformations', () => {
 
         expect(result.mal_id).toBe(21);
         expect(result.tmdb_id).toBeNull();
-        expect(result.title).toBe('One Punch Man');
+        expect(result.title).toBe('One-Punch Man'); // English first
         expect(result.title_english).toBe('One-Punch Man');
         expect(result.title_japanese).toBe('ワンパンマン');
         expect(result.overview).toBe('A hero who can defeat any enemy with a single punch.');
         expect(result.poster_url).toBe('https://cdn.myanimelist.net/images/anime/12/76049l.jpg');
-        expect(result.backdrop_url).toBe('https://cdn.myanimelist.net/images/anime/12/76049l.jpg');
+        expect(result.backdrop_url).toBeNull(); // no trailer, and the portrait poster is never reused
         expect(result.content_type).toBe('tv');
         expect(result.media_type).toBe('tv');
         expect(result.release_date).toBe('2015-10-05T00:00:00+00:00');
@@ -620,7 +620,7 @@ describe('Jikan - Data Transformations', () => {
     });
 
     describe('Image URL handling', () => {
-      it('should use same image for both poster_url and backdrop_url', () => {
+      it('should never reuse the portrait poster as the backdrop', () => {
         const result = jikanSearchToSearchResult({
           mal_id: 1,
           images: {
@@ -630,7 +630,15 @@ describe('Jikan - Data Transformations', () => {
           },
         });
         expect(result.poster_url).toBe('https://example.com/image.jpg');
-        expect(result.backdrop_url).toBe('https://example.com/image.jpg');
+        expect(result.backdrop_url).toBeNull();
+      });
+
+      it('should use the 16:9 trailer thumbnail as the backdrop when there is one', () => {
+        const result = jikanSearchToSearchResult({
+          mal_id: 1,
+          trailer: { images: { maximum_image_url: 'https://img.youtube.com/vi/x/maxresdefault.jpg' } },
+        });
+        expect(result.backdrop_url).toBe('https://img.youtube.com/vi/x/maxresdefault.jpg');
       });
     });
 

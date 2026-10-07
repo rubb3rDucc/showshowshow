@@ -4,7 +4,14 @@ import { requireActiveSubscription } from '../plugins/entitlements.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import { calculateProgress, parsePaginationParams } from '../lib/utils.js';
 import type { FastifyInstance } from 'fastify';
-import { sql } from 'kysely';
+import { sql, type ExpressionBuilder } from 'kysely';
+import type { Database } from '../db/types.js';
+
+// Library search matches the display title or the original (romaji for anime)
+function titleMatches(eb: ExpressionBuilder<Database, 'content'>, search: string) {
+  const pattern = `%${search.trim()}%`;
+  return eb.or([eb('content.title', 'ilike', pattern), eb('content.original_title', 'ilike', pattern)]);
+}
 
 export const libraryRoutes = async (fastify: FastifyInstance) => {
   // Get user's library items
@@ -44,6 +51,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         'user_library.updated_at',
         'content.id as content_id',
         'content.tmdb_id',
+        'content.mal_id',
         'content.title',
         'content.poster_url',
         'content.content_type',
@@ -64,7 +72,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
 
     // Search by title
     if (search && search.trim().length > 0) {
-      query = query.where('content.title', 'ilike', `%${search.trim()}%`);
+      query = query.where((eb) => titleMatches(eb, search));
     }
 
     // Get total count for pagination (before applying limit/offset)
@@ -75,7 +83,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
       .where('user_library.user_id', '=', userId)
       .$if(!!status && status !== 'all', (qb) => qb.where('user_library.status', '=', status as any))
       .$if(!!type && type !== 'all', (qb) => qb.where('content.content_type', '=', type as 'show' | 'movie'))
-      .$if(!!search && search.trim().length > 0, (qb) => qb.where('content.title', 'ilike', `%${search?.trim()}%`))
+      .$if(!!search && search.trim().length > 0, (qb) => qb.where((eb) => titleMatches(eb, search!)))
       .executeTakeFirst();
 
     const totalItems = Number(countResult?.count || 0);
@@ -96,6 +104,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         content: {
           id: item.content_id,
           tmdb_id: item.tmdb_id,
+          mal_id: item.mal_id,
           title: item.title,
           poster_url: item.poster_url,
           content_type: item.content_type,
@@ -482,6 +491,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         'user_library.updated_at',
         'content.id as content_id',
         'content.tmdb_id',
+        'content.mal_id',
         'content.title',
         'content.poster_url',
         'content.content_type',
@@ -505,6 +515,7 @@ export const libraryRoutes = async (fastify: FastifyInstance) => {
         content: {
           id: libraryItem.content_id,
           tmdb_id: libraryItem.tmdb_id,
+          mal_id: libraryItem.mal_id,
           title: libraryItem.title,
           poster_url: libraryItem.poster_url,
           content_type: libraryItem.content_type,

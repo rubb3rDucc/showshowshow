@@ -7,40 +7,11 @@ import { getEpisodesByContentId } from '../../api/content';
 import { getEpisodeStatuses, markEpisode, markSeason, markAllEpisodes } from '../../api/library';
 import { EpisodeDetailModal } from './EpisodeDetailModal';
 import { Button } from '../common/Button';
+import { SeasonTabs } from './SeasonTabs';
 
 interface EpisodeTrackerProps {
   libraryItem: LibraryItemUI;
   onEpisodeUpdate?: (season: number, episode: number, watched: boolean) => void;
-}
-
-// Season Tabs Component
-interface SeasonTabsProps {
-  seasons: number;
-  activeSeason: number;
-  onSeasonChange: (season: number) => void;
-}
-
-function SeasonTabs({ seasons, activeSeason, onSeasonChange }: SeasonTabsProps) {
-  return (
-    <div className="flex gap-2 flex-wrap">
-      {Array.from({ length: seasons }, (_, i) => i + 1).map((season) => {
-        const active = activeSeason === season;
-        return (
-          <button
-            key={season}
-            onClick={() => onSeasonChange(season)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${
-              active
-                ? 'bg-[#646cff] text-white border-[#646cff]'
-                : 'border-[rgb(var(--color-border-default))] text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-text-primary))] hover:border-[rgb(var(--color-text-tertiary))]'
-            }`}
-          >
-            Season {season}
-          </button>
-        );
-      })}
-    </div>
-  );
 }
 
 // Episode List Component
@@ -438,9 +409,9 @@ export function EpisodeTracker({
           {/* Season Tabs */}
           {seasons > 1 && (
             <SeasonTabs
-              seasons={seasons}
-              activeSeason={selectedSeason}
-              onSeasonChange={setSelectedSeason}
+              tabs={Array.from({ length: seasons }, (_, i) => ({ key: i + 1, label: `Season ${i + 1}` }))}
+              activeKey={selectedSeason}
+              onSelect={(key) => setSelectedSeason(Number(key))}
             />
           )}
 

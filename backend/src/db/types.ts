@@ -20,6 +20,7 @@ export interface Database {
     title: string;
     title_english: string | null;
     title_japanese: string | null;
+    original_title: string | null;
     poster_url: string | null;
     backdrop_url: string | null;
     overview: string | null;
@@ -277,5 +278,10 @@ export interface Database {
     content_id: string;
     position: number;
     created_at: Date;
+  };
+  api_cache: {
+    key: string;
+    value: unknown;
+    fetched_at: Date;
   };
 }

@@ -1,6 +1,7 @@
 import { db } from '../db/index.js';
 import { getShowDetails, getMovieDetails, getShowContentRatings, getMovieReleaseDates, extractUSRating, getImageUrl, getDefaultDuration } from '../lib/tmdb.js';
 import { getAnimeDetails, jikanToContentFormat } from '../lib/jikan.js';
+import { verifyImage } from '../lib/anime-service.js';
 import { normalizeRating } from '../lib/rating-utils.js';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -142,9 +143,10 @@ async function refreshAllContent() {
             title: contentData.title,
             title_english: contentData.title_english,
             title_japanese: contentData.title_japanese,
+            original_title: contentData.original_title,
             overview: contentData.overview,
             poster_url: contentData.poster_url,
-            backdrop_url: contentData.backdrop_url,
+            backdrop_url: await verifyImage(contentData.backdrop_url), // YouTube 404s some maxres thumbnails
             release_date: contentData.release_date,
             first_air_date: contentData.first_air_date,
             default_duration: contentData.default_duration,
