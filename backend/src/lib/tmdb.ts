@@ -133,6 +133,27 @@ export function getContentType(result: any): 'show' | 'movie' {
   return result.media_type === 'tv' ? 'show' : 'movie';
 }
 
+// Map a TMDB list result (search, recommendations, similar) to the API's SearchResult shape.
+// `type` overrides the result's own media_type for endpoints that omit it.
+export function tmdbResultToSearchResult(result: any, type?: 'tv' | 'movie') {
+  const normalizedType = (type ?? result.media_type) === 'tv' ? 'tv' : 'movie';
+  return {
+    tmdb_id: result.id,
+    mal_id: null,
+    title: result.name || result.title || 'Unknown',
+    overview: result.overview,
+    poster_url: getImageUrl(result.poster_path),
+    backdrop_url: getImageUrl(result.backdrop_path, 'w780'),
+    content_type: normalizedType,
+    media_type: normalizedType,
+    release_date: result.release_date || result.first_air_date || null,
+    vote_average: result.vote_average || 0,
+    popularity: result.popularity || 0,
+    data_source: 'tmdb',
+    rating: null, // TMDB list endpoints don't include ratings - only available if cached
+  };
+}
+
 // Helper to get default duration
 export function getDefaultDuration(content: any, contentType: 'show' | 'movie'): number {
   if (contentType === 'movie') {
@@ -296,6 +317,18 @@ export async function getShowCredits(tmdbId: number): Promise<any> {
 // Get movie credits (cast & crew)
 export async function getMovieCredits(tmdbId: number): Promise<any> {
   const endpoint = `/movie/${tmdbId}/credits`;
+  return fetchTMDB(endpoint);
+}
+
+// Titles TMDB recommends alongside this one (tighter than /similar)
+export async function getRecommendations(type: 'tv' | 'movie', tmdbId: number, page: number = 1): Promise<any> {
+  const endpoint = `/${type}/${tmdbId}/recommendations?page=${page}`;
+  return fetchTMDB(endpoint);
+}
+
+// Titles sharing genres/keywords with this one (loose; used as a fallback)
+export async function getSimilar(type: 'tv' | 'movie', tmdbId: number, page: number = 1): Promise<any> {
+  const endpoint = `/${type}/${tmdbId}/similar?page=${page}`;
   return fetchTMDB(endpoint);
 }
 

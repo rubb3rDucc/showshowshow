@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getImageUrl, getContentType, getDefaultDuration, extractUSRating } from '../../src/lib/tmdb.js';
+import { getImageUrl, getContentType, getDefaultDuration, extractUSRating, tmdbResultToSearchResult } from '../../src/lib/tmdb.js';
 
 describe('TMDB Helpers', () => {
   describe('getImageUrl', () => {
@@ -329,5 +329,46 @@ describe('TMDB Helpers', () => {
       });
     });
   });
-});
 
+  describe('tmdbResultToSearchResult', () => {
+    const tv = {
+      id: 60059,
+      name: 'Better Call Saul',
+      overview: 'Six years before...',
+      poster_path: '/poster.jpg',
+      backdrop_path: '/backdrop.jpg',
+      first_air_date: '2015-02-08',
+      vote_average: 8.7,
+      popularity: 120,
+    };
+
+    it('maps a TV result using the explicit type when media_type is absent', () => {
+      const r = tmdbResultToSearchResult(tv, 'tv');
+
+      expect(r).toMatchObject({
+        tmdb_id: 60059,
+        title: 'Better Call Saul',
+        content_type: 'tv',
+        media_type: 'tv',
+        poster_url: 'https://image.tmdb.org/t/p/w500/poster.jpg',
+        backdrop_url: 'https://image.tmdb.org/t/p/w780/backdrop.jpg',
+        release_date: '2015-02-08',
+        data_source: 'tmdb',
+      });
+    });
+
+    it('falls back to media_type, then movie, when no type is given', () => {
+      expect(tmdbResultToSearchResult({ ...tv, media_type: 'tv' }).content_type).toBe('tv');
+      expect(tmdbResultToSearchResult({ id: 603, title: 'The Matrix' }).content_type).toBe('movie');
+    });
+
+    it('uses movie fields and safe defaults', () => {
+      const r = tmdbResultToSearchResult({ id: 603, title: 'The Matrix', release_date: '1999-03-31' }, 'movie');
+
+      expect(r.title).toBe('The Matrix');
+      expect(r.release_date).toBe('1999-03-31');
+      expect(r.poster_url).toBeNull();
+      expect(r.vote_average).toBe(0);
+    });
+  });
+});

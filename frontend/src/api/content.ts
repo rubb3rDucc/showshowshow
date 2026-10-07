@@ -1,5 +1,5 @@
 import { apiCall } from './client';
-import type { SearchResponse, Content, QueueItem, Episode } from '../types/api';
+import type { SearchResponse, SearchResult, Content, QueueItem, Episode } from '../types/api';
 
 /**
  * Search for content (shows/movies) via TMDB or Jikan
@@ -32,6 +32,16 @@ export async function searchContent(
 export async function getContentByTmdbId(tmdbId: number, type?: 'tv' | 'movie'): Promise<Content> {
   const params = type ? `?type=${type}` : '';
   return apiCall<Content>(`/api/content/${tmdbId}${params}`);
+}
+
+/**
+ * "More like this" for a title: TMDB recommendations, or similar titles when there are none
+ * @param type - Content type ('tv' or 'movie')
+ * @param tmdbId - TMDB ID of the title
+ */
+export async function getRelatedTitles(type: 'tv' | 'movie', tmdbId: number): Promise<SearchResult[]> {
+  const res = await apiCall<{ results: SearchResult[] }>(`/api/content/${type}/${tmdbId}/related`);
+  return res.results;
 }
 
 /**

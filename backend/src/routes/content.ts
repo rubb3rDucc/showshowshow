@@ -1,5 +1,6 @@
 import { db } from '../db/index.js';
-import { searchTMDB, getShowDetails, getMovieDetails, getSeason, getImageUrl, getContentType, getDefaultDuration, getShowContentRatings, getMovieReleaseDates, extractUSRating } from '../lib/tmdb.js';
+import { searchTMDB, getShowDetails, getMovieDetails, getSeason, getImageUrl, getContentType, getDefaultDuration, getShowContentRatings, getMovieReleaseDates, extractUSRating, getRecommendations, getSimilar, tmdbResultToSearchResult } from '../lib/tmdb.js';
+import { attachCacheStatus } from '../lib/content-cache.js';
 import { searchJikan, jikanSearchToSearchResult, getAnimeDetails, getAnimeEpisodes, jikanToContentFormat } from '../lib/jikan.js';
 import { normalizeRating } from '../lib/rating-utils.js';
 import { dbTypeToApiType } from '../lib/content-type.js';
@@ -116,26 +117,7 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
     });
 
     // Transform results to include image URLs and normalize media_type
-      const tmdbResults = contentResults.map((result: any) => {
-      const mediaType = result.media_type || getContentType(result);
-      const normalizedType = mediaType === 'tv' ? 'tv' : 'movie';
-      
-      return {
-        tmdb_id: result.id,
-          mal_id: null,
-        title: result.name || result.title || 'Unknown',
-        overview: result.overview,
-        poster_url: getImageUrl(result.poster_path),
-        backdrop_url: getImageUrl(result.backdrop_path, 'w780'),
-        content_type: normalizedType,
-        media_type: normalizedType,
-        release_date: result.release_date || result.first_air_date || null,
-        vote_average: result.vote_average || 0,
-        popularity: result.popularity || 0,
-          data_source: 'tmdb',
-        rating: null, // TMDB search API doesn't include ratings - only available if cached
-      };
-    });
+      const tmdbResults = contentResults.map((result: any) => tmdbResultToSearchResult(result));
 
       if (source === 'tmdb' || results.length === 0) {
         results = tmdbResults;
@@ -228,6 +210,31 @@ export const contentRoutes = async (fastify: FastifyInstance) => {
       total_pages: totalPages,
       total_results: resultsWithCacheStatus.length, // Use actual filtered count
     });
+  });
+
+  // "More like this" for a title, modelled on Seerr: TMDB recommendations, falling
+  // back to /similar (genre/keyword matches, much noisier) only when there are none.
+  fastify.get('/api/content/:type/:tmdb_id/related', { preHandler: authenticateClerk }, async (request) => {
+    const { type, tmdb_id } = request.params as { type: string; tmdb_id: string };
+    if (type !== 'tv' && type !== 'movie') {
+      throw new ValidationError('Type must be either "tv" or "movie"');
+    }
+    const tmdbId = parseInt(tmdb_id, 10);
+    if (Number.isNaN(tmdbId)) {
+      throw new ValidationError('Invalid TMDB ID');
+    }
+
+    let results = (await getRecommendations(type, tmdbId)).results || [];
+    if (results.length === 0) {
+      results = (await getSimilar(type, tmdbId)).results || [];
+    }
+
+    // Posterless tiles read as broken in a poster row; adult titles never surface unasked.
+    const mapped = results
+      .filter((r: any) => r.poster_path && !r.adult)
+      .map((r: any) => tmdbResultToSearchResult(r, type));
+
+    return { results: await attachCacheStatus(mapped) };
   });
 
   // Check if content is already cached (without caching it)

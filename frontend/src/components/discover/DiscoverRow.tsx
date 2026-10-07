@@ -5,7 +5,7 @@ interface DiscoverRowProps {
   title: string;
   items: SearchResult[];
   personalized?: boolean;
-  onSeeAll: () => void;
+  onSeeAll?: () => void;
   onItemClick: (item: SearchResult) => void;
 }
 
@@ -26,13 +26,15 @@ export function DiscoverRow({ title, items, personalized, onSeeAll, onItemClick 
             {title}
           </h2>
         </div>
-        <button
-          type="button"
-          onClick={onSeeAll}
-          className="inline-flex items-center min-h-[40px] px-2 -mr-2 text-sm text-[rgb(var(--color-text-tertiary))] hover:text-[rgb(var(--color-text-primary))] transition-colors shrink-0"
-        >
-          See all
-        </button>
+        {onSeeAll && (
+          <button
+            type="button"
+            onClick={onSeeAll}
+            className="inline-flex items-center min-h-[40px] px-2 -mr-2 text-sm text-[rgb(var(--color-text-tertiary))] hover:text-[rgb(var(--color-text-primary))] transition-colors shrink-0"
+          >
+            See all
+          </button>
+        )}
       </div>
 
       <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">

@@ -17,6 +17,7 @@ import { formatFullDate } from '../utils/format';
 import type { LibraryStatus } from '../types/library.types';
 import { useAddToQueue, isAlreadyInQueueError } from '../hooks/useAddToQueue';
 import { EpisodeTracker } from '../components/library/EpisodeTracker';
+import { RelatedTitles } from '../components/discover/RelatedTitles';
 
 const STATUS_OPTIONS: { value: LibraryStatus; label: string }[] = [
   { value: 'watching', label: 'Watching' },
@@ -25,7 +26,14 @@ const STATUS_OPTIONS: { value: LibraryStatus; label: string }[] = [
   { value: 'dropped', label: 'Dropped' },
 ];
 
+// Remount per title: wouter keeps this instance when only the params change, so hopping
+// title-to-title via "More like this" would otherwise carry over the season, tab, etc.
 export function ContentDetail() {
+  const params = useParams<{ type: string; tmdbId: string }>();
+  return <ContentDetailView key={`${params.type}/${params.tmdbId}`} />;
+}
+
+function ContentDetailView() {
   const params = useParams<{ type: string; tmdbId: string }>();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -468,6 +476,8 @@ export function ContentDetail() {
             </div>
           </aside>
         </div>
+
+        <RelatedTitles type={routeType} tmdbId={tmdbId} className="mt-10 sm:mt-14" />
       </Container>
     </div>
   );
