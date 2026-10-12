@@ -1,8 +1,15 @@
 # ShowShowShow
 
-A personal TV and anime scheduling app. Build a lineup of shows, generate a viewing schedule, and track what you actually watched.
+TV, movie, and anime tracker and review web app.
 
-Built for people who want to watch TV intentionally, instead of scrolling and tapping whatever is on top.
+Built for me.
+
+### Reasons why I built it.
+
+- I don't like Letterbox because it works like a social media app; i don't like social media apps.
+- Letterbox only tracks movies but I like the interface. MyAnimelist only tracks anime but the interface is trash.
+- There isn't a good desktop/web and mobile app that does TV, Movie and Anime tracking. They either suck to use, charge stupid amounts of money for minimal features, iOS or Android only, and have unnecessary social media integrations (I don't care that Susan likes Breaking Bad).
+- There aren't any algorithm-less apps available that had a quiet design. I don't want pings or notifications on what I haven't watched or an algorithm that thinks it knows what I want to watch next either.
 
 ## What It Does
 
