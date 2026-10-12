@@ -24,13 +24,61 @@ Built for me.
 
 ## Screenshots
 
-### Home, tonight's schedule at a glance
+### Home, quick add and the shows that need you
 
-![home pic](/readme_pics/main_feb2026_screenshot.png)
+![home pic](/readme_pics/main_oct2026.png)
 
-### Library, track status and episode progress per show
+### Library, a poster grid of everything you track
 
-![lib pic](/readme_pics/lib_feb2026_screenshot.png)
+![lib pic](/readme_pics/lib_oct2026.png)
+
+### Lists, ranked and unranked collections
+
+![lists pic](/readme_pics/lib_lists_oct2026.png)
+
+### Search, movies, TV and anime in one place
+
+![search pic](/readme_pics/search_oct2026.png)
+
+### Stats, totals and shows in progress
+
+![stats pic](/readme_pics/data_oct2026.png)
+
+### Reviews, a monthly journal of what you watched
+
+![reviews pic](/readme_pics/reviews_oct2026.png)
+
+### Movie page, status and score at a glance
+
+![movie detail pic](/readme_pics/content_detail_oct2026.png)
+
+### Movie page, cast, crew and similar titles
+
+![movie detail cast pic](/readme_pics/contdetail_cont_oct2026.png)
+
+### Anime page, related entries and where to watch
+
+![anime detail pic](/readme_pics/contentanime_oct2026.png)
+
+### Quick view, change status without leaving the library
+
+![quick view pic](/readme_pics/moviecard_oct2026.png)
+
+### Quick view, full-size poster
+
+![poster pic](/readme_pics/poster_detail_oct2026.png)
+
+### Quick view, completed and rated
+
+![completed rated pic](/readme_pics/goodmovie_rated_oct2026.png)
+
+### Quick view, plan to watch and unrated
+
+![unrated pic](/readme_pics/unrated_notwatched_oct2026.png)
+
+### Quick view, watching with a score
+
+![watching rated pic](/readme_pics/watched_rated_moviecard_oct2026.png)
 
 ## Architecture
 
