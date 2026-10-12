@@ -1,8 +1,15 @@
 # ShowShowShow
 
-A personal TV and anime scheduling app. Build a lineup of shows, generate a viewing schedule, and track what you actually watched.
+TV, movie, and anime tracker and review web app.
 
-Built for people who want to watch TV intentionally, instead of scrolling and tapping whatever is on top.
+Built for me.
+
+### Reasons why I built it.
+
+- I don't like Letterbox because it works like a social media app; i don't like social media apps.
+- Letterbox only tracks movies but I like the interface. MyAnimelist only tracks anime but the interface is trash.
+- There isn't a good desktop/web and mobile app that does TV, Movie and Anime tracking. They either suck to use, charge stupid amounts of money for minimal features, iOS or Android only, and have unnecessary social media integrations (I don't care that Susan likes Breaking Bad).
+- There aren't any algorithm-less apps available that had a quiet design. I don't want pings or notifications on what I haven't watched or an algorithm that thinks it knows what I want to watch next either.
 
 ## What It Does
 
@@ -17,13 +24,61 @@ Built for people who want to watch TV intentionally, instead of scrolling and ta
 
 ## Screenshots
 
-### Home, tonight's schedule at a glance
+### Home, quick add and the shows that need you
 
-![home pic](/readme_pics/main_feb2026_screenshot.png)
+![home pic](/readme_pics/main_oct2026.png)
 
-### Library, track status and episode progress per show
+### Library, a poster grid of everything you track
 
-![lib pic](/readme_pics/lib_feb2026_screenshot.png)
+![lib pic](/readme_pics/lib_oct2026.png)
+
+### Lists, ranked and unranked collections
+
+![lists pic](/readme_pics/lib_lists_oct2026.png)
+
+### Search, movies, TV and anime in one place
+
+![search pic](/readme_pics/search_oct2026.png)
+
+### Stats, totals and shows in progress
+
+![stats pic](/readme_pics/data_oct2026.png)
+
+### Reviews, a monthly journal of what you watched
+
+![reviews pic](/readme_pics/reviews_oct2026.png)
+
+### Movie page, status and score at a glance
+
+![movie detail pic](/readme_pics/content_detail_oct2026.png)
+
+### Movie page, cast, crew and similar titles
+
+![movie detail cast pic](/readme_pics/contdetail_cont_oct2026.png)
+
+### Anime page, related entries and where to watch
+
+![anime detail pic](/readme_pics/contentanime_oct2026.png)
+
+### Quick view, change status without leaving the library
+
+![quick view pic](/readme_pics/moviecard_oct2026.png)
+
+### Quick view, full-size poster
+
+![poster pic](/readme_pics/poster_detail_oct2026.png)
+
+### Quick view, completed and rated
+
+![completed rated pic](/readme_pics/goodmovie_rated_oct2026.png)
+
+### Quick view, plan to watch and unrated
+
+![unrated pic](/readme_pics/unrated_notwatched_oct2026.png)
+
+### Quick view, watching with a score
+
+![watching rated pic](/readme_pics/watched_rated_moviecard_oct2026.png)
 
 ## Architecture
 
