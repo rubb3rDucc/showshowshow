@@ -37,7 +37,7 @@
     "@tiptap/react": "^3.32.0",
     "@tiptap/starter-kit": "^3.32.0",
     "date-fns": "^4.4.0",
-    "lucide-react": "^0.563.0",
+    "lucide-react": "^1.58.0",
     "modern-screenshot": "^4.7.0",
     "posthog-js": "^1.438.12",
     "react": "^19.3.1",
